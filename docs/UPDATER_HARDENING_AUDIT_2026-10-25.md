@@ -10,6 +10,7 @@ Candidate: `his_risen_controller_ltx25_updater_ui_integrated_2026-10-26.zip`
 - ZIP integrity check: passed
 - Fresh-extraction regression suite: **44 passed**
 - Inline console JavaScript syntax check with `node --check`: passed
+- Server startup smoke test from the fresh extraction: `/health` returned HTTP 200 and the served UI contained the updater card and action.
 
 The package file is currently a generated candidate artifact in the ChatGPT working environment. It has **not** yet replaced the repository's deployment ZIP.
 
