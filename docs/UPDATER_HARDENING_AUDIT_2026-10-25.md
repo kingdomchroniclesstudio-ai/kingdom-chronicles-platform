@@ -33,3 +33,15 @@ This check does not install controller code, download model weights, alter the c
 - No Render settings were changed and no production deployment was triggered.
 - Before deployment, stage the exact candidate archive, verify its extraction layout against Render's build/start commands, then smoke-test the live console in Mock Mode. Confirm outbound network access before treating source-check results as live.
 - Real LTX generation remains unverified and must stay off until ComfyUI/LTX-2.5, compatible workflows, model files, and GPU access are available.
+
+## Reviewable source patch set
+
+Code-level diffs are committed on the review branch under `docs/patches/his-risen-updater-integration/`:
+- `01-director-console.patch`
+- `02-update-checker.patch`
+- `03-console-tests.patch`
+- `04-updater-tests.patch`
+- `README.md` documents application order and scope.
+
+These text patches are review materials; they do not replace the deployment ZIP. The exact candidate archive must still be uploaded to the review branch at the deployment ZIP path before Render can build it.
+
