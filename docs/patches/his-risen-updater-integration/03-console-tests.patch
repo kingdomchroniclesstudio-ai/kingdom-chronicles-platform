@@ -1,0 +1,62 @@
+diff --git a/tests/test_director_console.py b/tests/test_director_console.py
+index efbac68..4788d16 100644
+--- a/tests/test_director_console.py
++++ b/tests/test_director_console.py
+@@ -10,6 +10,7 @@ import urllib.request
+ from http.cookies import SimpleCookie
+ from pathlib import Path
+ import unittest
++from unittest import mock
+ import sys
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+@@ -154,6 +155,49 @@ class DirectorConsoleHTTPTests(unittest.TestCase):
+         self.assertEqual(status, 200)
+         self.assertEqual(final["data"]["status"], "APPROVED")
+ 
++    def test_update_monitor_button_is_present_in_console_ui(self):
++        status, content_type, raw = self.request("GET", "/")
++        self.assertEqual(status, 200)
++        self.assertTrue(content_type.startswith("text/html"))
++        html = raw.decode("utf-8")
++        self.assertIn("LTX Update Monitor", html)
++        self.assertIn("CHECK FOR UPDATES", html)
++        self.assertIn("runUpdateCheck()", html)
++        self.assertIn("/updates/check", html)
++
++    def test_update_check_requires_authentication(self):
++        request = urllib.request.Request(
++            self.base + "/api/updates/check",
++            data=b"{}",
++            headers={"Content-Type": "application/json", "Accept": "application/json"},
++            method="POST",
++        )
++        with self.assertRaises(urllib.error.HTTPError) as ctx:
++            urllib.request.urlopen(request, timeout=3)
++        self.assertEqual(ctx.exception.code, 401)
++
++    def test_update_check_route_returns_read_only_result(self):
++        fake_result = {
++            "controller_update_check": "metadata_discovery_only_no_changes_applied",
++            "automatic_install": False,
++            "downloads_started": False,
++            "gpu_jobs_started": False,
++            "manifest_modified": False,
++            "change_candidates_requiring_manual_review": 1,
++            "sources": [{"source": "test_source", "reachable": True, "change_status": "first_observation_needs_manual_baseline"}],
++        }
++        with mock.patch("updates.check.check_updates", return_value=fake_result) as check:
++            status, _, body = self.json_request("POST", "/api/updates/check", {})
++        self.assertEqual(status, 200)
++        self.assertEqual(body["data"], fake_result)
++        self.assertFalse(body["data"]["automatic_install"])
++        check.assert_called_once_with(self.project)
++
++    def test_update_check_rejects_client_configuration(self):
++        status, _, body = self.json_request("POST", "/api/updates/check", {"url": "https://example.invalid"})
++        self.assertEqual(status, 409)
++        self.assertIn("does not accept configuration", body["error"])
++
+     def test_untrusted_origin_is_blocked(self):
+         body = json.dumps({}).encode()
+         cookie_header = "; ".join(f"{m.key}={m.value}" for m in self.cookies.values())
