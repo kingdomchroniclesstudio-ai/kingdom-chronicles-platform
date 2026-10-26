@@ -12,6 +12,8 @@ Candidate: `his_risen_controller_ltx25_updater_ui_integrated_2026-10-26.zip`
 - Inline console JavaScript syntax check with `node --check`: passed
 - Server startup smoke test from the fresh extraction: `/health` returned HTTP 200 and the served UI contained the updater card and action.
 
+A direct live-check attempt from this execution environment could not resolve outbound hostnames (`Temporary failure in name resolution`) for the four configured sources. The checker returned per-source failures without crashing and wrote no observation cache. This is an environment networking limitation, **not** evidence that the upstream sites are down. The direct runtime source check therefore remains unverified.
+
 The package file is currently a generated candidate artifact in the ChatGPT working environment. It has **not** yet replaced the repository's deployment ZIP.
 
 ## Console updater integration
@@ -29,5 +31,5 @@ This check does not install controller code, download model weights, alter the c
 - The repository's current ZIP under `apps/` has **not** been replaced with the candidate.
 - No change was made to `main`.
 - No Render settings were changed and no production deployment was triggered.
-- Before deployment, stage the exact candidate archive, verify its extraction layout against Render's build/start commands, then smoke-test the live console in Mock Mode.
+- Before deployment, stage the exact candidate archive, verify its extraction layout against Render's build/start commands, then smoke-test the live console in Mock Mode. Confirm outbound network access before treating source-check results as live.
 - Real LTX generation remains unverified and must stay off until ComfyUI/LTX-2.5, compatible workflows, model files, and GPU access are available.
