@@ -1,22 +1,32 @@
-# HIS RISEN updater hardening — verification note (2026-10-25)
+# HIS RISEN updater integration audit — 2026-10-26
 
-## Scope
+## Candidate package
 
-The candidate package `his_risen_controller_ltx25_audited_update_2026-10-25_updater_hardened.zip` was inspected independently of this repository branch. The original uploaded archive was preserved.
+Candidate: `his_risen_controller_ltx25_updater_ui_integrated_2026-10-26.zip`
 
-## Package integrity and tests
+- Size: 1,032,148 bytes
+- SHA-256: `77c74f84e1e94e356ac818d6aff92117db10470908963186138f98ca8bf65229`
+- 73 regular files (91 ZIP entries including directories)
+- ZIP integrity check: passed
+- Fresh-extraction regression suite: **44 passed**
+- Inline console JavaScript syntax check with `node --check`: passed
 
-- Original package: 73 files; ZIP integrity check passed.
-- Candidate package: 73 files; ZIP integrity check passed.
-- Expected entry points and directories are present: `director_console.py`, `requirements.txt`, `updates/`, and `workflows/`.
-- Regression suite run against the candidate package: **40 passed, 6 subtests passed**.
+The package file is currently a generated candidate artifact in the ChatGPT working environment. It has **not** yet replaced the repository's deployment ZIP.
 
-## Updater safety behavior
+## Console updater integration
 
-The candidate update checker reads structured metadata from the official Lightricks GitHub releases API and Hugging Face LTX-2.5-Diffusers model API. It stores observations in `storage/update_check_state.json`; that file is an observation cache, not an installed-version manifest. The first observation requires a manual baseline; later changes are candidates for review, not proof of compatibility.
+The candidate adds an **LTX Update Monitor** card with a **Check for Updates** action in the Director Console. The action calls the authenticated `POST /api/updates/check` endpoint and displays per-source reachability, metadata change status, and errors. Client-supplied configuration is rejected; the UI escapes returned text before displaying it.
 
-The checker does not install code, download model weights, launch GPU jobs, silently switch model families, or modify the capability manifest. The official compatibility and API-changelog pages are checked for reachability only.
+The existing updater checks official Lightricks GitHub release metadata, Hugging Face model metadata, and documentation reachability. Its local observation cache is not an installed-version manifest. First observations and metadata differences are manual-review candidates, not proof that an update is compatible or needed.
+
+## Safety guarantees
+
+This check does not install controller code, download model weights, alter the capability manifest, silently switch model families, or start GPU jobs. The endpoint is protected by the existing Director session and same-origin checks. Integration tests cover UI presence, authentication, request validation, read-only result handling, and existing controller lifecycle behavior.
 
 ## Deployment gate — not yet cleared
 
-This note is an audit record, not a deployment. No Render service was changed and no production deployment was triggered. Before deployment, the candidate package must be staged as the actual deployment artifact, its extraction layout and Render build/start commands checked together, and the deployed app smoke-tested in mock mode. Real LTX generation still requires a working ComfyUI/LTX-2.5 runtime, model files, compatible workflows, and GPU access.
+- The repository's current ZIP under `apps/` has **not** been replaced with the candidate.
+- No change was made to `main`.
+- No Render settings were changed and no production deployment was triggered.
+- Before deployment, stage the exact candidate archive, verify its extraction layout against Render's build/start commands, then smoke-test the live console in Mock Mode.
+- Real LTX generation remains unverified and must stay off until ComfyUI/LTX-2.5, compatible workflows, model files, and GPU access are available.
