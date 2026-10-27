@@ -1,0 +1,73 @@
+diff --git a/director_console.py b/director_console.py
+index 40e20a7..b56ffa5 100644
+--- a/director_console.py
++++ b/director_console.py
+@@ -149,6 +149,12 @@ class DirectorConsole:
+             "server_time": time.time(),
+         }
+ 
++    def check_for_updates(self) -> dict[str, Any]:
++        """Check official LTX metadata without installing or downloading assets."""
++        from updates.check import check_updates
++
++        return check_updates(self.root)
++
+     def create_mock_test(self) -> dict[str, Any]:
+         if type(self.controller.adapter).__name__ != "MockComfyUIAdapter":
+             raise ValueError("Mock Test is available only while the console is in Mock Mode.")
+@@ -291,6 +297,12 @@ input,textarea,select{width:100%;background:#0c1118;border:1px solid #303947;col
+     <div id="mockTestResult" class="small muted"></div>
+   </div>
+ 
++  <div class="card" id="updateCheckCard">
++    <div class="row"><div class="grow"><h3>LTX Update Monitor</h3><p class="muted small">Checks official release, model and documentation sources. This is read-only discovery: it does not install controller code, download model weights, edit capabilities, or start GPU jobs.</p></div><button id="updateCheckButton" class="primary" onclick="runUpdateCheck()">CHECK FOR UPDATES</button></div>
++    <div id="updateCheckStatus" class="small muted" role="status" aria-live="polite">Not checked in this session.</div>
++    <div id="updateCheckResults" class="list" aria-live="polite"></div>
++  </div>
++
+   <div id="current" class="card"><div class="muted">No completed shot awaiting Director review.</div></div>
+ 
+   <div class="card"><h3>Director Command</h3><p class="muted small">The natural-language command bridge is not connected yet. No command is executed from this box.</p><textarea id="command" placeholder="Example: Pause production after the current shot."></textarea><div class="actions"><button onclick="sendCommand()">SEND COMMAND</button></div><div id="commandResult" class="small muted"></div></div>
+@@ -338,6 +350,30 @@ function renderTakes(takes){
+  }).join('')||'<div class="muted">No takes yet.</div>';
+ }
+ async function runMockTest(){try{const r=await api('/mock-test',{method:'POST',body:JSON.stringify({})});currentFilm=r.take.film_id;$('mockTestResult').textContent=`Mock take: ${r.take.take_id}. Waiting for controller completion…`;note(r.reused?'Using the active mock test.':'Mock shot submitted.');await refreshAll()}catch(e){note(e.message)}}
++function updateStatusLabel(result){
++ const labels={first_observation_needs_manual_baseline:'First observation — manual baseline needed',release_metadata_changed_since_last_check:'Release metadata changed since last check',model_metadata_changed_since_last_check:'Model metadata changed since last check',no_change_since_last_check:'No metadata change since last check'};
++ return labels[result]||String(result||'No update status inferred').replaceAll('_',' ');
++}
++function renderUpdateResults(data){
++ const host=$('updateCheckResults');
++ const results=Array.isArray(data.sources)?data.sources:[];
++ const summary=Number(data.change_candidates_requiring_manual_review)||0;
++ $('updateCheckStatus').textContent=`Check finished. ${summary} metadata candidate(s) need manual review. No changes were applied; automatic install is off.`;
++ host.innerHTML=results.map(item=>{
++  const detail=item.release?.tag_name?`Release: ${esc(item.release.tag_name)}`:item.model?.revision?`Model revision: ${esc(String(item.model.revision).slice(0,12))}…`:'';
++  const extra=item.error?`<div class="small bad">${esc(item.error)}</div>`:item.note?`<div class="small muted">${esc(item.note)}</div>`:'';
++  const status=item.change_status?updateStatusLabel(item.change_status):item.reachable?(item.metadata_status||'Source reachable'):'Source unavailable';
++  const badge=item.reachable===true?'ok':item.reachable===false?'bad':'warn';
++  const http=item.http_status?` · HTTP ${esc(item.http_status)}`:'';
++  return `<div class="item"><div class="row"><b class="grow">${esc(item.source||'Update source')}</b><span class="pill ${badge}">${esc(item.reachable===true?'REACHABLE':item.reachable===false?'UNREACHABLE':'LOCAL')}</span></div><div class="small">${esc(status)}${http}</div>${detail?`<div class="small muted">${detail}</div>`:''}${extra}</div>`;
++ }).join('')||'<div class="muted small">No source results were returned.</div>';
++}
++async function runUpdateCheck(){
++ const button=$('updateCheckButton');button.disabled=true;button.textContent='CHECKING…';$('updateCheckStatus').textContent='Checking official sources. Nothing will be installed or downloaded.';$('updateCheckResults').innerHTML='';
++ try{const data=await api('/updates/check',{method:'POST',body:JSON.stringify({})});renderUpdateResults(data);note('Update check completed; review any candidates manually.');}
++ catch(e){$('updateCheckStatus').textContent='The update check did not complete: '+e.message;note(e.message)}
++ finally{button.disabled=false;button.textContent='CHECK FOR UPDATES'}
++}
+ async function approve(id){try{await api('/takes/'+encodeURIComponent(id)+'/approve',{method:'POST',body:JSON.stringify({auto_export:true})});note('Approved. Export started/completed.');await refreshAll()}catch(e){note(e.message)}}
+ async function reject(id){const reason=prompt('Why are you rejecting this take?');if(!reason)return;try{await api('/takes/'+encodeURIComponent(id)+'/reject',{method:'POST',body:JSON.stringify({reason})});note('Rejected and recorded.');await refreshAll()}catch(e){note(e.message)}}
+ async function regenerate(id){try{const r=await api('/takes/'+encodeURIComponent(id)+'/regenerate',{method:'POST',body:JSON.stringify({})});note('Regeneration submitted: '+r.take_id);await refreshAll()}catch(e){note(e.message)}}
+@@ -533,6 +569,11 @@ class Handler(BaseHTTPRequestHandler):
+                 return
+ 
+             body = self._read_json()
++            if path == "/api/updates/check":
++                if body not in ({}, None):
++                    raise ValueError("update check does not accept configuration; it only reads official metadata")
++                self._json(200, {"ok": True, "data": self._console().check_for_updates()})
++                return
+             if path == "/api/mock-test":
+                 if body not in ({}, None):
+                     raise ValueError("mock test does not accept configuration; it uses the fixed safe fixture")

@@ -1,0 +1,98 @@
+diff --git a/tests/test_update_checker.py b/tests/test_update_checker.py
+index 4f0fccd..c89d391 100644
+--- a/tests/test_update_checker.py
++++ b/tests/test_update_checker.py
+@@ -1,20 +1,76 @@
+ from __future__ import annotations
+-import json, sys, tempfile, unittest
++
++import json
++import sys
++import tempfile
++import unittest
+ from pathlib import Path
+-ROOT=Path(__file__).resolve().parents[1]
+-if str(ROOT) not in sys.path: sys.path.insert(0,str(ROOT))
+-from updates.check import SOURCES
++from unittest.mock import patch
++
++ROOT = Path(__file__).resolve().parents[1]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
++from updates.check import SOURCES, check_updates
++
++
+ class UpdateCheckerPolicyTests(unittest.TestCase):
+- def test_update_sources_are_official_and_no_auto_install(self):
+-  data=json.loads((ROOT/"workflows"/"ltx25_capabilities.json").read_text())
+-  policy=data["update_policy"]
+-  self.assertFalse(policy["automatic_install"]); self.assertFalse(policy["automatic_model_download"]); self.assertFalse(policy["automatic_gpu_job"])
+-  self.assertTrue(all(url.startswith("https://") for url in SOURCES.values()))
+- def test_new_specialists_have_status_and_director_gate(self):
+-  data=json.loads((ROOT/"workflows"/"ltx25_capabilities.json").read_text())
+-  for key in ("MOTION_TRANSFER","LAYOUT_TO_RENDER","NATIVE_HDR_EXR_I2V","SDR_TO_HDR","ALPHA_GEN","CLEAN_PLATE","DEBLUR","RESTORE"):
+-   self.assertIn(key,data["production_profiles"]); self.assertTrue(data["production_profiles"][key]["requires_director_authorization"])
+- def test_diffusers_is_not_default_route(self):
+-  data=json.loads((ROOT/"workflows"/"ltx25_capabilities.json").read_text())
+-  self.assertIn("SEPARATE_EXPERIMENTAL_ROUTE",data["integration_routes"]["diffusers"]["status"])
+-if __name__=="__main__": unittest.main()
++    def test_update_sources_are_official_and_no_auto_install(self):
++        data = json.loads((ROOT / "workflows" / "ltx25_capabilities.json").read_text())
++        policy = data["update_policy"]
++        self.assertFalse(policy["automatic_install"])
++        self.assertFalse(policy["automatic_model_download"])
++        self.assertFalse(policy["automatic_gpu_job"])
++        self.assertTrue(all(url.startswith("https://") for url in SOURCES.values()))
++
++    def test_new_specialists_have_status_and_director_gate(self):
++        data = json.loads((ROOT / "workflows" / "ltx25_capabilities.json").read_text())
++        for key in ("MOTION_TRANSFER", "LAYOUT_TO_RENDER", "NATIVE_HDR_EXR_I2V", "SDR_TO_HDR", "ALPHA_GEN", "CLEAN_PLATE", "DEBLUR", "RESTORE"):
++            self.assertIn(key, data["production_profiles"])
++            self.assertTrue(data["production_profiles"][key]["requires_director_authorization"])
++
++    def test_diffusers_is_not_default_route(self):
++        data = json.loads((ROOT / "workflows" / "ltx25_capabilities.json").read_text())
++        self.assertIn("SEPARATE_EXPERIMENTAL_ROUTE", data["integration_routes"]["diffusers"]["status"])
++
++    def test_release_metadata_is_exposed_and_first_check_is_not_claimed_as_update(self):
++        root = Path(tempfile.mkdtemp())
++        (root / "workflows").mkdir()
++        (root / "workflows" / "ltx25_capabilities.json").write_text(json.dumps({"manifest_version": "test", "model_family": "LTX-2.5"}))
++        release = json.dumps({"tag_name": "v9.9.9", "published_at": "2026-10-01T00:00:00Z", "html_url": "https://github.com/Lightricks/LTX-2/releases/tag/v9.9.9", "body": "notes"}).encode()
++        hf = json.dumps({"sha": "abc123", "lastModified": "2026-10-01T00:00:00Z"}).encode()
++
++        def fake_request(url, timeout):
++            if "api.github.com" in url:
++                return 200, release, "application/json"
++            if "huggingface.co/api/models" in url:
++                return 200, hf, "application/json"
++            return 200, b"docs", "text/html"
++
++        with patch("updates.check._request", side_effect=fake_request):
++            result = check_updates(root)
++        self.assertEqual(result["controller_update_check"], "metadata_discovery_only_no_changes_applied")
++        self.assertFalse(result["automatic_install"])
++        self.assertFalse(result["manifest_modified"])
++        release_result = next(x for x in result["sources"] if x["source"] == "ltx_github_releases")
++        self.assertEqual(release_result["release"]["tag_name"], "v9.9.9")
++        self.assertEqual(release_result["change_status"], "first_observation_needs_manual_baseline")
++        self.assertTrue((root / "storage" / "update_check_state.json").exists())
++
++    def test_failed_source_is_reported_without_failing_whole_check(self):
++        root = Path(tempfile.mkdtemp())
++        (root / "workflows").mkdir()
++        (root / "workflows" / "ltx25_capabilities.json").write_text(json.dumps({"manifest_version": "test", "model_family": "LTX-2.5"}))
++        def fake_request(url, timeout):
++            if "api.github.com" in url:
++                raise TimeoutError("simulated timeout")
++            return 200, b"docs", "text/html"
++        with patch("updates.check._request", side_effect=fake_request):
++            result = check_updates(root)
++        release_result = next(x for x in result["sources"] if x["source"] == "ltx_github_releases")
++        self.assertFalse(release_result["reachable"])
++        self.assertIn("TimeoutError", release_result["error"])
++
++
++if __name__ == "__main__":
++    unittest.main()
