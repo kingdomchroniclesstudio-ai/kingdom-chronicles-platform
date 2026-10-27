@@ -115,15 +115,27 @@ class ReleaseFallbackAndBaselineTests(unittest.TestCase):
         )
         hf = json.dumps({"sha": "4791a1100e0cf97f7ed5c55c12dd71dce13f9dd3",
                          "lastModified": "2026-10-22T08:58:38.000Z"}).encode()
-        def fake_request(url, timeout):
+        class FakeResponse:
+            def __init__(self, body, content_type):
+                self.status = 200
+                self.body = body
+                self.headers = {"Content-Type": content_type}
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+            def read(self, limit):
+                return self.body[:limit]
+        def fake_urlopen(request, timeout):
+            url = getattr(request, "full_url", str(request))
             if url == SOURCES["ltx_github_releases"]:
                 raise urllib.error.HTTPError(url, 403, "rate limit exceeded", None, None)
             if url == "https://github.com/Lightricks/LTX-2/releases.atom":
-                return 200, feed, "application/atom+xml"
+                return FakeResponse(feed, "application/atom+xml")
             if url == SOURCES["ltx_diffusers_model"]:
-                return 200, hf, "application/json"
-            return 200, b"official docs", "text/html"
-        with patch("updates.check._request", side_effect=fake_request):
+                return FakeResponse(hf, "application/json")
+            return FakeResponse(b"official docs", "text/html")
+        with patch("updates.check.urllib.request.urlopen", side_effect=fake_urlopen):
             result = check_updates(root)
         release = next(x for x in result["sources"] if x["source"] == "ltx_github_releases")
         model = next(x for x in result["sources"] if x["source"] == "ltx_diffusers_model")
