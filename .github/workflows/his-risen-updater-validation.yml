@@ -54,6 +54,9 @@ jobs:
         run: python -m unittest discover -s app/tests -v
 
       - name: Smoke-test controller startup and health endpoint
+        env:
+          # Test-only value for this isolated CI runner; never used by Render.
+          HRF_DIRECTOR_PIN: "123456"
         shell: bash
         run: |
           set -euo pipefail
