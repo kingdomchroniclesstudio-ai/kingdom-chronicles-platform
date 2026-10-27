@@ -211,19 +211,6 @@ def main() -> None:
     info.external_attr = 0o100644 << 16
     entries["storage/update_check_state.json"] = (info, (json.dumps(baseline(), indent=2, sort_keys=True) + "\n").encode())
 
-    workflow_text = WORKFLOW.read_text(encoding="utf-8")
-    expected_line = '          expected_sha256="77c74f84e1e94e356ac818d6aff92117db10470908963186138f98ca8bf65229"\n'
-    checksum_block = (
-        '          checksum_file="$archive.sha256"\n'
-        '          test -s "$checksum_file"\n'
-        '          expected_sha256="$(awk \'NF {print $1; exit}\' "$checksum_file")"\n'
-        '          test -n "$expected_sha256"\n'
-    )
-    if expected_line in workflow_text:
-        WORKFLOW.write_text(workflow_text.replace(expected_line, checksum_block, 1), encoding="utf-8")
-    elif 'checksum_file="$archive.sha256"' not in workflow_text:
-        raise SystemExit("Could not safely update validation workflow checksum guard.")
-
     with tempfile.TemporaryDirectory(prefix="hrf-updater-") as td:
         rebuilt = Path(td) / ARCHIVE.name
         with zipfile.ZipFile(rebuilt, "w", compression=zipfile.ZIP_DEFLATED) as z:
