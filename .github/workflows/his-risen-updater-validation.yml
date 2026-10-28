@@ -5,6 +5,7 @@ on:
     branches:
       - updater-hardening-2026-10-25
       - main
+            - updater-final-fixes-2026-10-27
   workflow_dispatch:
 
 permissions:
@@ -28,7 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           archive="apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip"
-          expected_sha256="77c74f84e1e94e356ac818d6aff92117db10470908963186138f98ca8bf65229"
+          expected_sha256="df2592a2527f74f6d603357f33f56ad16287bed7f516f4f0a2af993b947d14d9"
           test -s "$archive"
           actual_sha256="$(sha256sum "$archive" | awk '{print $1}')"
           echo "Archive size: $(stat -c '%s' "$archive") bytes"
