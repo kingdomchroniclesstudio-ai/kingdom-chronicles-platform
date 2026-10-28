@@ -5,7 +5,7 @@ on:
     branches:
       - updater-hardening-2026-10-25
       - main
-            - updater-final-fixes-2026-10-27
+      - updater-final-fixes-2026-10-27
   workflow_dispatch:
 
 permissions:
