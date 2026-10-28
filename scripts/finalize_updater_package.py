@@ -161,7 +161,7 @@ def baseline() -> dict:
             "ltx_github_releases": {
                 "tag_name": TAG, "published_at": PUBLISHED,
                 "html_url": f"https://github.com/Lightricks/LTX-2/releases/tag/{TAG}",
-                "fingerprint": sha(TAG),
+                "fingerprint": sha(json.dumps({"tag_name": TAG, "published_at": PUBLISHED}, sort_keys=True)),
             },
             "ltx_diffusers_model": {
                 "revision": REV, "last_modified": MODIFIED, "fingerprint": model_fp,
@@ -196,6 +196,39 @@ def main() -> None:
             'fingerprint = _sha256(str(tag))',
             1,
         )
+    # Keep the approved source baseline immutable; store observations separately.
+    source = source.replace(
+        'STATE_RELATIVE_PATH = Path("storage") / "update_check_state.json"',
+        'BASELINE_RELATIVE_PATH = Path("storage") / "update_check_state.json"\nOBSERVATIONS_RELATIVE_PATH = Path("storage") / "update_check_observations.json"',
+        1,
+    )
+    source = source.replace(
+        '    state_path = root / STATE_RELATIVE_PATH\n    state = _load_state(state_path)\n    previous = state.get("sources", {})',
+        '    baseline_path = root / BASELINE_RELATIVE_PATH\n    observations_path = root / OBSERVATIONS_RELATIVE_PATH\n    baseline_state = _load_state(baseline_path)\n    previous = baseline_state.get("sources", {})',
+        1,
+    )
+    source = source.replace(
+        '    # Preserve old observations for sources that failed; update only valid new metadata.\n    merged = dict(previous) if isinstance(previous, dict) else {}\n    merged.update(observations)\n',
+        '    # Compare every check against the bundled approved baseline; observations are diagnostics only.\n',
+        1,
+    )
+    source = source.replace("state_path.parent.mkdir(parents=True, exist_ok=True)", "observations_path.parent.mkdir(parents=True, exist_ok=True)", 1)
+    source = source.replace("state_path.write_text(json.dumps({", "observations_path.write_text(json.dumps({", 1)
+    source = source.replace('"sources": merged,', '"sources": observations,', 1)
+    source = source.replace(
+        '"note": "Observation cache only; not an installed-version manifest."',
+        '"note": "Latest observations only; not used as a baseline and not an installed-version manifest."',
+        1,
+    )
+    source = source.replace(
+        'fingerprint = _sha256(str(tag))',
+        'fingerprint = _sha256(json.dumps({"tag_name": tag, "published_at": published}, sort_keys=True))',
+        1,
+    )
+    source = source.replace("release_metadata_changed_since_last_check", "release_metadata_differs_from_approved_baseline")
+    source = source.replace("model_metadata_changed_since_last_check", "model_metadata_differs_from_approved_baseline")
+    source = source.replace("str(STATE_RELATIVE_PATH)", "str(OBSERVATIONS_RELATIVE_PATH)")
+
     entries["updates/check.py"] = (entries["updates/check.py"][0], source.encode("utf-8"))
 
     tests = entries["tests/test_update_checker.py"][1].decode("utf-8")
@@ -204,6 +237,29 @@ def main() -> None:
         if marker not in tests:
             raise SystemExit("Could not find test module footer; no ZIP changes made.")
         tests = tests.replace(marker, TESTS + marker, 1)
+    tests = tests.replace(
+        'hashlib.sha256(b"v1.5.0").hexdigest()',
+        'hashlib.sha256(json.dumps({"tag_name": "v1.5.0", "published_at": "2026-10-18T17:41:36Z"}, sort_keys=True).encode("utf-8")).hexdigest()',
+        1,
+    )
+    tests = tests.replace(
+        '(root / "storage" / "update_check_state.json").exists()',
+        '(root / "storage" / "update_check_observations.json").exists()',
+        1,
+    )
+    if "test_candidate_remains_visible_until_approved_baseline_is_updated" not in tests:
+        marker = '    def test_rate_limit_uses_official_atom_fallback_without_false_update(self):'
+        if marker not in tests:
+            raise SystemExit("Could not locate updater fallback test to add baseline persistence regression.")
+        tests = tests.replace(marker, "    def test_candidate_remains_visible_until_approved_baseline_is_updated(self):\n        import shutil\n\n        root = Path(tempfile.mkdtemp())\n        (root / \"workflows\").mkdir()\n        shutil.copyfile(ROOT / \"workflows\" / \"ltx25_capabilities.json\", root / \"workflows\" / \"ltx25_capabilities.json\")\n        (root / \"storage\").mkdir()\n        baseline_path = root / \"storage\" / \"update_check_state.json\"\n        shutil.copyfile(ROOT / \"storage\" / \"update_check_state.json\", baseline_path)\n        baseline_before = baseline_path.read_bytes()\n\n        release_body = json.dumps({\n            \"tag_name\": \"v1.6.0\",\n            \"published_at\": \"2026-10-27T10:00:00Z\",\n            \"html_url\": \"https://github.com/Lightricks/LTX-2/releases/tag/v1.6.0\",\n            \"body\": \"new release notes\",\n        }).encode(\"utf-8\")\n        model_body = json.dumps({\n            \"sha\": \"cccccccccccccccccccccccccccccccccccccccc\",\n            \"lastModified\": \"2026-10-27T10:00:00.000Z\",\n        }).encode(\"utf-8\")\n\n        class FakeResponse:\n            def __init__(self, body, content_type):\n                self.status = 200\n                self.body = body\n                self.headers = {\"Content-Type\": content_type}\n            def __enter__(self):\n                return self\n            def __exit__(self, *args):\n                return False\n            def read(self, limit):\n                return self.body[:limit]\n\n        def fake_urlopen(request, timeout):\n            url = getattr(request, \"full_url\", str(request))\n            if url == SOURCES[\"ltx_github_releases\"]:\n                return FakeResponse(release_body, \"application/json\")\n            if url == SOURCES[\"ltx_diffusers_model\"]:\n                return FakeResponse(model_body, \"application/json\")\n            return FakeResponse(b\"official docs\", \"text/html\")\n\n        with patch(\"updates.check.urllib.request.urlopen\", side_effect=fake_urlopen):\n            first = check_updates(root)\n            second = check_updates(root)\n\n        for result in (first, second):\n            release_result = next(x for x in result[\"sources\"] if x[\"source\"] == \"ltx_github_releases\")\n            model_result = next(x for x in result[\"sources\"] if x[\"source\"] == \"ltx_diffusers_model\")\n            self.assertEqual(release_result[\"change_status\"], \"release_metadata_differs_from_approved_baseline\")\n            self.assertEqual(model_result[\"change_status\"], \"model_metadata_differs_from_approved_baseline\")\n            self.assertEqual(result[\"change_candidates_requiring_manual_review\"], 2)\n\n        self.assertEqual(baseline_path.read_bytes(), baseline_before)\n        self.assertTrue((root / \"storage\" / \"update_check_observations.json\").exists())\n\n" + marker, 1)
+
+    console = entries["director_console.py"][1].decode("utf-8")
+    if "const labels={first_observation_needs_manual_baseline:'First observation — manual baseline needed',release_metadata_changed_since_last_check:'Release metadata changed since last check',model_metadata_changed_since_last_check:'Model metadata changed since last check',no_change_since_last_check:'No metadata change since last check'};" in console:
+        console = console.replace("const labels={first_observation_needs_manual_baseline:'First observation — manual baseline needed',release_metadata_changed_since_last_check:'Release metadata changed since last check',model_metadata_changed_since_last_check:'Model metadata changed since last check',no_change_since_last_check:'No metadata change since last check'};", "const labels={first_observation_needs_manual_baseline:'Approved baseline missing — manual review needed',release_metadata_differs_from_approved_baseline:'Release metadata differs from approved baseline',model_metadata_differs_from_approved_baseline:'Model metadata differs from approved baseline',no_change_since_last_check:'No metadata change from approved baseline'};", 1)
+    elif "release_metadata_differs_from_approved_baseline" not in console:
+        raise SystemExit("Could not safely update updater result labels in director_console.py.")
+    entries["director_console.py"] = (entries["director_console.py"][0], console.encode("utf-8"))
+
     entries["tests/test_update_checker.py"] = (entries["tests/test_update_checker.py"][0], tests.encode("utf-8"))
 
     info = zipfile.ZipInfo("storage/update_check_state.json")
