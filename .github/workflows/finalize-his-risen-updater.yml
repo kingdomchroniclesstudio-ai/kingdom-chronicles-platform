@@ -1,0 +1,60 @@
+name: Finalize HIS RISEN updater package
+on:
+  push:
+    branches:
+      - updater-final-fixes-2026-10-27
+permissions:
+  contents: write
+jobs:
+  patch-test-and-stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Patch package and baseline
+        run: python scripts/finalize_updater_package.py
+      - name: Verify checksum and archive integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip"
+          expected="$(awk 'NF {print $1; exit}' "$archive.sha256")"
+          actual="$(sha256sum "$archive" | awk '{print $1}')"
+          test -n "$expected"
+          test "$actual" = "$expected"
+          unzip -t "$archive"
+      - name: Install dependencies and run regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf app
+          mkdir app
+          unzip -q "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip" -d app
+          python -m compileall -q app
+          python -m pip install -r app/requirements.txt
+          python -m unittest discover -s app/tests -v
+      - name: Probe live read-only metadata
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -uo pipefail
+          cd app
+          timeout 90s python cli.py check-updates
+      - name: Commit package artifacts only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip" "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip.sha256"
+          if git diff --cached --quiet; then
+            echo "Package is already up to date; no commit needed."
+          else
+            git commit -m "Make updater baseline durable across ephemeral restarts"
+            git push origin HEAD:updater-final-fixes-2026-10-27
+          fi
