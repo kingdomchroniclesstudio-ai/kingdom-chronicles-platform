@@ -113,7 +113,7 @@ def main() -> None:
         # Preserve the exact deployed archive name and update its adjacent checksum.
         shutil.move(temp_zip, ARCHIVE)
         digest = hashlib.sha256(ARCHIVE.read_bytes()).hexdigest()
-        MANIFEST.write_text(f"{digest}  {ARCHIVE.name}\\n", encoding="utf-8")
+        MANIFEST.write_text(f"{digest}  {ARCHIVE.name}\n", encoding="utf-8")
 
         validation = VALIDATION_WORKFLOW.read_text(encoding="utf-8")
         validation = replace_once(validation, ORIGINAL_SHA256, digest, "pinned package digest")
