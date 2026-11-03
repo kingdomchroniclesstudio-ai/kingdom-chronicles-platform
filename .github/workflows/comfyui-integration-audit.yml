@@ -64,6 +64,7 @@ jobs:
             app/tests/test_frame_conditioning.py \
             app/workflows/loader.py \
             app/workflows/registry.py \
+            app/updates/check.py \
             app/workflows/real_presets.json \
             app/config/runtime.json \
             app/.env.example \
