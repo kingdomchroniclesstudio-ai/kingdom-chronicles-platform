@@ -252,9 +252,9 @@ def resolve_data_root(project_root: Path) -> Path:
     )
     patch_text(
         files, "updates/check.py",
-        "    state_path = root / STATE_RELATIVE_PATH\n",
-        "    state_path = (Path(state_root).resolve() if state_root is not None else root) / STATE_RELATIVE_PATH\n",
-        "updater state file path",
+        "    baseline_path = root / BASELINE_RELATIVE_PATH\n    observations_path = root / OBSERVATIONS_RELATIVE_PATH\n",
+        "    baseline_path = root / BASELINE_RELATIVE_PATH\n    observation_root = Path(state_root).resolve() if state_root is not None else root\n    observations_path = observation_root / OBSERVATIONS_RELATIVE_PATH\n",
+        "updater observation cache data root",
     )
     patch_text(
         files, "director_console.py",
@@ -519,8 +519,8 @@ class PersistentDataRootTests(unittest.TestCase):
 
             with mock.patch("updates.check._request", side_effect=fake_request):
                 check_updates(project, state_root=data_root)
-            self.assertTrue((data_root / "storage" / "update_check_state.json").is_file())
-            self.assertFalse((project / "storage" / "update_check_state.json").exists())
+            self.assertTrue((data_root / "storage" / "update_check_observations.json").is_file())
+            self.assertFalse((project / "storage" / "update_check_observations.json").exists())
 
 
 if __name__ == "__main__":
