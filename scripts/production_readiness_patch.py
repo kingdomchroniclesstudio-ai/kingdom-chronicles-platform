@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ARCHIVE = ROOT / "apps" / "his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip"
 MANIFEST = Path(str(ARCHIVE) + ".sha256")
 ORIGINAL_SHA256 = "df2592a2527f74f6d603357f33f56ad16287bed7f516f4f0a2af993b947d14d9"
+FINAL_SHA256 = "c92902ec951e25edbabfff93efff629330a2767d74263a6cd2d513c7d107aa5e"
 TEST_ROOT = Path("/tmp/his-risen-production-readiness")
 
 
@@ -31,6 +32,21 @@ def patch_text(files: dict[str, bytes], path: str, old: str, new: str, label: st
 
 def main() -> None:
     original_digest = hashlib.sha256(ARCHIVE.read_bytes()).hexdigest()
+    if original_digest == FINAL_SHA256:
+        manifest_line = MANIFEST.read_text(encoding="utf-8").strip()
+        expected_line = f"{FINAL_SHA256}  {ARCHIVE.name}"
+        if manifest_line != expected_line:
+            raise SystemExit("Already-patched package does not match its checksum manifest")
+        shutil.rmtree(TEST_ROOT, ignore_errors=True)
+        TEST_ROOT.mkdir(parents=True, exist_ok=True)
+        with zipfile.ZipFile(ARCHIVE, "r") as check:
+            bad = check.testzip()
+            if bad is not None:
+                raise SystemExit(f"Already-patched ZIP failed integrity check: {bad}")
+            check.extractall(TEST_ROOT)
+        print("PACKAGE_ALREADY_PATCHED", FINAL_SHA256)
+        print("TEST_ROOT", TEST_ROOT)
+        return
     if original_digest != ORIGINAL_SHA256:
         raise SystemExit(f"Unexpected starting package digest: {original_digest}")
 
