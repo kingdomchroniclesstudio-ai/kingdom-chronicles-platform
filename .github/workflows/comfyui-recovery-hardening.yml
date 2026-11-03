@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: comfyui-recovery-hardening-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   patch-and-test:
     runs-on: ubuntu-latest
