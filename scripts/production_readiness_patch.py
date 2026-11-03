@@ -268,6 +268,12 @@ def resolve_data_root(project_root: Path) -> Path:
         "        return check_updates(self.root, state_root=resolve_data_root(self.root))\n",
         "director console updater persistence",
     )
+    patch_text(
+        files, "tests/test_director_console.py",
+        "check.assert_called_once_with(self.project)",
+        "check.assert_called_once_with(self.project, state_root=self.project.resolve())",
+        "updater route persistent-root assertion",
+    )
 
     # Restrict output credentials to the explicitly configured ComfyUI origin.
     patch_text(
