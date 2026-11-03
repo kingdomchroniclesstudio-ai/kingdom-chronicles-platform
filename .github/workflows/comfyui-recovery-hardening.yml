@@ -46,8 +46,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip" \
-                  "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip.sha256" \
-                  ".github/workflows/his-risen-updater-validation.yml"
+                  "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip.sha256"
           if git diff --cached --quiet; then
             echo "No package changes to commit."
             exit 0
