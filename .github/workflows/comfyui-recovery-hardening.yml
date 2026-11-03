@@ -2,6 +2,7 @@ name: HIS RISEN ComfyUI recovery hardening
 
 on:
   pull_request:
+    types: [opened]
     branches:
       - main
     paths:
