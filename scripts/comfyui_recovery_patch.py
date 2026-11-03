@@ -10,7 +10,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ARCHIVE = ROOT / "apps" / "his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip"
 MANIFEST = Path(str(ARCHIVE) + ".sha256")
-VALIDATION_WORKFLOW = ROOT / ".github" / "workflows" / "his-risen-updater-validation.yml"
 ORIGINAL_SHA256 = "df2592a2527f74f6d603357f33f56ad16287bed7f516f4f0a2af993b947d14d9"
 TEST_ROOT = Path("/tmp/his-risen-recovery-test")
 
@@ -114,10 +113,6 @@ def main() -> None:
         shutil.move(temp_zip, ARCHIVE)
         digest = hashlib.sha256(ARCHIVE.read_bytes()).hexdigest()
         MANIFEST.write_text(f"{digest}  {ARCHIVE.name}\n", encoding="utf-8")
-
-        validation = VALIDATION_WORKFLOW.read_text(encoding="utf-8")
-        validation = replace_once(validation, ORIGINAL_SHA256, digest, "pinned package digest")
-        VALIDATION_WORKFLOW.write_text(validation, encoding="utf-8")
 
         TEST_ROOT.mkdir(parents=True, exist_ok=True)
         # Extract again to the known CI test path after building the patched archive.
