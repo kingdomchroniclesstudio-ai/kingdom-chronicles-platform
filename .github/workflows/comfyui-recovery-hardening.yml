@@ -4,6 +4,8 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - scripts/comfyui_recovery_patch.py
 
 permissions:
   contents: write
