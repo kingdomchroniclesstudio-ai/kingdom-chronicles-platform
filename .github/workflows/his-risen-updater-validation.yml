@@ -7,6 +7,9 @@ on:
       - main
       - updater-final-fixes-2026-10-27
       - controller-maintenance-2026-11-03
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
