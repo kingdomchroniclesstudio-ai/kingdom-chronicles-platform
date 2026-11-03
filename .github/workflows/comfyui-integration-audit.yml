@@ -1,0 +1,90 @@
+name: HIS RISEN ComfyUI integration audit
+
+on:
+  push:
+    branches:
+      - comfyui-integration-audit-2026-11-03
+
+permissions:
+  contents: read
+
+jobs:
+  audit-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out audit branch
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Extract exact deployed controller package
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip"
+          test -s "$archive"
+          mkdir app
+          unzip -q "$archive" -d app
+          python - <<'PY'
+          import hashlib, pathlib, zipfile
+          p = pathlib.Path("apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip")
+          print("PACKAGE_BYTES", p.stat().st_size)
+          print("PACKAGE_SHA256", hashlib.sha256(p.read_bytes()).hexdigest())
+          with zipfile.ZipFile(p) as z:
+              bad = z.testzip()
+          print("ZIP_INTEGRITY", "PASS" if bad is None else f"FAIL: {bad}")
+          PY
+
+      - name: Inspect actual ComfyUI integration source and workflow files
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/comfyui-integration-audit.txt"
+          : > "$report"
+          for f in \
+            app/docs/REAL_COMFYUI.md \
+            app/comfyui/adapter.py \
+            app/comfyui/http_client.py \
+            app/comfyui/websocket_monitor.py \
+            app/comfyui/output_discovery.py \
+            app/comfyui/errors.py \
+            app/api/server.py \
+            app/controller/service.py \
+            app/config/runtime.py \
+            app/config/bootstrap.py \
+            app/dev/fake_comfyui.py \
+            app/tests/test_integration_layers.py \
+            app/tests/test_frame_conditioning.py \
+            app/workflows/loader.py \
+            app/workflows/registry.py \
+            app/workflows/real_presets.json
+          do
+            if test -f "$f"; then
+              { echo; echo "===== $f ====="; sed -n '1,260p' "$f"; } >> "$report"
+            else
+              echo "MISSING: $f" >> "$report"
+            fi
+          done
+          echo "===== SOURCE REPORT SUMMARY ====="
+          wc -l "$report"
+          cat "$report"
+
+      - name: Run complete bundled regression suite in isolated Mock Mode environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd app
+          python -m unittest discover -s tests -v
+
+      - name: Upload read-only audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: his-risen-comfyui-integration-audit
+          path: ${{ runner.temp }}/comfyui-integration-audit.txt
+          if-no-files-found: warn
+          retention-days: 7
