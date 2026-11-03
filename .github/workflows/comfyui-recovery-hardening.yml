@@ -1,0 +1,53 @@
+name: HIS RISEN ComfyUI recovery hardening
+
+on:
+  push:
+    branches:
+      - comfyui-recovery-hardening-2026-11-03
+    paths:
+      - scripts/comfyui_recovery_patch.py
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out hardening branch
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Apply isolated patch to the exact deployed ZIP
+        run: python scripts/comfyui_recovery_patch.py
+
+      - name: Install package dependencies
+        run: python -m pip install -r /tmp/his-risen-recovery-test/requirements.txt
+
+      - name: Run full regression suite
+        run: |
+          cd /tmp/his-risen-recovery-test
+          python -m unittest discover -s tests -v
+
+      - name: Commit updated package and checksum to this branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip" \
+                  "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip.sha256" \
+                  ".github/workflows/his-risen-updater-validation.yml"
+          if git diff --cached --quiet; then
+            echo "No package changes to commit."
+            exit 0
+          fi
+          git commit -m "Recover active ComfyUI jobs after controller restart"
+          git push origin HEAD:comfyui-recovery-hardening-2026-11-03
