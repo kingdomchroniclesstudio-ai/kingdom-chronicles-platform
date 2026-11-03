@@ -145,6 +145,12 @@ def resolve_data_root(project_root: Path) -> Path:
     )
     patch_text(
         files, "config/bootstrap.py",
+        "import os\n\nfrom adapters.mock import MockComfyUIAdapter\n",
+        "import os\nfrom typing import Any\n\nfrom adapters.mock import MockComfyUIAdapter\n",
+        "bootstrap typing import",
+    )
+    patch_text(
+        files, "config/bootstrap.py",
         "from config.runtime import load_runtime\n",
         "from config.runtime import load_runtime\nfrom config.data_paths import resolve_data_root\n",
         "bootstrap data root import",
