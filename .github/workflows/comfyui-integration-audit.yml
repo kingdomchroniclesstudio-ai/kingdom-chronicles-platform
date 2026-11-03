@@ -61,12 +61,23 @@ jobs:
             app/tests/test_frame_conditioning.py \
             app/workflows/loader.py \
             app/workflows/registry.py \
-            app/workflows/real_presets.json
+            app/workflows/real_presets.json \
+            app/config/runtime.json \
+            app/.env.example \
+            app/requirements.txt \
+            app/exports.py \
+            app/storage/sqlite_store.py \
+            app/director_console.py
           do
             if test -f "$f"; then
               { echo; echo "===== $f ====="; sed -n '1,260p' "$f"; } >> "$report"
             else
               echo "MISSING: $f" >> "$report"
+            fi
+          done
+          for f in app/workflows/real/*.api.json app/workflows/real/*.mapping.json; do
+            if test -f "$f"; then
+              { echo; echo "===== $f ====="; cat "$f"; } >> "$report"
             fi
           done
           echo "===== SOURCE REPORT SUMMARY ====="
