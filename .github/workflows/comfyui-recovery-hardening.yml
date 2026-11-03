@@ -1,11 +1,9 @@
 name: HIS RISEN ComfyUI recovery hardening
 
 on:
-  push:
+  pull_request:
     branches:
-      - comfyui-recovery-hardening-2026-11-03
-    paths:
-      - scripts/comfyui_recovery_patch.py
+      - main
 
 permissions:
   contents: write
