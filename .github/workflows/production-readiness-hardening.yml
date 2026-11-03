@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: production-readiness-hardening-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   patch-and-test:
     runs-on: ubuntu-latest
@@ -29,6 +33,9 @@ jobs:
 
       - name: Apply isolated production-readiness patch
         run: python scripts/production_readiness_patch.py
+
+      - name: Consolidate ComfyUI restart recovery into the package
+        run: python scripts/combine_recovery_patch.py
 
       - name: Install package dependencies
         run: python -m pip install -r /tmp/his-risen-production-readiness/requirements.txt
