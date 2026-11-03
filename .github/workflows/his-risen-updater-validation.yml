@@ -38,7 +38,7 @@ jobs:
           test -s "$archive"
           test -s "$manifest"
           read -r manifest_sha256 manifest_filename < "$manifest"
-          test "$manifest_filename" = "$archive"
+          test "$manifest_filename" = "$(basename "$archive")"
           test "$manifest_sha256" = "$expected_sha256"
           actual_sha256="$(sha256sum "$archive" | awk '{print $1}')"
           echo "Archive size: $(stat -c '%s' "$archive") bytes"
