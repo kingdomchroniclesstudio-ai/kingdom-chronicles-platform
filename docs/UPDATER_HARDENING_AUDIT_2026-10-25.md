@@ -70,3 +70,44 @@ The source patch set is preserved at `docs/patches/his-risen-updater-integration
 - `README.md` documents the application order.
 
 The automated validation workflow is `.github/workflows/his-risen-updater-validation.yml`.
+
+
+---
+
+## Final package verification addendum — 2026-10-29
+
+This addendum records the final package deployed to Render and supersedes the earlier **candidate-package** values above for the active deployment. The earlier 44-test / candidate checksum record is retained as historical evidence of the preceding candidate, not the final deployed package.
+
+### Deployed package identity
+
+- Repository branch: `main`
+- Deployed commit: `0809a2b8166a4ec49da5c2016db3acf735bcfc90`
+- Archive: `apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip`
+- Archive size: **1,033,943 bytes**
+- SHA-256: `df2592a2527f74f6d603357f33f56ad16287bed7f516f4f0a2af993b947d14d9`
+- The repository checksum manifest and the workflow's pinned digest both match this archive digest.
+
+### Final validation evidence
+
+GitHub Actions run **40861724347** completed successfully on 2026-10-29. Its validation job **123406368914** completed all steps successfully:
+
+- Archive identity, SHA-256 and ZIP integrity.
+- Required extracted files and directory layout.
+- Python bytecode compilation.
+- Installation of declared dependencies.
+- **47 regression tests passed** in 5.731 seconds.
+- Isolated controller startup and `/health` smoke test.
+- Informational official-source metadata probe.
+- Live Render `/health` endpoint and public entry page verification (HTTP 200).
+
+The local startup smoke-test loop logged an initial connection-refused response while the server was starting, then succeeded within its retry window. The workflow completed successfully.
+
+### Updater scope and safety boundary
+
+The 2026-10-29 metadata probe found zero candidates requiring manual review. It reported automatic installation disabled, no downloads started and no GPU jobs started. The observed official metadata included LTX release tag `v1.5.0` and Diffusers revision `4791a1100e0cf97f7ed5c55c12dd71dce13f9dd3`.
+
+The documentation and API changelog checks establish endpoint reachability only; they do not parse those documents or establish workflow/model compatibility. The release Atom fallback compares release tags only. The metadata baseline is not proof of the installed model revision.
+
+### Remaining production gate
+
+Real LTX-2.5 generation remains unverified. Do not treat the updater CI, Mock Mode tests, or public health checks as proof of a working ComfyUI/GPU pipeline. Keep real generation disabled until GPU access, persistent project storage, the intended ComfyUI workflow, model files, and a real end-to-end generation test have each been verified.
