@@ -1,0 +1,54 @@
+name: HIS RISEN production-readiness hardening
+
+on:
+  pull_request:
+    types: [opened]
+    branches:
+      - main
+    paths:
+      - scripts/production_readiness_patch.py
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the PR source branch
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Apply isolated production-readiness patch
+        run: python scripts/production_readiness_patch.py
+
+      - name: Install package dependencies
+        run: python -m pip install -r /tmp/his-risen-production-readiness/requirements.txt
+
+      - name: Run complete regression suite
+        run: |
+          cd /tmp/his-risen-production-readiness
+          python -m unittest discover -s tests -v
+
+      - name: Commit package and checksum to the PR source branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip" \
+                  "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip.sha256"
+          if git diff --cached --quiet; then
+            echo "No package changes to commit."
+            exit 0
+          fi
+          git commit -m "Harden persistent data paths and ComfyUI transport"
+          git push origin HEAD:production-readiness-hardening-2026-11-03
