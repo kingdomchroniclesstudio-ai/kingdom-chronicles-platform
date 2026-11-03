@@ -1,6 +1,9 @@
 name: HIS RISEN ComfyUI integration audit
 
 on:
+  push:
+    branches:
+      - comfyui-integration-audit-2026-11-03
   pull_request:
     branches:
       - main
