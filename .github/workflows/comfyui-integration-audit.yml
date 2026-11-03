@@ -70,10 +70,18 @@ jobs:
             app/requirements.txt \
             app/exports.py \
             app/storage/sqlite_store.py \
-            app/director_console.py
+            app/director_console.py \
+            app/mcp_server.py \
+            app/serve.py \
+            app/play.py \
+            app/api/models.py \
+            app/models/specification.py \
+            app/adapters/mock.py \
+            app/config/test_shot.json \
+            app/render.yaml
           do
             if test -f "$f"; then
-              { echo; echo "===== $f ====="; sed -n '1,260p' "$f"; } >> "$report"
+              { echo; echo "===== $f ====="; cat "$f"; } >> "$report"
             else
               echo "MISSING: $f" >> "$report"
             fi
