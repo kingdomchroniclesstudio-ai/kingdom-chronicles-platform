@@ -1,6 +1,7 @@
 name: HIS RISEN production-readiness hardening
 
 on:
+  workflow_dispatch:
   pull_request:
     types: [opened, synchronize]
     branches:
@@ -26,7 +27,7 @@ jobs:
       - name: Check out the PR source branch
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
       - name: Set up Python
         uses: actions/setup-python@v7
