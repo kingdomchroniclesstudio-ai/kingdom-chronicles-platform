@@ -12,6 +12,7 @@ MANIFEST = Path(str(ARCHIVE) + ".sha256")
 BASE_SHA256 = "c92902ec951e25edbabfff93efff629330a2767d74263a6cd2d513c7d107aa5e"
 TEST_ROOT = Path("/tmp/his-risen-production-readiness")
 RECOVERY_MARKER = "if isinstance(history, dict) and isinstance(history.get(job_id), dict):"
+FINAL_QUEUE_RECOVERY_MARKER = "if self._queue_contains_prompt(queue, job_id):"
 
 ADAPTER_OLD = """        if job is None:
             history = self.http.history(job_id)
@@ -88,7 +89,7 @@ def main() -> None:
         adapter_text = files["comfyui/adapter.py"].decode("utf-8")
         test_text = files["tests/test_integration_layers.py"].decode("utf-8")
 
-        if RECOVERY_MARKER in adapter_text and "test_real_adapter_recovers_running_job_after_controller_restart" in test_text:
+        if (RECOVERY_MARKER in adapter_text or FINAL_QUEUE_RECOVERY_MARKER in adapter_text) and "test_real_adapter_recovers_running_job_after_controller_restart" in test_text:
             manifest = MANIFEST.read_text(encoding="utf-8").strip()
             expected = f"{current_sha}  {ARCHIVE.name}"
             if manifest != expected:
