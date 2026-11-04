@@ -28,13 +28,20 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Build the same hardened candidate used by the integration audit
+        run: |
+          python scripts/production_readiness_patch.py
+          python scripts/combine_recovery_patch.py
+          python scripts/production_readiness_followup_patch.py
+          python scripts/production_readiness_storage_patch.py
+
       - name: Verify staged archive identity and ZIP integrity
         shell: bash
         run: |
           set -euo pipefail
           archive="apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip"
           manifest="${archive}.sha256"
-          expected_sha256="2f409e30699ceb6cfb5bfee4c376c00c3151c7cea4969a2c7f1032502dfee012"
+          expected_sha256="03756f9c5ac8491d8f4935260be062562be9be2d8d338710d517600bbe8325fa"
           test -s "$archive"
           test -s "$manifest"
           read -r manifest_sha256 manifest_filename < "$manifest"
