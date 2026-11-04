@@ -54,17 +54,18 @@ def main():
         print('STORAGE_PATCH_ALREADY_PRESENT'); return
     tmp=ARCHIVE.with_suffix('.tmp.zip')
     try:
-        with zipfile.ZipFile(tmp,'w',compression=zipfile.ZIP_DEFLATED) as z:
+        with zipfile.ZipFile(tmp,'w',compression=zipfile.ZIP_STORED) as z:
             seen=set()
             fixed_time=(2026,1,1,0,0,0)
             for info in infos:
                 info.date_time=fixed_time
+                info.compress_type=zipfile.ZIP_STORED
                 if info.is_dir(): z.writestr(info,b'')
                 else: z.writestr(info,files[info.filename]); seen.add(info.filename)
             for path,data in files.items():
                 if path not in seen:
                     info=zipfile.ZipInfo(path,date_time=fixed_time)
-                    info.compress_type=zipfile.ZIP_DEFLATED
+                    info.compress_type=zipfile.ZIP_STORED
                     info.create_system=3
                     info.external_attr=(0o100644 << 16)
                     z.writestr(info,data)
