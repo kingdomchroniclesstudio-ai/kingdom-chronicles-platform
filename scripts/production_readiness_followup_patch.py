@@ -319,7 +319,7 @@ class FileOutputRetriever:
     replace_once(
         files, "tests/test_integration_layers.py",
         "from comfyui.websocket_monitor import ComfyUIWebSocketMonitor, parse_progress_event, websocket_url\n",
-        "from comfyui.websocket_monitor import ComfyUIWebSocketMonitor, parse_progress_event, websocket_url\nfrom exports import _SameOriginRedirectHandler\n",
+        "from comfyui.websocket_monitor import ComfyUIWebSocketMonitor, parse_progress_event, websocket_url\nfrom exports import FileOutputRetriever, _SameOriginRedirectHandler\n",
         "redirect handler test import",
     )
     replace_once(
