@@ -272,7 +272,7 @@ class FileOutputRetriever:
     )
     replace_once(
         files, "exports.py",
-        '''                request = urllib.request.Request(str(url))
+        ```                request = urllib.request.Request(str(url))
                 if self.allowed_base_url:
                     allowed = urlsplit(self.allowed_base_url)
                     candidate = urlsplit(str(url))
@@ -282,17 +282,12 @@ class FileOutputRetriever:
                         request.add_header(key, value)
                 elif self.headers:
                     raise ExportError("authenticated output retrieval requires an explicitly configured ComfyUI origin")
-                opener = (
-                    urllib.request.build_opener(_SameOriginRedirectHandler(self.allowed_base_url))
-                    if self.allowed_base_url
-                    else urllib.request.build_opener()
-                )
-                with opener.open(request, timeout=120) as response, destination.open("wb") as out:
+                with urllib.request.urlopen(request, timeout=120) as response, destination.open("wb") as out:
                     shutil.copyfileobj(response, out)
-''',
-        '''                with self.open_remote(str(url), timeout=120) as response, destination.open("wb") as out:
+```,
+        ```                with self.open_remote(str(url), timeout=120) as response, destination.open("wb") as out:
                     shutil.copyfileobj(response, out)
-''',
+```,
         "reuse authenticated output opener",
     )
 
