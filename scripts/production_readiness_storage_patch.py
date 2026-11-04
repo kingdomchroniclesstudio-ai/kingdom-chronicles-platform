@@ -56,11 +56,18 @@ def main():
     try:
         with zipfile.ZipFile(tmp,'w',compression=zipfile.ZIP_DEFLATED) as z:
             seen=set()
+            fixed_time=(2026,1,1,0,0,0)
             for info in infos:
+                info.date_time=fixed_time
                 if info.is_dir(): z.writestr(info,b'')
                 else: z.writestr(info,files[info.filename]); seen.add(info.filename)
             for path,data in files.items():
-                if path not in seen: z.writestr(path,data)
+                if path not in seen:
+                    info=zipfile.ZipInfo(path,date_time=fixed_time)
+                    info.compress_type=zipfile.ZIP_DEFLATED
+                    info.create_system=3
+                    info.external_attr=(0o100644 << 16)
+                    z.writestr(info,data)
         with zipfile.ZipFile(tmp) as z:
             bad=z.testzip()
             if bad: raise SystemExit(f'ZIP integrity failed: {bad}')
