@@ -222,6 +222,27 @@ def build_controller''',
     )
     replace_once(
         files, "exports.py",
+        "class FileOutputRetriever:\n",
+        '''class _SameOriginRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Block authenticated output requests from redirecting to a different origin."""
+
+    def __init__(self, allowed_base_url: str):
+        self.allowed = urlsplit(allowed_base_url)
+        super().__init__()
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        target = urlsplit(newurl)
+        if (target.scheme.lower(), target.netloc.lower()) != (self.allowed.scheme.lower(), self.allowed.netloc.lower()):
+            raise urllib.error.HTTPError(req.full_url, code, "cross-origin output redirect blocked", headers, fp)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+class FileOutputRetriever:
+''',
+        "same-origin redirect handler",
+    )
+    replace_once(
+        files, "exports.py",
         '''    def retrieve(self, media: dict[str, Any], destination: Path) -> dict[str, Any]:
         source_path = media.get("source_path")
 ''',
@@ -275,7 +296,7 @@ def build_controller''',
         "reuse authenticated output opener",
     )
 
-    # Stream protected ComfyUI previews through the configured retriever, which adds credentials.
+    # Route ComfyUI preview requests through the authenticated, same-origin output retriever.
     replace_once(
         files, "director_console.py",
         "from urllib.request import urlopen\n",
@@ -292,85 +313,6 @@ def build_controller''',
                         self.send_response(200)
 ''',
         "authenticated ComfyUI preview proxy",
-    )
-
-    # Regression test: output previews use the configured bearer credential.
-    replace_once(
-        files, "tests/test_integration_layers.py",
-        "from exports import _SameOriginRedirectHandler\n",
-        "from exports import FileOutputRetriever, _SameOriginRedirectHandler\n",
-        "output retriever preview test import",
-    )
-    replace_once(
-        files, "tests/test_integration_layers.py",
-        "    def test_output_redirect_handler_blocks_cross_origin_redirects(self):\n",
-        '''    def test_output_retriever_sends_comfyui_auth_header(self):
-        received = {}
-        class AuthHandler(__import__("http.server").server.BaseHTTPRequestHandler):
-            def do_GET(self):
-                received["authorization"] = self.headers.get("Authorization")
-                body = b"authenticated-video-preview"
-                self.send_response(200 if received["authorization"] == "Bearer preview-secret" else 401)
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-            def log_message(self, fmt, *args):
-                return None
-        server = __import__("http.server").server.ThreadingHTTPServer(("127.0.0.1", 0), AuthHandler)
-        thread = threading.Thread(target=server.serve_forever, daemon=True)
-        thread.start()
-        try:
-            base = f"http://127.0.0.1:{server.server_address[1]}"
-            retriever = FileOutputRetriever(
-                headers={"Authorization": "Bearer preview-secret"},
-                allowed_base_url=base,
-            )
-            with retriever.open_remote(base + "/view?filename=clip.mp4", timeout=2) as response:
-                self.assertEqual(response.read(), b"authenticated-video-preview")
-            self.assertEqual(received["authorization"], "Bearer preview-secret")
-        finally:
-            server.shutdown(); server.server_close()
-
-    def test_output_redirect_handler_blocks_cross_origin_redirects(self):
-''',
-        "authenticated preview regression test",
-    )
-
-    replace_once(
-        files, "tests/test_integration_layers.py",
-        "    def test_real_adapter_blocks_until_real_workflow_is_supplied(self):\n",
-        '''class _SameOriginRedirectHandler(urllib.request.HTTPRedirectHandler):
-    """Block authenticated output requests from redirecting to a different origin."""
-
-    def __init__(self, allowed_base_url: str):
-        self.allowed = urlsplit(allowed_base_url)
-        super().__init__()
-
-    def redirect_request(self, req, fp, code, msg, headers, newurl):
-        target = urlsplit(newurl)
-        if (target.scheme.lower(), target.netloc.lower()) != (self.allowed.scheme.lower(), self.allowed.netloc.lower()):
-            raise urllib.error.HTTPError(req.full_url, code, "cross-origin output redirect blocked", headers, fp)
-        return super().redirect_request(req, fp, code, msg, headers, newurl)
-
-
-class FileOutputRetriever:
-''',
-        "same-origin redirect handler",
-    )
-    replace_once(
-        files, "exports.py",
-        '''                with urllib.request.urlopen(request, timeout=120) as response, destination.open("wb") as out:
-                    shutil.copyfileobj(response, out)
-''',
-        '''                opener = (
-                    urllib.request.build_opener(_SameOriginRedirectHandler(self.allowed_base_url))
-                    if self.allowed_base_url
-                    else urllib.request.build_opener()
-                )
-                with opener.open(request, timeout=120) as response, destination.open("wb") as out:
-                    shutil.copyfileobj(response, out)
-''',
-        "origin-checked output opener",
     )
 
     # Regression tests for queue recovery, TLS enforcement, safe redirects and malformed WebSocket data.
@@ -465,6 +407,33 @@ class FileOutputRetriever:
         monitor = ComfyUIWebSocketMonitor("http://127.0.0.1:8188", socket_factory=lambda: socket)
         events = monitor.wait_for_completion("P-1", timeout=1, client_id="C-1")
         self.assertEqual([event["type"] for event in events], ["progress", "executing"])
+
+    def test_output_retriever_sends_comfyui_auth_header(self):
+        received = {}
+        class AuthHandler(__import__("http.server").server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                received["authorization"] = self.headers.get("Authorization")
+                body = b"authenticated-video-preview"
+                self.send_response(200 if received["authorization"] == "Bearer preview-secret" else 401)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            def log_message(self, fmt, *args):
+                return None
+        server = __import__("http.server").server.ThreadingHTTPServer(("127.0.0.1", 0), AuthHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            base = f"http://127.0.0.1:{server.server_address[1]}"
+            retriever = FileOutputRetriever(
+                headers={"Authorization": "Bearer preview-secret"},
+                allowed_base_url=base,
+            )
+            with retriever.open_remote(base + "/view?filename=clip.mp4", timeout=2) as response:
+                self.assertEqual(response.read(), b"authenticated-video-preview")
+            self.assertEqual(received["authorization"], "Bearer preview-secret")
+        finally:
+            server.shutdown(); server.server_close()
 
     def test_output_redirect_handler_blocks_cross_origin_redirects(self):
         handler = _SameOriginRedirectHandler("https://comfy.example")
