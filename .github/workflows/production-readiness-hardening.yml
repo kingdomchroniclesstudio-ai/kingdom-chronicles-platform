@@ -1,0 +1,73 @@
+name: HIS RISEN production-readiness hardening
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - main
+    paths:
+      - scripts/production_readiness_patch.py
+      - scripts/production_readiness_followup_patch.py
+      - scripts/production_readiness_storage_patch.py
+      - .github/workflows/production-readiness-hardening.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-readiness-hardening-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the PR source branch
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Apply isolated production-readiness patch
+        run: python scripts/production_readiness_patch.py
+
+      - name: Consolidate ComfyUI restart recovery into the package
+        run: python scripts/combine_recovery_patch.py
+
+      - name: Apply ComfyUI queue and transport security follow-up
+        run: python scripts/production_readiness_followup_patch.py
+
+      - name: Apply persistent reference-asset and SQLite backup hardening
+        run: python scripts/production_readiness_storage_patch.py
+
+      - name: Install package dependencies
+        run: python -m pip install -r /tmp/his-risen-production-readiness/requirements.txt
+
+      - name: Run complete regression suite
+        run: |
+          cd /tmp/his-risen-production-readiness
+          python -m unittest discover -s tests -v
+
+      - name: Stage isolated audit snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          audit_dir="/tmp/his-risen-pr-audit"
+          mkdir -p "$audit_dir"
+          cp -a /tmp/his-risen-production-readiness/. "$audit_dir/"
+          cp "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip" "$audit_dir/"
+          cp "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip.sha256" "$audit_dir/"
+
+      - name: Upload isolated candidate source for review
+        uses: actions/upload-artifact@v7
+        with:
+          name: hrf-pr6-source-review
+          path: /tmp/his-risen-pr-audit/
+          if-no-files-found: error
+          retention-days: 3
