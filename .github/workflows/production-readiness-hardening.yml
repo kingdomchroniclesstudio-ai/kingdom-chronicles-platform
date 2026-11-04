@@ -7,9 +7,10 @@ on:
       - main
     paths:
       - scripts/production_readiness_patch.py
+      - .github/workflows/production-readiness-hardening.yml
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: production-readiness-hardening-${{ github.ref }}
@@ -23,7 +24,6 @@ jobs:
       - name: Check out the PR source branch
         uses: actions/checkout@v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Set up Python
@@ -45,17 +45,20 @@ jobs:
           cd /tmp/his-risen-production-readiness
           python -m unittest discover -s tests -v
 
-      - name: Commit package and checksum to the PR source branch
+      - name: Stage isolated audit snapshot
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip" \
-                  "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip.sha256"
-          if git diff --cached --quiet; then
-            echo "No package changes to commit."
-            exit 0
-          fi
-          git commit -m "Harden persistent data paths and ComfyUI transport"
-          git push origin HEAD:production-readiness-hardening-2026-11-03
+          audit_dir="/tmp/his-risen-pr-audit"
+          mkdir -p "$audit_dir"
+          cp -a /tmp/his-risen-production-readiness/. "$audit_dir/"
+          cp "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip" "$audit_dir/"
+          cp "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip.sha256" "$audit_dir/"
+
+      - name: Upload isolated candidate source for review
+        uses: actions/upload-artifact@v7
+        with:
+          name: hrf-pr6-source-review
+          path: /tmp/his-risen-pr-audit/
+          if-no-files-found: error
+          retention-days: 3
