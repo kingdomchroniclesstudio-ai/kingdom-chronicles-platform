@@ -8,6 +8,7 @@ on:
     paths:
       - scripts/production_readiness_patch.py
       - scripts/production_readiness_followup_patch.py
+      - scripts/production_readiness_storage_patch.py
       - .github/workflows/production-readiness-hardening.yml
 
 permissions:
@@ -40,6 +41,9 @@ jobs:
 
       - name: Apply ComfyUI queue and transport security follow-up
         run: python scripts/production_readiness_followup_patch.py
+
+      - name: Apply persistent reference-asset and SQLite backup hardening
+        run: python scripts/production_readiness_storage_patch.py
 
       - name: Install package dependencies
         run: python -m pip install -r /tmp/his-risen-production-readiness/requirements.txt
