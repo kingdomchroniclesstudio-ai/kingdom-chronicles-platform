@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - scripts/production_readiness_patch.py
+      - scripts/production_readiness_followup_patch.py
       - .github/workflows/production-readiness-hardening.yml
 
 permissions:
@@ -36,6 +37,9 @@ jobs:
 
       - name: Consolidate ComfyUI restart recovery into the package
         run: python scripts/combine_recovery_patch.py
+
+      - name: Apply ComfyUI queue and transport security follow-up
+        run: python scripts/production_readiness_followup_patch.py
 
       - name: Install package dependencies
         run: python -m pip install -r /tmp/his-risen-production-readiness/requirements.txt
