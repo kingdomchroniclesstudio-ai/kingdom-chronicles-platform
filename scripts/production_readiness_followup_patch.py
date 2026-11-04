@@ -14,6 +14,7 @@ TEST_ROOT = Path("/tmp/his-risen-production-readiness")
 QUEUE_MARKER = "def _queue_contains_prompt(queue: dict[str, Any], prompt_id: str) -> bool:"
 HTTPS_MARKER = "def validate_comfyui_base_url(base_url: str) -> str:"
 REDIRECT_MARKER = "class _SameOriginRedirectHandler(urllib.request.HTTPRedirectHandler):"
+PREVIEW_MARKER = "def open_remote(self, url: str, timeout: float = 120):"
 
 
 def replace_once(files: dict[str, bytes], path: str, old: str, new: str, label: str) -> None:
@@ -46,6 +47,7 @@ def main() -> None:
         QUEUE_MARKER in adapter
         and HTTPS_MARKER in bootstrap
         and REDIRECT_MARKER in exports
+        and PREVIEW_MARKER in exports
     )
     if already_patched:
         manifest_line = MANIFEST.read_text(encoding="utf-8").strip()
@@ -220,7 +222,123 @@ def build_controller''',
     )
     replace_once(
         files, "exports.py",
-        "class FileOutputRetriever:\n",
+        '''    def retrieve(self, media: dict[str, Any], destination: Path) -> dict[str, Any]:
+        source_path = media.get("source_path")
+''',
+        '''    def open_remote(self, url: str, timeout: float = 120):
+        """Open an allow-listed ComfyUI output URL with its configured credentials."""
+        request = urllib.request.Request(str(url))
+        if self.allowed_base_url:
+            allowed = urlsplit(self.allowed_base_url)
+            candidate = urlsplit(str(url))
+            if (candidate.scheme, candidate.netloc) != (allowed.scheme, allowed.netloc):
+                raise ExportError("output URL does not belong to the configured ComfyUI origin")
+            for key, value in self.headers.items():
+                request.add_header(key, value)
+        elif self.headers:
+            raise ExportError("authenticated output retrieval requires an explicitly configured ComfyUI origin")
+        opener = (
+            urllib.request.build_opener(_SameOriginRedirectHandler(self.allowed_base_url))
+            if self.allowed_base_url
+            else urllib.request.build_opener()
+        )
+        return opener.open(request, timeout=timeout)
+
+    def retrieve(self, media: dict[str, Any], destination: Path) -> dict[str, Any]:
+        source_path = media.get("source_path")
+''',
+        "authenticated streaming output opener",
+    )
+    replace_once(
+        files, "exports.py",
+        '''                request = urllib.request.Request(str(url))
+                if self.allowed_base_url:
+                    allowed = urlsplit(self.allowed_base_url)
+                    candidate = urlsplit(str(url))
+                    if (candidate.scheme, candidate.netloc) != (allowed.scheme, allowed.netloc):
+                        raise ExportError("output URL does not belong to the configured ComfyUI origin")
+                    for key, value in self.headers.items():
+                        request.add_header(key, value)
+                elif self.headers:
+                    raise ExportError("authenticated output retrieval requires an explicitly configured ComfyUI origin")
+                opener = (
+                    urllib.request.build_opener(_SameOriginRedirectHandler(self.allowed_base_url))
+                    if self.allowed_base_url
+                    else urllib.request.build_opener()
+                )
+                with opener.open(request, timeout=120) as response, destination.open("wb") as out:
+                    shutil.copyfileobj(response, out)
+''',
+        '''                with self.open_remote(str(url), timeout=120) as response, destination.open("wb") as out:
+                    shutil.copyfileobj(response, out)
+''',
+        "reuse authenticated output opener",
+    )
+
+    # Stream protected ComfyUI previews through the configured retriever, which adds credentials.
+    replace_once(
+        files, "director_console.py",
+        "from urllib.request import urlopen\n",
+        "",
+        "remove anonymous preview opener",
+    )
+    replace_once(
+        files, "director_console.py",
+        '''                    with urlopen(str(target), timeout=30) as response:
+                        self.send_response(200)
+''',
+        '''                    retriever = self._console().controller.export_manager.retriever
+                    with retriever.open_remote(str(target), timeout=30) as response:
+                        self.send_response(200)
+''',
+        "authenticated ComfyUI preview proxy",
+    )
+
+    # Regression test: output previews use the configured bearer credential.
+    replace_once(
+        files, "tests/test_integration_layers.py",
+        "from exports import _SameOriginRedirectHandler\n",
+        "from exports import FileOutputRetriever, _SameOriginRedirectHandler\n",
+        "output retriever preview test import",
+    )
+    replace_once(
+        files, "tests/test_integration_layers.py",
+        "    def test_output_redirect_handler_blocks_cross_origin_redirects(self):\n",
+        '''    def test_output_retriever_sends_comfyui_auth_header(self):
+        received = {}
+        class AuthHandler(__import__("http.server").server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                received["authorization"] = self.headers.get("Authorization")
+                body = b"authenticated-video-preview"
+                self.send_response(200 if received["authorization"] == "Bearer preview-secret" else 401)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            def log_message(self, fmt, *args):
+                return None
+        server = __import__("http.server").server.ThreadingHTTPServer(("127.0.0.1", 0), AuthHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            base = f"http://127.0.0.1:{server.server_address[1]}"
+            retriever = FileOutputRetriever(
+                headers={"Authorization": "Bearer preview-secret"},
+                allowed_base_url=base,
+            )
+            with retriever.open_remote(base + "/view?filename=clip.mp4", timeout=2) as response:
+                self.assertEqual(response.read(), b"authenticated-video-preview")
+            self.assertEqual(received["authorization"], "Bearer preview-secret")
+        finally:
+            server.shutdown(); server.server_close()
+
+    def test_output_redirect_handler_blocks_cross_origin_redirects(self):
+''',
+        "authenticated preview regression test",
+    )
+
+    replace_once(
+        files, "tests/test_integration_layers.py",
+        "    def test_real_adapter_blocks_until_real_workflow_is_supplied(self):\n",
         '''class _SameOriginRedirectHandler(urllib.request.HTTPRedirectHandler):
     """Block authenticated output requests from redirecting to a different origin."""
 
@@ -392,7 +510,7 @@ class FileOutputRetriever:
         TEST_ROOT.mkdir(parents=True, exist_ok=True)
         with zipfile.ZipFile(ARCHIVE, "r") as check:
             check.extractall(TEST_ROOT)
-        print("FOLLOWUP_PATCHED_FILES config/bootstrap.py, comfyui/http_client.py, comfyui/adapter.py, comfyui/websocket_monitor.py, dev/fake_comfyui.py, exports.py, tests/test_integration_layers.py")
+        print("FOLLOWUP_PATCHED_FILES config/bootstrap.py, comfyui/http_client.py, comfyui/adapter.py, comfyui/websocket_monitor.py, dev/fake_comfyui.py, exports.py, director_console.py, tests/test_integration_layers.py")
         print("PACKAGE_BYTES", ARCHIVE.stat().st_size)
         print("PACKAGE_SHA256", digest)
         print("MANIFEST", MANIFEST.read_text(encoding="utf-8").strip())
