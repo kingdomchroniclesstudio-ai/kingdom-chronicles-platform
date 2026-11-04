@@ -14,6 +14,7 @@ MANIFEST = Path(str(ARCHIVE) + ".sha256")
 ORIGINAL_SHA256 = "df2592a2527f74f6d603357f33f56ad16287bed7f516f4f0a2af993b947d14d9"
 FINAL_SHA256 = "c92902ec951e25edbabfff93efff629330a2767d74263a6cd2d513c7d107aa5e"
 COMMITTED_FINAL_SHA256 = "7a2d8f29028d71f00702707294bd228730dfd958e0674960280dc440848f20a4"
+FIXED_UPLOAD_FINAL_SHA256 = "f926726ca159af35119c4d5e362a9200fc53ac3fdb61852d6f86d16756f80809"
 TEST_ROOT = Path("/tmp/his-risen-production-readiness")
 
 
@@ -36,7 +37,7 @@ def main() -> None:
     with zipfile.ZipFile(ARCHIVE, "r") as existing:
         existing_adapter = existing.read("comfyui/adapter.py").decode("utf-8")
     recovery_marker = "if isinstance(history, dict) and isinstance(history.get(job_id), dict):"
-    already_hardened = original_digest in {FINAL_SHA256, COMMITTED_FINAL_SHA256} or recovery_marker in existing_adapter
+    already_hardened = original_digest in {FINAL_SHA256, COMMITTED_FINAL_SHA256, FIXED_UPLOAD_FINAL_SHA256} or recovery_marker in existing_adapter
     if already_hardened:
         manifest_line = MANIFEST.read_text(encoding="utf-8").strip()
         expected_line = f"{original_digest}  {ARCHIVE.name}"
