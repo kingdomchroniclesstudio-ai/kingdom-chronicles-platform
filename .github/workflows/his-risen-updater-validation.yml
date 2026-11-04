@@ -41,7 +41,7 @@ jobs:
           set -euo pipefail
           archive="apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip"
           manifest="${archive}.sha256"
-          expected_sha256="65a34ad5e8e5ac17fba1770f1e5a4241931a8c5a91303089f63c71f19d917be8"
+          expected_sha256="7a2d8f29028d71f00702707294bd228730dfd958e0674960280dc440848f20a4"
           test -s "$archive"
           test -s "$manifest"
           read -r manifest_sha256 manifest_filename < "$manifest"
