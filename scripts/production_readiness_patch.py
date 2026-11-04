@@ -58,7 +58,7 @@ def main() -> None:
         infos = source.infolist()
         files = {info.filename: source.read(info.filename) for info in infos if not info.is_dir()}
 
-    # Keep WebSocket events routed to the same ComfyUI client_id used by /prompt.
+    # Deterministic, reviewable package hardening: keep WebSocket events routed to the same ComfyUI client_id used by /prompt.
     patch_text(
         files, "comfyui/websocket_monitor.py",
         "    def connect(self, url: str, timeout: float | None = None) -> None: ...",
