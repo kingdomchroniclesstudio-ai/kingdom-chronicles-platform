@@ -94,13 +94,13 @@ The current official ComfyUI T2V/I2V templates use a ComfyUI-specific model stac
 
 Do not copy the old native-PyTorch/Diffusers BF16 model list blindly into a ComfyUI template. The LTX compatibility guide distinguishes the ComfyUI-only `*-comfy-int8-convrot` assets from the BF16 assets used by other routes.
 
-The three built-in templates are the preferred base path. Advanced IC-LoRA/HDR/V2V workflows in Lightricks' separate `ComfyUI-LTXVideo` repository may require its custom-node package and extra Python dependencies. Defer that package until a chosen advanced workflow actually needs it; do not install every specialist feature now.
+The current official LTX ComfyUI guide's Quick Start recommends installing the `ComfyUI-LTXVideo` node pack through ComfyUI Manager (or the repository's documented manual setup) and restarting ComfyUI before loading the LTX-2.5 templates. Treat this node pack as a setup prerequisite unless the exact installed ComfyUI template and `/object_info` preflight prove that every required node is already registered. This node-pack installation is separate from downloading model weights: for the export-only stage, do not click **Download all** and do not queue a generation. Advanced IC-LoRA/HDR/V2V workflows may add further requirements; do not install specialist extras unless a selected workflow needs them.
 
 ## Infrastructure boundary (not part of this no-cost work)
 
 The current Render service is Free and has no persistent disk. Render documents persistent disks as available to paid web services, private services and background workers; a disk-backed service is single-instance and cannot use zero-downtime deploys. The controller's `HRF_DATA_DIR` must point to a real persistent mount or external durable store before production state is considered safe.
 
-The LTX-2.5 ComfyUI documentation specifies a 32 GB+ NVIDIA VRAM minimum, 32 GB system RAM and 100 GB+ free disk. Its recommended configuration is A100 80 GB or H100, 64 GB+ RAM and 200 GB+ SSD. Verify current provider offerings and prices only when the Director is ready to pay; do not provision anything during this phase.
+The current LTX ComfyUI guide lists a CUDA-compatible GPU with 32 GB+ VRAM, 100 GB+ free disk space, and Python 3.12+ as setup requirements for running LTX workflows. Check the live guide again when selecting a GPU provider; do not provision anything during this export-only phase. (The API-export preparation step itself does not queue a model run.)
 
 ## No-cost completion checklist
 
