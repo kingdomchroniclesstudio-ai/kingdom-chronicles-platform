@@ -23,6 +23,14 @@ jobs:
     steps:
       - name: Check out current branch
         uses: actions/checkout@v7
+      - name: Check out the actual branding PR branch before package write-back
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_HEAD_REF:-}" == "studio-branding-2026-11-06" ]]; then
+            git fetch origin "${GITHUB_HEAD_REF}"
+            git checkout -B "${GITHUB_HEAD_REF}" "origin/${GITHUB_HEAD_REF}"
+          fi
 
       - name: Set up Python
         uses: actions/setup-python@v7
