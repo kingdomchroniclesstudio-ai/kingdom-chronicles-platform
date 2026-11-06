@@ -22,7 +22,6 @@ jobs:
     steps:
       - name: Check out current branch
         uses: actions/checkout@v7
-
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
@@ -30,10 +29,15 @@ jobs:
 
       - name: Build the same hardened candidate used by the integration audit
         run: |
-          python scripts/production_readiness_patch.py
-          python scripts/combine_recovery_patch.py
-          python scripts/production_readiness_followup_patch.py
-          python scripts/production_readiness_storage_patch.py
+          if ! grep -q "HIS RISEN STUDIOS" <(unzip -p "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip" director_console.py); then
+            python scripts/production_readiness_patch.py
+            python scripts/combine_recovery_patch.py
+            python scripts/production_readiness_followup_patch.py
+            python scripts/production_readiness_storage_patch.py
+          else
+            echo "Branded package already present; skipping original-only patch transforms."
+          fi
+          python scripts/brand_his_risen_studios.py
 
       - name: Verify staged archive identity and ZIP integrity
         shell: bash
@@ -41,7 +45,7 @@ jobs:
           set -euo pipefail
           archive="apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip"
           manifest="${archive}.sha256"
-          expected_sha256="f926726ca159af35119c4d5e362a9200fc53ac3fdb61852d6f86d16756f80809"
+          expected_sha256="b224196c94ca12726e91dc90041547f1bab7bc5643f8ab85f718f75168a8d2a3"
           test -s "$archive"
           test -s "$manifest"
           read -r manifest_sha256 manifest_filename < "$manifest"
@@ -123,7 +127,7 @@ jobs:
           import json, sys
           with open(sys.argv[1], encoding="utf-8") as f:
               data = json.load(f)
-          if data.get("ok") is not True or data.get("service") != "HIS RISEN Director Console":
+          if data.get("ok") is not True or data.get("service") != "HIS RISEN STUDIOS":
               raise SystemExit(f"Unexpected live health response: {data!r}")
           print("Live Render health endpoint: OK")
           PY
@@ -141,3 +145,4 @@ jobs:
           if "LTX Update Monitor" not in html or "Check for Updates" not in html:
               print("This can be normal when the controls are shown only after sign-in; verify the controls in the authenticated UI.")
           PY
+
