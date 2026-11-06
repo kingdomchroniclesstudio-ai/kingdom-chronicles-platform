@@ -29,10 +29,14 @@ jobs:
 
       - name: Build the same hardened candidate used by the integration audit
         run: |
-          python scripts/production_readiness_patch.py
-          python scripts/combine_recovery_patch.py
-          python scripts/production_readiness_followup_patch.py
-          python scripts/production_readiness_storage_patch.py
+          if ! grep -q "HIS RISEN STUDIOS" <(unzip -p "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip" director_console.py); then
+            python scripts/production_readiness_patch.py
+            python scripts/combine_recovery_patch.py
+            python scripts/production_readiness_followup_patch.py
+            python scripts/production_readiness_storage_patch.py
+          else
+            echo "Branded package already present; skipping original-only patch transforms."
+          fi
           python scripts/brand_his_risen_studios.py
 
       - name: Verify staged archive identity and ZIP integrity
