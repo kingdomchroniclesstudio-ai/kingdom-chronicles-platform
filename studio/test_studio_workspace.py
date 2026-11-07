@@ -110,6 +110,12 @@ class StudioControlRoomUITests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, self.html)
 
+    def test_html_document_has_no_trailing_visible_code(self):
+        self.assertEqual(self.html.count("</html>"), 1)
+        self.assertTrue(self.html.rstrip().endswith("</html>"))
+        self.assertEqual(self.html.count("<script>"), 1)
+        self.assertEqual(self.html.count("</script>"), 1)
+
     def test_browser_javascript_parses(self):
         node = shutil.which("node")
         if not node:
