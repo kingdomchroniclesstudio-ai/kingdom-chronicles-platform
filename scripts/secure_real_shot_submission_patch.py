@@ -657,10 +657,8 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
         entries,
         "director_console.py",
         [(
-            '  <div class="grid">
-',
-            html_card + '  <div class="grid">
-',
+            '  <div class="grid">\n',
+            html_card + '  <div class="grid">\n',
             "real shot submission form card",
         )],
     )
@@ -679,10 +677,8 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
         entries,
         "director_console.py",
         [(
-            ".frame-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-",
-            ".frame-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-" + css,
+            ".frame-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}\n",
+            ".frame-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}\n" + css,
             "real shot form responsive styles",
         )],
     )
@@ -691,11 +687,8 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
         entries,
         "director_console.py",
         [(
-            "let currentFilm=null,pollHandle=null;
-",
-            "let currentFilm=null,pollHandle=null;
-let shotTemplate=null,generationGate=null,pendingShotRequestId=null,pendingShotPayload=null;
-",
+            "let currentFilm=null,pollHandle=null;\n",
+            "let currentFilm=null,pollHandle=null;\nlet shotTemplate=null,generationGate=null,pendingShotRequestId=null,pendingShotPayload=null;\n",
             "real shot form client state",
         )],
     )
@@ -805,10 +798,8 @@ async function submitRealShot(event){
         entries,
         "director_console.py",
         [(
-            "function updateStatusLabel(result){
-",
-            js_functions + "function updateStatusLabel(result){
-",
+            "function updateStatusLabel(result){\n",
+            js_functions + "function updateStatusLabel(result){\n",
             "real shot form client handlers",
         )],
     )
@@ -817,12 +808,8 @@ async function submitRealShot(event){
         entries,
         "director_console.py",
         [(
-            " const s=await api('/status');
-",
-            " const s=await api('/status');
- if(!shotTemplate)await loadShotTemplate();
- const gate=await api('/generation-readiness');renderGenerationGate(gate);
-",
+            " const s=await api('/status');\n",
+            " const s=await api('/status');\n if(!shotTemplate)await loadShotTemplate();\n const gate=await api('/generation-readiness');renderGenerationGate(gate);\n",
             "dashboard real shot preflight refresh",
         )],
     )
@@ -831,16 +818,15 @@ async function submitRealShot(event){
         entries,
         "director_console.py",
         [(
-            "            if path == "/api/films":
-",
-            "            if path == "/api/shot-template":
+            '            if path == "/api/films":\n',
+            """            if path == "/api/shot-template":
                 self._json(200, {"ok": True, "data": self._console().shot_template()})
                 return
             if path == "/api/generation-readiness":
                 self._json(200, {"ok": True, "data": self._console().real_shot_readiness()})
                 return
             if path == "/api/films":
-",
+""",
             "authenticated shot template and preflight GET routes",
         )],
     )
@@ -849,9 +835,7 @@ async function submitRealShot(event){
         entries,
         "director_console.py",
         [(
-            "            body = self._read_json()
-            if path == "/api/updates/check":
-",
+            '            body = self._read_json()\n            if path == "/api/updates/check":\n',
             """            body = self._read_json()
             if path == "/api/shots/generate":
                 # Browsers must send the same-origin Origin header for this
@@ -878,8 +862,7 @@ async function submitRealShot(event){
         entries,
         "director_console.py",
         [(
-            "        except RequestBodyError as exc:
-",
+            "        except RequestBodyError as exc:\n",
             """        except ValidationError as exc:
             self._json(422, {"ok": False, "error": "validation_error", "details": list(exc.errors)})
         except RequestBodyError as exc:
