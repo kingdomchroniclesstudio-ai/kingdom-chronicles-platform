@@ -402,6 +402,21 @@ class RealShotSubmissionTests(unittest.TestCase):
         with self.assertRaises(WorkflowTemplateError):
             RealComfyUIAdapter._mapping_values(None, request, {})
 
+    def test_first_t2v_path_rejects_4k_until_gpu_acceptance(self):
+        self.controller.adapter = RealComfyUIAdapter()
+        spec = dict(self.template)
+        spec["generation_mode"] = "TEXT_TO_VIDEO"
+        spec["seed"] = 0
+        spec["resolution"] = "4K"
+        status, result = self.request(
+            "POST",
+            "/api/shots/generate",
+            {"request_id": str(uuid.uuid4()), "specification": spec, "cost_acknowledged": True},
+        )
+        self.assertEqual(status, 409)
+        self.assertIn("Select a supported resolution", result["error"])
+        self.assertEqual(self.controller.generated, [])
+
     def test_real_submission_rejects_missing_seed_before_take_creation(self):
         self.controller.adapter = RealComfyUIAdapter()
         spec = dict(self.template)
@@ -599,7 +614,7 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
         [(
             '        values: dict[str, Any] = {"prompt": request["prompt"], "duration": spec.get("duration"), "seed": spec.get("seed")}\n',
             '''        values: dict[str, Any] = {"prompt": request["prompt"], "duration": spec.get("duration"), "seed": spec.get("seed")}
-        dimensions = {"720p": (1280, 720), "1080p": (1920, 1080), "1440p": (2560, 1440), "4K": (3840, 2160)}
+        dimensions = {"720p": (1280, 720), "1080p": (1920, 1080), "1440p": (2560, 1440)}
         resolution = spec.get("resolution")
         if resolution in dimensions:
             if spec.get("aspect_ratio", "16:9") != "16:9":
@@ -786,7 +801,7 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
             raise ValueError("Image conditioning and continuation are not enabled in the first T2V submission path.")
         if spec.get("aspect_ratio", "16:9") != "16:9":
             raise ValueError("The first real T2V submission path currently supports 16:9 only.")
-        if spec.get("resolution") not in {"720p", "1080p", "1440p", "4K"}:
+        if spec.get("resolution") not in {"720p", "1080p", "1440p"}:
             raise ValueError("Select a supported resolution before submitting.")
         if type(spec.get("duration")) is not int or not 1 <= spec["duration"] <= 20:
             raise ValueError("The first real T2V path accepts whole-number durations from 1 to 20 seconds only.")
@@ -915,7 +930,7 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
         <label>Character IDs (comma-separated)<input id="shotCharacters" required autocomplete="off"></label>
         <label>Voice profile IDs (comma-separated)<input id="shotVoices" required autocomplete="off"></label>
         <label>Duration (seconds)<input id="shotDuration" type="number" min="1" max="20" step="1" required></label>
-        <label>Resolution<select id="shotResolution"><option>720p</option><option>1080p</option><option>1440p</option><option>4K</option></select></label>
+        <label>Resolution<select id="shotResolution"><option>720p</option><option>1080p</option><option>1440p</option></select></label>
         <label>Aspect ratio<input id="shotAspectRatio" value="16:9" readonly></label>
         <label>Frame rate<input id="shotFrameRate" type="number" min="1" max="60" step="1" required></label>
         <label>Seed<input id="shotSeed" type="number" min="0" step="1" value="0" required></label>
@@ -1267,6 +1282,7 @@ if __name__ == "__main__":
         "An existing take for this shot was found",
         "persistent_storage_ready",
         "A nonnegative integer seed is required by the approved T2V workflow mapping.",
+        'if spec.get("resolution") not in {"720p", "1080p", "1440p"}:',
         "HRF_DATA_DIR is not backed by a mounted persistent volume",
         "required_values = {",
         '"width": 2560',
