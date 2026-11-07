@@ -296,6 +296,85 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
         ],
     )
 
+    patch_text(
+        entries,
+        "storage/sqlite_store.py",
+        [
+            (
+                'CREATE INDEX IF NOT EXISTS exports_take ON exports(take_id);"""',
+                'CREATE INDEX IF NOT EXISTS exports_take ON exports(take_id); CREATE TABLE IF NOT EXISTS submission_requests(request_id TEXT PRIMARY KEY,payload_hash TEXT NOT NULL,take_id TEXT NOT NULL UNIQUE,created_at TEXT NOT NULL,FOREIGN KEY(take_id) REFERENCES takes(take_id)); CREATE INDEX IF NOT EXISTS submission_requests_take ON submission_requests(take_id);"""',
+                "durable submission idempotency schema",
+            ),
+            (
+                "def reserve_take(self,snapshot,parent_take_id=None):",
+                "def reserve_take(self,snapshot,parent_take_id=None,submission_request_id=None,submission_payload_hash=None):",
+                "durable take reservation signature",
+            ),
+            (
+                "        with self._transaction():\n            parent_reason=None",
+                """        with self._transaction():
+            if submission_request_id is not None:
+                if not submission_payload_hash:
+                    raise ValueError("submission_payload_hash is required with submission_request_id.")
+                existing=self.connection.execute("SELECT payload_hash,take_id FROM submission_requests WHERE request_id=?",(submission_request_id,)).fetchone()
+                if existing:
+                    if existing["payload_hash"] != submission_payload_hash:
+                        raise ValueError("This request_id was already used with a different shot specification.")
+                    return existing["take_id"], False
+            elif submission_payload_hash is not None:
+                raise ValueError("submission_payload_hash requires submission_request_id.")
+            parent_reason=None""",
+                "atomic durable request lookup",
+            ),
+            (
+                '            self._event(take_id,None,"PENDING",0); return take_id',
+                """            if submission_request_id is not None:
+                self.connection.execute("INSERT INTO submission_requests (request_id,payload_hash,take_id,created_at) VALUES (?,?,?,?)",(submission_request_id,submission_payload_hash,take_id,timestamp))
+            self._event(take_id,None,"PENDING",0)
+            return (take_id, True) if submission_request_id is not None else take_id""",
+                "atomic durable request record",
+            ),
+        ],
+    )
+
+    patch_text(
+        entries,
+        "storage/sqlite_store.py",
+        [(
+            "    def record_submission(self,take_id,job_id):\n",
+            """    def get_submission_request(self,request_id):
+        with self._lock:
+            row=self.connection.execute("SELECT request_id,payload_hash,take_id,created_at FROM submission_requests WHERE request_id=?",(request_id,)).fetchone()
+            return dict(row) if row else None
+
+    def record_submission(self,take_id,job_id):
+""",
+            "durable submission request lookup method",
+        )],
+    )
+
+    patch_text(
+        entries,
+        "controller/service.py",
+        [(
+            "def generate(self,specification):\n        spec=copy.deepcopy(specification); validate_specification(spec,self.root); profiles=self.profiles.resolve(spec); workflow=self.workflows.select(spec); continuation=self._continuation_snapshot(spec); ltx25_plan=self.capability_registry.recommend(spec,workflow); snapshot={\"specification\":spec,\"profiles\":profiles,\"workflow\":workflow,\"ltx25_plan\":ltx25_plan,\"prompt\":build_prompt(spec,profiles),\"continuation\":continuation}; take_id=self.store.reserve_take(snapshot); return self._submit(take_id)",
+            """def generate(self,specification,submission_request_id=None,submission_payload_hash=None,return_created=False):
+        spec=copy.deepcopy(specification); validate_specification(spec,self.root); profiles=self.profiles.resolve(spec); workflow=self.workflows.select(spec); continuation=self._continuation_snapshot(spec); ltx25_plan=self.capability_registry.recommend(spec,workflow); snapshot={"specification":spec,"profiles":profiles,"workflow":workflow,"ltx25_plan":ltx25_plan,"prompt":build_prompt(spec,profiles),"continuation":continuation}
+        reservation=self.store.reserve_take(snapshot,submission_request_id=submission_request_id,submission_payload_hash=submission_payload_hash)
+        if submission_request_id is not None:
+            take_id,created=reservation
+            if not created:
+                existing=self.store.get_take(take_id)
+                return (existing,False) if return_created else existing
+        else:
+            take_id=reservation
+            created=True
+        take=self._submit(take_id)
+        return (take,True) if submission_request_id is not None and return_created else take""",
+            "controller durable idempotent generation method",
+        )],
+    )
+
     real_methods = r'''    def shot_template(self) -> dict[str, Any]:
         """Return the validated starter specification used by the Director form."""
         template_path = self.root / "config" / "test_shot.json"
