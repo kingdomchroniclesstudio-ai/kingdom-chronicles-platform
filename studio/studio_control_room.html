@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<meta name="description" content="HIS RISEN STUDIOS — film production workspace">
+<title>HIS RISEN STUDIOS | Production Control Room</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:#0a0f1d;color:#edf1ff;--panel:#121a2b;--panel2:#172238;--line:#26344f;--muted:#99a8c3;--cyan:#45d4e8;--violet:#a78bfa;--blue:#6b9cff;--green:#55d6a2;--amber:#f6c76a;--coral:#ff8e92;--pink:#f38bc2}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 18% -10%,#263366 0,transparent 38%),radial-gradient(ellipse at 100% 0%,#183b54 0,transparent 32%),#0a0f1d}
+button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid transparent;border-radius:11px;padding:10px 14px;font-weight:750;letter-spacing:.02em;transition:transform .15s,filter .15s}button:hover{filter:brightness(1.12);transform:translateY(-1px)}button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+input,select,textarea{width:100%;border:1px solid #33425f;background:#0d1525;color:#edf1ff;border-radius:10px;padding:11px 12px;outline:none}input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px #45d4e822}textarea{min-height:84px;resize:vertical}
+label{display:block;color:#b9c5da;font-size:12px;font-weight:650;letter-spacing:.03em}label input,label select,label textarea{margin-top:6px}
+a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px);letter-spacing:-.04em;margin-bottom:7px}h2{font-size:21px;letter-spacing:-.02em;margin-bottom:7px}h3{font-size:15px;margin-bottom:8px}p{line-height:1.55}
+.muted{color:var(--muted)}.small{font-size:12px}.tiny{font-size:10px}.hidden{display:none!important}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font-size:10px;font-weight:850;color:var(--cyan)}.brand{font-size:13px;font-weight:900;letter-spacing:.17em}.brand-mark{display:inline-grid;place-items:center;width:37px;height:37px;border-radius:12px;background:linear-gradient(145deg,#9a7cff,#4bd5e6);color:#07101d;font-weight:1000;margin-right:10px;box-shadow:0 8px 28px #765fff44}
+.wrap{max-width:1500px;margin:auto;padding:24px}.login-wrap{min-height:100vh;display:grid;place-items:center;padding:22px}.login-card{width:min(460px,100%);padding:34px;border:1px solid #33405f;border-radius:24px;background:linear-gradient(145deg,#17233aee,#111827f5);box-shadow:0 30px 100px #0008}.login-card .brandline{display:flex;align-items:center;margin-bottom:28px}.login-card input{font-size:22px;letter-spacing:.3em;text-align:center;margin:24px 0 12px}
+.primary{background:linear-gradient(120deg,#8c73ff,#4e96ff);color:white;box-shadow:0 8px 24px #5d77e833}.violet{background:#493878;color:#e8dcff;border-color:#7055ae}.cyan{background:#124956;color:#c7f9ff;border-color:#1e7b89}.green{background:#15533f;color:#d2ffed;border-color:#268b68}.coral{background:#64333d;color:#ffe0e1;border-color:#9a5664}.amber{background:#5a4827;color:#ffecc2;border-color:#8a6d37}.quiet{background:#1c2940;color:#c9d6ee;border-color:#324563}.danger{background:#5b2931;color:#ffe1e4;border-color:#a64d5b}
+.shell{display:grid;grid-template-columns:232px minmax(0,1fr);gap:22px;align-items:start}.side{position:sticky;top:18px;border:1px solid var(--line);border-radius:20px;background:#10192aee;padding:16px;box-shadow:0 16px 44px #0004}.sidehead{display:flex;align-items:center;padding:7px 5px 18px;border-bottom:1px solid var(--line);margin-bottom:14px}.nav{display:grid;gap:6px}.nav button{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:transparent;color:#aebbd2;padding:12px;border-color:transparent}.nav button.active{background:linear-gradient(100deg,#41336a,#1a4055);border-color:#5f75ae;color:white}.nav .ico{font-size:17px;width:22px;text-align:center}.sidefoot{border-top:1px solid var(--line);margin-top:16px;padding:14px 6px 4px}
+.main{min-width:0}.topbar{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:18px;padding:9px 2px}.statusline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 12px #55d6a2}.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid #354767;border-radius:999px;padding:6px 10px;font-size:10px;font-weight:850;letter-spacing:.08em;background:#17243a;color:#b9c9e5}.pill.ok{background:#123a34;color:#9df6d3;border-color:#286d5c}.pill.warn{background:#493819;color:#ffdf9c;border-color:#82682e}.pill.bad{background:#4d2931;color:#ffc0c3;border-color:#884650}.room{display:none}.room.active{display:block}.hero{padding:26px 28px;border:1px solid #34446b;border-radius:22px;background:linear-gradient(120deg,#292851,#17354b 66%,#183b43);box-shadow:0 22px 65px #0004;margin-bottom:16px}.hero-row{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}.hero p{max-width:680px;color:#c5d1e7;margin-bottom:0}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.panel{border:1px solid var(--line);border-radius:17px;background:linear-gradient(160deg,#151f32,#101827);padding:17px;box-shadow:0 12px 32px #0002;min-width:0}.panel.soft{background:#111b2b}.metric{position:relative;overflow:hidden;min-height:118px}.metric:after{content:"";position:absolute;width:95px;height:95px;border-radius:50%;right:-25px;top:-25px;background:var(--glow,#4355a5);opacity:.16;filter:blur(2px)}.metric .value{font-size:31px;font-weight:900;letter-spacing:-.05em;margin-top:12px}.metric .label{font-size:11px;color:#a8b7d1;font-weight:750;text-transform:uppercase;letter-spacing:.12em}.metric .icon{font-size:18px;color:var(--accent,var(--cyan))}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 14px}.section-head p{margin:0}.section-head .sub{font-size:12px;color:var(--muted)}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.form-grid .wide{grid-column:1/-1}.form-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.stack{display:grid;gap:10px}.record{border:1px solid #293b58;border-radius:13px;padding:13px;background:#101a2a}.record-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.record-title{font-size:13px;font-weight:800;overflow-wrap:anywhere}.record-meta{font-size:11px;color:var(--muted);line-height:1.6;margin-top:5px}.empty{border:1px dashed #41516e;border-radius:13px;padding:20px;text-align:center;color:var(--muted);font-size:12px}
+.tag{display:inline-block;padding:4px 8px;border-radius:7px;background:#243554;color:#b9ddff;font-size:10px;font-weight:800;margin:3px 4px 0 0}.tag.violet-tag{background:#342950;color:#dfd0ff}.tag.green-tag{background:#163c37;color:#a7f4dc}.tag.amber-tag{background:#45371f;color:#ffe0a0}.tag.coral-tag{background:#4b2934;color:#ffbdc3}
+.progress{height:7px;border-radius:50px;background:#28344a;overflow:hidden;margin-top:9px}.bar{height:100%;border-radius:50px;background:linear-gradient(90deg,var(--violet),var(--cyan));width:0}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px}table{width:100%;border-collapse:collapse;min-width:560px}th,td{text-align:left;padding:11px 12px;border-bottom:1px solid #26344e;font-size:12px}th{color:#94a8c8;text-transform:uppercase;letter-spacing:.1em;font-size:10px;background:#17243a}tr:last-child td{border-bottom:0}
+.video{width:100%;max-height:440px;background:#05070b;border-radius:12px;margin-top:10px}.notice{position:fixed;right:20px;bottom:20px;z-index:50;max-width:380px;padding:13px 17px;background:#e5edff;color:#111827;border-radius:12px;box-shadow:0 12px 36px #0007;display:none}
+.roombar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.kpi-caption{font-size:11px;color:var(--muted)}.color-line{height:3px;border-radius:20px;background:linear-gradient(90deg,var(--violet),var(--cyan),var(--green),var(--coral));margin:16px 0 20px}
+.checkline{display:flex;align-items:center;gap:9px;margin-top:10px}.checkline input{width:auto;margin:0}.checkline label{font-size:12px}
+#realShotForm input,#realShotForm textarea,#realShotForm select{margin-top:6px}#realShotForm label{margin-top:10px}
+@media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.shell{grid-template-columns:1fr}.side{position:relative;top:auto}.nav{grid-template-columns:repeat(4,minmax(0,1fr))}.nav button{justify-content:center;padding:9px 5px;font-size:10px}.nav .ico{width:auto}}
+@media(max-width:650px){.wrap{padding:12px}.grid,.grid-2,.grid-3,.form-grid{grid-template-columns:1fr}.nav{grid-template-columns:repeat(3,minmax(0,1fr))}.nav button{flex-direction:column;gap:4px;font-size:9px}.topbar{align-items:flex-start;flex-direction:column}.hero{padding:20px}.hero-row{display:block}.hero-row .form-actions{margin-top:12px}.panel{padding:14px}}
+</style>
+</head>
+<body>
+<div id="login" class="login-wrap">
+  <section class="login-card">
+    <div class="brandline"><span class="brand-mark">HR</span><div><div class="brand">HIS RISEN STUDIOS</div><div class="muted tiny">FILM PRODUCTION WORKSPACE</div></div></div>
+    <div class="eyebrow">Director access</div>
+    <h1>Welcome to the studio.</h1>
+    <p class="muted">Your film projects, tests, assets and production decisions—together in one secure control room.</p>
+    <input id="pin" type="password" inputmode="numeric" maxlength="12" autocomplete="current-password" placeholder="DIRECTOR PIN">
+    <button id="loginButton" class="primary" style="width:100%">ENTER STUDIO <span aria-hidden="true">→</span></button>
+    <p id="loginMsg" class="small muted" role="status" aria-live="polite"></p>
+  </section>
+</div>
+
+<div id="app" class="wrap hidden">
+  <div class="topbar">
+    <div class="statusline"><span class="brand-mark">HR</span><div><div class="brand">HIS RISEN STUDIOS</div><div class="muted tiny">PRODUCTION CONTROL ROOM</div></div></div>
+    <div class="statusline"><span id="backend" class="pill warn">Checking engine…</span><span id="storageState" class="pill warn">Checking storage…</span><button id="refreshButton" class="quiet">↻ REFRESH</button><button id="logoutButton" class="quiet">LOCK STUDIO</button></div>
+  </div>
+
+  <div class="shell">
+    <aside class="side">
+      <div class="sidehead"><div><div class="eyebrow">Studio navigation</div><div style="font-weight:850;margin-top:4px">Your production rooms</div></div></div>
+      <nav class="nav" aria-label="Studio rooms">
+        <button class="active" data-room="overview"><span class="ico">◈</span><span>Overview</span></button>
+        <button data-room="projects"><span class="ico">🎬</span><span>Film Projects</span></button>
+        <button data-room="testing"><span class="ico">🧪</span><span>Testing Lab</span></button>
+        <button data-room="assets"><span class="ico">▧</span><span>Asset Library</span></button>
+        <button data-room="review"><span class="ico">▶</span><span>Review Room</span></button>
+        <button data-room="reports"><span class="ico">▥</span><span>Reports</span></button>
+        <button data-room="generation"><span class="ico">⚡</span><span>Generation</span></button>
+      </nav>
+      <div class="sidefoot"><div class="eyebrow">Production mode</div><div id="modeLabel" style="font-weight:850;margin-top:6px">SAFE MODE</div><div class="muted tiny" style="margin-top:5px">Real generation stays locked until all preflight checks pass.</div></div>
+    </aside>
+
+    <main class="main">
+      <section id="room-overview" class="room active">
+        <div class="hero">
+          <div class="hero-row">
+            <div><div class="eyebrow">Good to have you back</div><h1>The studio at a glance.</h1><p>Manage the work behind every film—from scene planning and visual experiments to continuity notes, shot review and production reporting.</p></div>
+            <div class="form-actions"><button class="violet" data-go="projects">＋ NEW FILM PROJECT</button><button class="cyan" data-go="testing">OPEN TEST LAB</button></div>
+          </div>
+          <div class="color-line"></div>
+          <div class="statusline"><span class="pill ok"><span class="dot"></span> CONTROLLER ONLINE</span><span class="pill" id="overviewMode">MOCK MODE</span><span class="pill">DIRECTOR REVIEW REQUIRED</span></div>
+        </div>
+        <div class="grid" style="margin-bottom:14px">
+          <div class="panel metric" style="--accent:#b9a5ff;--glow:#9170ff"><div class="icon">🎞</div><div class="label">Film projects</div><div id="metricProjects" class="value">0</div><div class="kpi-caption">Registered productions</div></div>
+          <div class="panel metric" style="--accent:#52dbea;--glow:#52dbea"><div class="icon">🎬</div><div class="label">Scenes & shots</div><div id="metricScenes" class="value">0 / 0</div><div class="kpi-caption">Planned production units</div></div>
+          <div class="panel metric" style="--accent:#ffc86f;--glow:#ffc86f"><div class="icon">🧪</div><div class="label">Test records</div><div id="metricTests" class="value">0</div><div class="kpi-caption">Experiments logged</div></div>
+          <div class="panel metric" style="--accent:#69e0b4;--glow:#69e0b4"><div class="icon">▧</div><div class="label">Studio assets</div><div id="metricAssets" class="value">0</div><div class="kpi-caption">Continuity references</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="panel"><div class="section-head"><div><div class="eyebrow">Your slate</div><h2>Active film projects</h2></div><button class="quiet" data-go="projects">VIEW ALL</button></div><div id="overviewProjects" class="stack"><div class="empty">Your film projects will appear here.</div></div></div>
+          <div class="panel"><div class="section-head"><div><div class="eyebrow">Studio activity</div><h2>Testing snapshot</h2></div><button class="quiet" data-go="testing">OPEN LAB</button></div><div class="grid-2"><div class="record"><div class="muted tiny">PASSED TESTS</div><div id="metricPassed" style="font-size:25px;font-weight:900;color:var(--green)">0</div></div><div class="record"><div class="muted tiny">NEEDS ATTENTION</div><div id="metricFailed" style="font-size:25px;font-weight:900;color:var(--coral)">0</div></div></div><p class="muted small" style="margin:12px 0 0">Only test results and costs entered in the studio test log are included. Live GPU telemetry arrives after the GPU connection stage.</p></div>
+        </div>
+        <div class="panel" style="margin-top:14px"><div class="section-head"><div><div class="eyebrow">Production monitor</div><h2>Controller & update monitor</h2></div><span id="backendDetail" class="pill ok">CONNECTED</span></div><div class="grid-3"><div><div class="muted tiny">ENGINE MODE</div><strong id="engineMode">Mock Mode</strong></div><div><div class="muted tiny">REAL GENERATION</div><strong id="realMode">LOCKED</strong></div><div><div class="muted tiny">WORKSPACE STORAGE</div><strong id="storageDetail">Checking…</strong></div></div><div class="form-actions"><button id="updateCheckButton" class="amber">CHECK LTX UPDATES</button><span id="updateCheckStatus" class="muted small" role="status" aria-live="polite">Update checks are read-only.</span></div><div id="updateCheckResults" class="stack"></div></div>
+        <div class="panel" style="margin-top:14px"><div class="eyebrow">Director Command</div><h2 style="margin-top:6px">Command bridge</h2><p class="muted small">The natural-language command bridge is not connected yet. This panel is reserved for a future secure director-agent integration; it does not execute commands today.</p><textarea disabled placeholder="Command bridge will be enabled after its secure agent integration is implemented."></textarea><div class="form-actions"><button class="quiet" disabled>COMMAND BRIDGE NOT CONNECTED</button></div></div>
+      </section>
+
+      <section id="room-projects" class="room">
+        <div class="roombar"><div><div class="eyebrow">Development & production slate</div><h1>Film Projects</h1><p class="muted small">One home for each film, its scenes and its individual shots.</p></div><span class="pill">PROJECT MANAGEMENT</span></div>
+        <div class="grid-2">
+          <div class="panel"><div class="eyebrow">Create a production</div><h2 style="margin-top:6px">New film project</h2>
+            <form id="projectForm" class="stack">
+              <label>Film title<input id="projectTitle" required maxlength="120" placeholder="e.g. The Resurrection"></label>
+              <label>Production type<select id="projectType"><option value="FEATURE_FILM">Feature film</option><option value="SHORT_FILM">Short film</option><option value="TRAILER">Trailer</option><option value="SERIES">Series</option><option value="OTHER">Other</option></select></label>
+              <label>Production status<select id="projectStatus"><option>DEVELOPMENT</option><option>PRE_PRODUCTION</option><option>PRODUCTION</option><option>POST_PRODUCTION</option><option>ON_HOLD</option><option>COMPLETED</option></select></label>
+              <label>Synopsis / creative brief<textarea id="projectSynopsis" maxlength="2000" placeholder="A short description of the film and its creative direction."></textarea></label>
+              <div class="form-actions"><button class="violet" type="submit">CREATE FILM PROJECT</button></div>
+            </form>
+          </div>
+          <div class="panel"><div class="eyebrow">Production slate</div><h2 style="margin-top:6px">Registered projects</h2><div id="projectList" class="stack"><div class="empty">No film projects yet. Create your first project.</div></div></div>
+        </div>
+        <div class="panel" style="margin-top:14px"><div class="section-head"><div><div class="eyebrow">Scene breakdown</div><h2>Selected film structure</h2></div><span id="selectedProjectLabel" class="pill">NO PROJECT SELECTED</span></div>
+          <div class="grid-2">
+            <form id="sceneForm" class="stack"><h3>＋ Add scene</h3><label>Scene number<input id="sceneNumber" type="number" min="1" max="9999" required placeholder="1"></label><label>Scene title<input id="sceneTitle" required maxlength="120" placeholder="e.g. The Garden Tomb"></label><label>Location / set<input id="sceneLocation" maxlength="160" placeholder="Jerusalem — garden tomb"></label><label>Scene synopsis<textarea id="sceneSynopsis" maxlength="2000"></textarea></label><button class="cyan" type="submit">ADD SCENE</button></form>
+            <div><h3>Scenes and shots</h3><div id="sceneList" class="stack"><div class="empty">Select or create a project to plan its scenes.</div></div></div>
+          </div>
+          <div class="color-line"></div>
+          <form id="shotForm" class="stack"><h3>＋ Add shot to selected scene</h3><div class="form-grid"><label>Scene<select id="shotSceneSelect" required><option value="">Select a scene</option></select></label><label>Shot code<input id="shotCode" required maxlength="64" placeholder="SC001-SH001"></label><label class="wide">Shot description<textarea id="shotDescription" maxlength="2000" placeholder="Describe the visual action, framing and continuity requirements."></textarea></label></div><button class="green" type="submit">ADD SHOT TO BREAKDOWN</button></form>
+        </div>
+      </section>
+
+      <section id="room-testing" class="room">
+        <div class="roombar"><div><div class="eyebrow">Experiment, compare, learn</div><h1>Testing Laboratory</h1><p class="muted small">Record prompts, model settings, seeds, results and comparisons before committing to production.</p></div><span class="pill warn">GPU TELEMETRY COMES LATER</span></div>
+        <div class="grid-2">
+          <div class="panel"><div class="eyebrow">New experiment record</div><h2 style="margin-top:6px">Log a test</h2>
+            <form id="testForm" class="stack">
+              <label>Test name<input id="testName" required maxlength="120" placeholder="e.g. Moses staff raise — camera pass A"></label>
+              <div class="form-grid"><label>Film project<select id="testProject"><option value="">Unassigned test</option></select></label><label>Scene<select id="testScene"><option value="">No scene selected</option></select></label></div>
+              <div class="form-grid"><label>Shot code<input id="testShot" maxlength="64" placeholder="SC001-SH001"></label><label>Model / engine<input id="testModel" maxlength="120" placeholder="LTX-2.5 / other"></label></div>
+              <div class="form-grid"><label>Workflow<input id="testWorkflow" maxlength="120" placeholder="T2V / I2V / experiment"></label><label>Comparison group<input id="testGroup" maxlength="100" placeholder="Moses-camera-A-B"></label></div>
+              <label>Test purpose<input id="testPurpose" maxlength="300" placeholder="What are we trying to learn?"></label>
+              <label>Prompt<textarea id="testPrompt" maxlength="5000" placeholder="Record the exact prompt used or planned."></textarea></label>
+              <div class="form-grid"><label>Seed<input id="testSeed" maxlength="40" placeholder="e.g. 184220"></label><label>Resolution<input id="testResolution" maxlength="40" placeholder="1440p"></label></div>
+              <div class="form-grid"><label>Frame rate<input id="testFps" type="number" min="1" max="240" placeholder="24"></label><label>Duration (seconds)<input id="testDuration" type="number" min="0" max="3600" step="0.1" placeholder="8"></label></div>
+              <div class="form-grid"><label>GPU time (minutes)<input id="testGpuMinutes" type="number" min="0" max="100000" step="0.01" value="0"></label><label>Tracked cost (USD)<input id="testCost" type="number" min="0" max="1000000" step="0.01" value="0"></label></div>
+              <label>Result status<select id="testResult"><option>PLANNED</option><option>PASSED</option><option>NEEDS_REVIEW</option><option>FAILED</option></select></label>
+              <label>Notes<textarea id="testNotes" maxlength="3000" placeholder="Visual quality, motion, artifacts, continuity, lessons learned."></textarea></label>
+              <button class="amber" type="submit">SAVE TEST RECORD</button>
+            </form>
+          </div>
+          <div class="panel"><div class="section-head"><div><div class="eyebrow">Experiment log</div><h2>Recent test records</h2></div><span id="testCount" class="pill">0 RECORDS</span></div><div id="testList" class="stack"><div class="empty">No tests logged yet.</div></div></div>
+        </div>
+        <div class="panel" style="margin-top:14px"><div class="eyebrow">Comparison discipline</div><h2 style="margin-top:6px">How to compare tests</h2><p class="muted small">Give related experiments the same comparison group. Keep the prompt, seed, frame rate, duration and resolution in each record. Mark only observed results as PASSED or FAILED; leave work that has not run as PLANNED. The room records your notes but does not claim to measure video quality automatically.</p></div>
+      </section>
+
+      <section id="room-assets" class="room">
+        <div class="roombar"><div><div class="eyebrow">Continuity & visual references</div><h1>Asset Library</h1><p class="muted small">Organise the people, places, costumes, props and reference descriptions that keep a film visually consistent.</p></div><span class="pill">ASSET REGISTER</span></div>
+        <div class="grid-2">
+          <div class="panel"><div class="eyebrow">Create an asset record</div><h2 style="margin-top:6px">Register a reference</h2>
+            <form id="assetForm" class="stack">
+              <div class="form-grid"><label>Asset category<select id="assetCategory"><option>CHARACTER</option><option>LOCATION</option><option>PROP</option><option>WARDROBE</option><option>REFERENCE</option><option>SOUND</option><option>OTHER</option></select></label><label>Film project<select id="assetProject"><option value="">Studio-wide asset</option></select></label></div>
+              <label>Asset name<input id="assetName" required maxlength="120" placeholder="e.g. Moses — approved appearance"></label>
+              <label>Reference code<input id="assetCode" maxlength="80" placeholder="CHR-MOS-01"></label>
+              <label>Description<textarea id="assetDescription" maxlength="2000" placeholder="Age, appearance, environment, material or visual details."></textarea></label>
+              <label>Continuity notes<textarea id="assetContinuity" maxlength="2000" placeholder="Details that must remain consistent across shots."></textarea></label>
+              <label>Tags<input id="assetTags" maxlength="500" placeholder="Moses, costume, approved, reference"></label>
+              <button class="cyan" type="submit">SAVE TO ASSET LIBRARY</button>
+            </form>
+            <p class="muted tiny">This first release stores asset records and continuity descriptions. Binary file uploads and image previews will be connected after persistent media storage is configured.</p>
+          </div>
+          <div class="panel"><div class="section-head"><div><div class="eyebrow">Studio reference shelf</div><h2>Registered assets</h2></div><span id="assetCount" class="pill">0 ASSETS</span></div><div id="assetList" class="stack"><div class="empty">No asset records yet.</div></div></div>
+        </div>
+      </section>
+
+      <section id="room-review" class="room">
+        <div class="roombar"><div><div class="eyebrow">Dailies & director decisions</div><h1>Review Room</h1><p class="muted small">Inspect completed takes, record feedback and keep approval decisions tied to the production history.</p></div><span class="pill">DIRECTOR REVIEW</span></div>
+        <div class="grid-2">
+          <div class="panel"><div class="eyebrow">Review notes</div><h2 style="margin-top:6px">Record feedback</h2>
+            <form id="reviewForm" class="stack">
+              <label>Take ID<input id="reviewTakeId" required maxlength="120" placeholder="Paste or select a take ID"></label>
+              <div class="form-grid"><label>Quality rating<select id="reviewRating"><option value="5">5 — Excellent</option><option value="4">4 — Good</option><option value="3">3 — Acceptable</option><option value="2">2 — Needs work</option><option value="1">1 — Reject quality</option></select></label><label>Review decision<select id="reviewDecision"><option value="NOTE">Director note</option><option value="REVISION_REQUEST">Request revision</option></select></label></div>
+              <label>Director notes<textarea id="reviewNote" required maxlength="3000" placeholder="Describe what works, what needs correction and continuity concerns."></textarea></label>
+              <button class="violet" type="submit">SAVE DIRECTOR NOTES</button>
+            </form>
+            <p class="muted tiny">These notes do not approve or reject a take by themselves. Use the approval controls on a completed take to make the official decision.</p>
+          </div>
+          <div class="panel"><div class="section-head"><div><div class="eyebrow">Completed production output</div><h2>Recent takes</h2></div><button id="reviewRefresh" class="quiet">REFRESH</button></div><div id="takeList" class="stack"><div class="empty">No takes available yet.</div></div></div>
+        </div>
+        <div class="panel" style="margin-top:14px"><div class="eyebrow">Review history</div><h2 style="margin-top:6px">Director notes archive</h2><div id="reviewList" class="stack"><div class="empty">No review notes recorded yet.</div></div></div>
+      </section>
+
+      <section id="room-reports" class="room">
+        <div class="roombar"><div><div class="eyebrow">Planning visibility & accountability</div><h1>Production Reports</h1><p class="muted small">A studio-wide view of projects, scene coverage, experiments, reference assets and manually tracked costs.</p></div><button id="reportRefresh" class="quiet">↻ REFRESH REPORTS</button></div>
+        <div class="grid" style="margin-bottom:14px">
+          <div class="panel metric"><div class="label">Tracked GPU time</div><div id="reportGpu" class="value">0 min</div><div class="kpi-caption">Entered test records only</div></div>
+          <div class="panel metric"><div class="label">Tracked test cost</div><div id="reportCost" class="value">$0.00</div><div class="kpi-caption">Manually entered USD</div></div>
+          <div class="panel metric"><div class="label">Passed experiments</div><div id="reportPassed" class="value">0</div><div class="kpi-caption">Marked PASSED</div></div>
+          <div class="panel metric"><div class="label">Review notes</div><div id="reportReviews" class="value">0</div><div class="kpi-caption">Director feedback entries</div></div>
+        </div>
+        <div class="panel"><div class="eyebrow">Production portfolio</div><h2 style="margin-top:6px">Project progress register</h2><div id="reportProjects" class="stack"><div class="empty">Reports will appear after records are created.</div></div></div>
+        <p class="muted tiny" id="reportNote" style="margin-top:12px">Report figures are based on entered studio records. Live provider billing and GPU telemetry are not connected yet.</p>
+      </section>
+
+      <section id="room-generation" class="room">
+        <div class="roombar"><div><div class="eyebrow">Render & generation workspace</div><h1>Generation Room</h1><p class="muted small">Mock Mode remains safe for preparation. Real T2V submission is guarded by the controller's live preflight.</p></div><span id="realShotGate" class="pill warn">LOCKED</span></div>
+        <div class="grid-2">
+          <div class="panel"><div class="eyebrow">Safe controller test</div><h2 style="margin-top:6px">Mock generation</h2><p class="muted small">This uses the fixed mock fixture. It does not rent a GPU, download models or incur generation charges.</p><button id="mockTestButton" class="green">RUN ONE MOCK SHOT</button><p id="mockTestResult" class="small muted" role="status" aria-live="polite"></p></div>
+          <div class="panel"><div class="eyebrow">Production preflight</div><h2 style="margin-top:6px">Real generation gate</h2><p id="realShotGateMessage" class="muted small" role="status" aria-live="polite">Checking…</p><div class="statusline"><span id="realGateGpu" class="pill warn">GPU NOT VERIFIED</span><span id="realGateWorkflow" class="pill warn">WORKFLOW NOT VERIFIED</span></div></div>
+        </div>
+        <div class="panel" style="margin-top:14px"><div class="eyebrow">Single-shot text-to-video</div><h2 style="margin-top:6px">Submit a real shot</h2>
+          <form id="realShotForm">
+            <div class="form-grid">
+              <label>Film ID<input id="shotFilmId" required></label><label>Scene ID<input id="shotSceneId" required></label>
+              <label>Shot ID<input id="shotId" required></label><label>Character IDs<input id="shotCharacters" required></label>
+              <label>Voice profile IDs<input id="shotVoices" required></label><label>Duration (seconds)<input id="shotDuration" type="number" min="1" max="20" step="1" required></label>
+              <label>Resolution<select id="shotResolution"><option>720p</option><option>1080p</option><option>1440p</option></select></label><label>Aspect ratio<input id="shotAspectRatio" value="16:9" readonly></label>
+              <label>Frame rate<input id="shotFrameRate" type="number" min="1" max="60" required></label><label>Seed<input id="shotSeed" type="number" min="0" step="1" value="0" required></label>
+              <label>Quality preset<input id="shotQuality" required></label>
+            </div>
+            <label>Environment<textarea id="shotEnvironment" required></textarea></label><label>Action<textarea id="shotAction" required></textarea></label>
+            <label>Camera<textarea id="shotCamera" required></textarea></label><label>Lighting<textarea id="shotLighting" required></textarea></label>
+            <label>Audio and sound design<textarea id="shotAudio" required></textarea></label><label>Continuity requirements<textarea id="shotContinuity" required></textarea></label>
+            <div class="checkline"><input id="confirmRealCost" type="checkbox" required><label for="confirmRealCost">I acknowledge that a real generation request may incur GPU charges.</label></div>
+            <div class="form-actions"><button id="submitRealShotButton" class="primary" type="submit" disabled>SUBMIT REAL T2V SHOT</button><span id="realShotResult" class="muted small" role="status" aria-live="polite"></span></div>
+          </form>
+        </div>
+        <div class="panel" style="margin-top:14px"><div class="eyebrow">Generation history</div><h2 style="margin-top:6px">Recent takes & review controls</h2><div id="generationTakes" class="stack"></div></div>
+      </section>
+    </main>
+  </div>
+</div>
+<div id="notice" class="notice" role="status" aria-live="polite"></div>
+
+<script>
+let currentRoom = "overview";
+let currentFilm = null;
+let selectedProjectId = "";
+let projects = [], scenes = [], tests = [], assets = [], reviews = [], takes = [];
+let shotTemplate = null, generationGate = null, pendingShotRequestId = null, pendingShotPayload = null;
+const $ = function(id){ return document.getElementById(id); };
+function esc(value){ return String(value == null ? "" : value).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
+function note(message){ $("notice").textContent=message; $("notice").style.display="block"; window.clearTimeout(note.handle); note.handle=window.setTimeout(function(){$("notice").style.display="none";},3600); }
+async function api(path, options){ options=options||{}; const response=await fetch("/api"+path,Object.assign({headers:{"Content-Type":"application/json"}},options)); if(response.status===401){showLogin();throw new Error("Your session expired. Please sign in again.");} const payload=await response.json(); if(!response.ok)throw new Error(payload.error||"Request failed"); return payload.data; }
+function body(value){return JSON.stringify(value);}
+function showLogin(){ $("app").classList.add("hidden"); $("login").classList.remove("hidden"); }
+function showApp(){ $("login").classList.add("hidden"); $("app").classList.remove("hidden"); }
+async function signIn(){ $("loginMsg").textContent=""; try{await api("/login",{method:"POST",body:body({pin:$("pin").value})}); $("pin").value=""; showApp(); await refreshStudio();}catch(error){$("loginMsg").textContent="Access denied or temporarily locked.";}}
+$("loginButton").addEventListener("click",signIn);
+$("pin").addEventListener("keydown",function(event){if(event.key==="Enter")signIn();});
+$("logoutButton").addEventListener("click",async function(){await fetch("/api/logout",{method:"POST"});showLogin();});
+$("refreshButton").addEventListener("click",refreshStudio);
+document.querySelectorAll("[data-room]").forEach(function(button){button.addEventListener("click",function(){openRoom(button.getAttribute("data-room"));});});
+document.querySelectorAll("[data-go]").forEach(function(button){button.addEventListener("click",function(){openRoom(button.getAttribute("data-go"));});});
+function openRoom(name){currentRoom=name;document.querySelectorAll(".room").forEach(function(room){room.classList.toggle("active",room.id==="room-"+name);});document.querySelectorAll("[data-room]").forEach(function(button){button.classList.toggle("active",button.getAttribute("data-room")===name);});}
+async function refreshStudio(){
+ try{
+  const results=await Promise.all([api("/status"),api("/studio/overview"),api("/studio/projects"),api("/studio/tests"),api("/studio/assets"),api("/studio/reviews"),api("/studio/reports"),api("/takes")]);
+  const status=results[0], overview=results[1]; projects=results[2]; tests=results[3]; assets=results[4]; reviews=results[5]; const report=results[6]; takes=results[7];
+  $("backend").textContent=status.mock_mode?"MOCK MODE":"LTX / COMFYUI"; $("backend").className="pill "+(status.mock_mode?"warn":"ok");
+  $("backendDetail").textContent=status.controller.toUpperCase(); $("engineMode").textContent=status.backend_adapter; $("realMode").textContent=status.real_generation_enabled?"CONFIGURED — PREFLIGHT REQUIRED":"LOCKED IN MOCK MODE";
+  $("overviewMode").textContent=status.mock_mode?"MOCK MODE":"PRODUCTION BACKEND";
+  $("modeLabel").textContent=status.mock_mode?"SAFE MOCK MODE":"CONNECTED BACKEND";
+  $("storageState").textContent=overview.storage.data_root_configured?"DATA ROOT CONFIGURED":"PERSISTENT DISK PENDING"; $("storageState").className="pill "+(overview.storage.data_root_configured?"ok":"warn");
+  $("storageDetail").textContent=overview.storage.note;
+  $("metricProjects").textContent=overview.projects; $("metricScenes").textContent=overview.scenes+" / "+overview.shots;
+  $("metricTests").textContent=overview.tests; $("metricAssets").textContent=overview.assets;
+  $("metricPassed").textContent=overview.tests_passed; $("metricFailed").textContent=overview.tests_failed;
+  renderProjects(); renderScenes(); renderTests(); renderAssets(); renderReviews(); renderTakes();
+  renderReports(report); await loadShotTemplate(); await loadGenerationGate();
+ }catch(error){if(error.message.indexOf("session expired")<0)note(error.message);}
+}
+function renderProjects(){
+ const target=$("projectList"); const overview=$("overviewProjects");
+ const rows=projects.map(function(p){return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(p.title)+'</div><div class="record-meta">'+esc(p.film_type.replaceAll("_"," "))+' · '+p.scene_count+' scenes · '+p.shot_count+' shots</div></div><span class="tag violet-tag">'+esc(p.status.replaceAll("_"," "))+'</span></div><div class="form-actions"><button class="quiet" data-select-project="'+esc(p.project_id)+'">OPEN PROJECT</button></div></div>';}).join("");
+ target.innerHTML=rows||'<div class="empty">No projects registered yet. Create your first film project.</div>';
+ overview.innerHTML=projects.slice(0,4).map(function(p){return '<div class="record"><div class="record-top"><strong>'+esc(p.title)+'</strong><span class="tag violet-tag">'+esc(p.status.replaceAll("_"," "))+'</span></div><div class="record-meta">'+p.scene_count+' scenes · '+p.shot_count+' shots · '+p.test_count+' tests</div></div>';}).join("")||'<div class="empty">Your film projects will appear here.</div>';
+ document.querySelectorAll("[data-select-project]").forEach(function(button){button.addEventListener("click",function(){selectProject(button.getAttribute("data-select-project"));});});
+ renderProjectSelects();
+}
+function renderProjectSelects(){
+ ["testProject","assetProject"].forEach(function(id){const element=$(id);const old=element.value;element.innerHTML='<option value="">'+(id==="testProject"?"Unassigned test":"Studio-wide asset")+'</option>'+projects.map(function(p){return '<option value="'+esc(p.project_id)+'">'+esc(p.title)+'</option>';}).join("");if(old)element.value=old;});
+}
+async function selectProject(id){selectedProjectId=id;const project=projects.find(function(p){return p.project_id===id;});$("selectedProjectLabel").textContent=project?project.title.toUpperCase():"NO PROJECT SELECTED";await loadScenes();}
+async function loadScenes(){
+ if(!selectedProjectId){scenes=[];$("sceneList").innerHTML='<div class="empty">Select or create a project to plan its scenes.</div>';$("shotSceneSelect").innerHTML='<option value="">Select a scene</option>';return;}
+ scenes=await api("/studio/scenes?project_id="+encodeURIComponent(selectedProjectId));
+ renderScenes();
+}
+function renderScenes(){
+ if(!$("sceneList"))return;
+ $("sceneList").innerHTML=scenes.map(function(scene){return '<div class="record"><div class="record-top"><div><div class="record-title">SCENE '+scene.scene_number+' · '+esc(scene.title)+'</div><div class="record-meta">'+esc(scene.location||"Location not set")+' · '+scene.shot_count+' shots</div></div><span class="tag">'+esc(scene.status)+'</span></div><div class="record-meta">'+esc(scene.synopsis)+'</div></div>';}).join("")||'<div class="empty">No scenes have been added to this project yet.</div>';
+ $("shotSceneSelect").innerHTML='<option value="">Select a scene</option>'+scenes.map(function(scene){return '<option value="'+esc(scene.scene_id)+'">Scene '+scene.scene_number+' — '+esc(scene.title)+'</option>';}).join("");
+ $("testScene").innerHTML='<option value="">No scene selected</option>'+scenes.map(function(scene){return '<option value="'+esc(scene.scene_id)+'">Scene '+scene.scene_number+' — '+esc(scene.title)+'</option>';}).join("");
+}
+$("projectForm").addEventListener("submit",async function(event){event.preventDefault();try{const item=await api("/studio/projects",{method:"POST",body:body({title:$("projectTitle").value,film_type:$("projectType").value,status:$("projectStatus").value,synopsis:$("projectSynopsis").value})});$("projectForm").reset();await refreshStudio();await selectProject(item.project_id);openRoom("projects");note("Film project created.");}catch(error){note(error.message);}});
+$("sceneForm").addEventListener("submit",async function(event){event.preventDefault();if(!selectedProjectId){note("Select a film project first.");return;}try{await api("/studio/scenes",{method:"POST",body:body({project_id:selectedProjectId,scene_number:$("sceneNumber").value,title:$("sceneTitle").value,status:"PLANNED",location:$("sceneLocation").value,synopsis:$("sceneSynopsis").value})});$("sceneForm").reset();await refreshStudio();await loadScenes();note("Scene added to the project.");}catch(error){note(error.message);}});
+$("shotForm").addEventListener("submit",async function(event){event.preventDefault();if(!selectedProjectId){note("Select a film project first.");return;}try{await api("/studio/shots",{method:"POST",body:body({project_id:selectedProjectId,scene_id:$("shotSceneSelect").value,shot_code:$("shotCode").value,description:$("shotDescription").value,status:"PLANNED"})});$("shotForm").reset();await refreshStudio();await loadScenes();note("Shot added to the scene breakdown.");}catch(error){note(error.message);}});
+$("testForm").addEventListener("submit",async function(event){event.preventDefault();try{await api("/studio/tests",{method:"POST",body:body({test_name:$("testName").value,purpose:$("testPurpose").value,project_id:$("testProject").value,scene_id:$("testScene").value,shot_code:$("testShot").value,model_name:$("testModel").value,workflow:$("testWorkflow").value,comparison_group:$("testGroup").value,prompt:$("testPrompt").value,seed:$("testSeed").value,resolution:$("testResolution").value,frame_rate:$("testFps").value,duration_seconds:$("testDuration").value,gpu_minutes:$("testGpuMinutes").value,cost_usd:$("testCost").value,result_status:$("testResult").value,notes:$("testNotes").value})});$("testForm").reset();$("testGpuMinutes").value="0";$("testCost").value="0";await refreshStudio();openRoom("testing");note("Test record saved.");}catch(error){note(error.message);}});
+$("assetForm").addEventListener("submit",async function(event){event.preventDefault();try{await api("/studio/assets",{method:"POST",body:body({category:$("assetCategory").value,project_id:$("assetProject").value,name:$("assetName").value,reference_code:$("assetCode").value,description:$("assetDescription").value,continuity_notes:$("assetContinuity").value,tags:$("assetTags").value})});$("assetForm").reset();await refreshStudio();openRoom("assets");note("Asset reference saved.");}catch(error){note(error.message);}});
+$("reviewForm").addEventListener("submit",async function(event){event.preventDefault();try{await api("/studio/reviews",{method:"POST",body:body({take_id:$("reviewTakeId").value,rating:$("reviewRating").value,decision:$("reviewDecision").value,note:$("reviewNote").value})});$("reviewNote").value="";await refreshStudio();openRoom("review");note("Director notes saved.");}catch(error){note(error.message);}});
+$("reviewRefresh").addEventListener("click",refreshStudio);$("reportRefresh").addEventListener("click",refreshStudio);
+function renderTests(){ $("testCount").textContent=tests.length+" RECORDS";$("testList").innerHTML=tests.map(function(t){const color=t.result_status==="PASSED"?"green-tag":t.result_status==="FAILED"?"coral-tag":"amber-tag";return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(t.test_name)+'</div><div class="record-meta">'+esc(t.model_name||"Model not recorded")+' · '+esc(t.workflow||"Workflow not recorded")+'</div></div><span class="tag '+color+'">'+esc(t.result_status)+'</span></div><div class="record-meta">'+esc(t.test_name)+' · '+esc(t.resolution||"Resolution n/a")+' · '+esc(t.frame_rate||"—")+' fps · '+esc(t.duration_seconds||"—")+' sec</div><div class="record-meta">Comparison: '+esc(t.comparison_group||"No group")+' · GPU: '+Number(t.gpu_minutes||0).toFixed(2)+' min · tracked: $'+Number(t.cost_usd||0).toFixed(2)+'</div>'+(t.notes?'<div class="record-meta">'+esc(t.notes)+'</div>':"")+'</div>';}).join("")||'<div class="empty">No tests logged yet. Start by recording a planned experiment.</div>'; }
+function renderAssets(){ $("assetCount").textContent=assets.length+" ASSETS";$("assetList").innerHTML=assets.map(function(a){let tags=[];try{tags=Array.isArray(a.tags)?a.tags:JSON.parse(a.tags||"[]");}catch(e){}return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(a.name)+'</div><div class="record-meta">'+esc(a.reference_code||a.asset_id)+' · '+esc(a.project_id||"Studio-wide")+'</div></div><span class="tag violet-tag">'+esc(a.category)+'</span></div><div class="record-meta">'+esc(a.description)+'</div>'+(a.continuity_notes?'<div class="record-meta"><strong>Continuity:</strong> '+esc(a.continuity_notes)+'</div>':"")+'<div>'+tags.map(function(tag){return '<span class="tag">'+esc(tag)+'</span>';}).join("")+'</div></div>';}).join("")||'<div class="empty">No assets registered yet.</div>'; }
+function renderReviews(){ $("reviewList").innerHTML=reviews.map(function(r){return '<div class="record"><div class="record-top"><strong>'+esc(r.take_id)+'</strong><span class="tag '+(r.decision==="REVISION_REQUEST"?"coral-tag":"green-tag")+'">'+esc(r.decision.replaceAll("_"," "))+'</span></div><div class="record-meta">Director rating: '+r.rating+'/5 · '+esc(r.created_at)+'</div><p style="margin:7px 0 0;font-size:12px;color:#d3dced">'+esc(r.note)+'</p></div>';}).join("")||'<div class="empty">No director notes recorded.</div>'; }
+function renderTakes(){
+ const html=takes.slice(0,40).map(function(t){const reviewable=t.status==="COMPLETED";return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(t.shot_id||"Shot")+'</div><div class="record-meta">'+esc(t.take_id)+' · '+esc(t.status)+'</div></div><span class="tag '+(t.status==="APPROVED"?"green-tag":t.status==="REJECTED"||t.status==="FAILED"?"coral-tag":"amber-tag")+'">'+esc(t.status)+'</span></div>'+(reviewable?'<video class=\"video\" controls preload="metadata" src="/api/takes/'+encodeURIComponent(t.take_id)+'/preview"></video><div class="form-actions"><button class="green" data-approve="'+esc(t.take_id)+'">APPROVE TAKE</button><button class="coral" data-reject="'+esc(t.take_id)+'">REJECT TAKE</button><button class="quiet" data-review="'+esc(t.take_id)+'">ADD REVIEW NOTE</button></div>':"")+'</div>';}).join("");
+ $("takeList").innerHTML=html||'<div class="empty">No production takes yet. Mock tests and real generations will appear here.</div>';
+ $("generationTakes").innerHTML=html||'<div class="empty">No takes generated yet.</div>';
+ document.querySelectorAll("[data-approve]").forEach(function(button){button.addEventListener("click",function(){approveTake(button.getAttribute("data-approve"));});});
+ document.querySelectorAll("[data-reject]").forEach(function(button){button.addEventListener("click",function(){rejectTake(button.getAttribute("data-reject"));});});
+ document.querySelectorAll("[data-review]").forEach(function(button){button.addEventListener("click",function(){$("reviewTakeId").value=button.getAttribute("data-review");openRoom("review");});});
+}
+async function approveTake(id){if(!confirm("Approve this completed take and allow the controller's approved export flow?"))return;try{await api("/takes/"+encodeURIComponent(id)+"/approve",{method:"POST",body:body({auto_export:true})});note("Take approved.");await refreshStudio();}catch(error){note(error.message);}}
+async function rejectTake(id){const reason=prompt("Why are you rejecting this take?");if(!reason)return;try{await api("/takes/"+encodeURIComponent(id)+"/reject",{method:"POST",body:body({reason:reason})});note("Take rejected and recorded.");await refreshStudio();}catch(error){note(error.message);}}
+function renderReports(report){
+ const s=report.summary;$("reportGpu").textContent=Number(s.tracked_gpu_minutes||0).toFixed(2)+" min";$("reportCost").textContent="$"+Number(s.tracked_cost_usd||0).toFixed(2);$("reportPassed").textContent=s.tests_passed;$("reportReviews").textContent=s.reviews;$("reportNote").textContent=report.cost_note;
+ $("reportProjects").innerHTML=report.projects.map(function(p){const progress=p.shot_count?Math.min(100,Math.round((p.shot_count/(p.shot_count+p.scene_count||1))*100)):0;return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(p.title)+'</div><div class="record-meta">'+p.scene_count+' scenes · '+p.shot_count+' shots · '+p.test_count+' tests · '+p.asset_count+' assets</div></div><span class="tag violet-tag">'+esc(p.status)+'</span></div><div class="progress"><div class="bar" style="width:'+progress+'%"></div></div></div>';}).join("")||'<div class="empty">No projects registered yet.</div>';
+}
+async function loadShotTemplate(){shotTemplate=await api("/shot-template");const fields={shotFilmId:"film_id",shotSceneId:"scene_id",shotId:"shot_id",shotEnvironment:"environment",shotAction:"action",shotCamera:"camera",shotLighting:"lighting",shotAudio:"audio",shotContinuity:"continuity",shotDuration:"duration",shotResolution:"resolution",shotAspectRatio:"aspect_ratio",shotFrameRate:"frame_rate",shotQuality:"quality_preset",shotSeed:"seed"};Object.keys(fields).forEach(function(id){if($(id))$(id).value=shotTemplate[fields[id]]==null?"":shotTemplate[fields[id]];});$("shotCharacters").value=(shotTemplate.character_ids||[]).join(", ");$("shotVoices").value=(shotTemplate.voice_profile_ids||[]).join(", ");}
+async function loadGenerationGate(){generationGate=await api("/generation-readiness");$("realShotGate").textContent=generationGate.enabled?"T2V READY":"LOCKED";$("realShotGate").className="pill "+(generationGate.enabled?"ok":"warn");$("realShotGateMessage").textContent=generationGate.reason||"Preflight status unavailable."; $("realGateGpu").textContent=generationGate.gpu_name?(generationGate.gpu_name+" · "+generationGate.gpu_vram_gib+" GiB"):"GPU NOT VERIFIED";$("realGateWorkflow").textContent=generationGate.enabled?"WORKFLOW VERIFIED":"WORKFLOW NOT VERIFIED";document.querySelectorAll("#realShotForm input,#realShotForm textarea,#realShotForm select").forEach(function(field){field.disabled=!generationGate.enabled;});$("submitRealShotButton").disabled=!generationGate.enabled;}
+function buildShotSpecification(){
+ if(!shotTemplate)throw new Error("The validated shot template is not loaded.");
+ const spec=JSON.parse(JSON.stringify(shotTemplate));spec.film_id=$("shotFilmId").value.trim().toUpperCase();spec.scene_id=$("shotSceneId").value.trim().toUpperCase();spec.shot_id=$("shotId").value.trim().toUpperCase();spec.shot_type="SINGLE-SHOT";spec.character_ids=$("shotCharacters").value.split(",").map(function(v){return v.trim();}).filter(Boolean);spec.voice_profile_ids=$("shotVoices").value.split(",").map(function(v){return v.trim();}).filter(Boolean);spec.environment=$("shotEnvironment").value.trim();spec.action=$("shotAction").value.trim();spec.camera=$("shotCamera").value.trim();spec.lighting=$("shotLighting").value.trim();spec.audio=$("shotAudio").value.trim();spec.continuity=$("shotContinuity").value.trim();spec.duration=Number($("shotDuration").value);spec.resolution=$("shotResolution").value;spec.aspect_ratio=$("shotAspectRatio").value;spec.frame_rate=Number($("shotFrameRate").value);spec.quality_preset=$("shotQuality").value.trim();spec.status="READY";spec.generation_mode="TEXT_TO_VIDEO";spec.reference_assets=Array.isArray(shotTemplate.reference_assets)?shotTemplate.reference_assets:[];delete spec.input_image;delete spec.frame_conditioning;delete spec.continuation_source;spec.seed=Number($("shotSeed").value);return spec;
+}
+function newShotRequestId(){if(window.crypto&&typeof window.crypto.randomUUID==="function")return window.crypto.randomUUID();throw new Error("Secure UUID generation is not supported by this browser.");}
+$("realShotForm").addEventListener("submit",async function(event){event.preventDefault();if(!generationGate||!generationGate.enabled){note("Real shot submission remains locked by production preflight.");return;}if(!$("confirmRealCost").checked){note("Confirm the generation cost acknowledgement first.");return;}let spec,payload;try{spec=buildShotSpecification();payload=JSON.stringify(spec);}catch(error){note(error.message);return;}if(!pendingShotRequestId||pendingShotPayload!==payload){pendingShotRequestId=newShotRequestId();pendingShotPayload=payload;}const button=$("submitRealShotButton");button.disabled=true;button.textContent="SUBMITTING…";try{const result=await api("/shots/generate",{method:"POST",body:body({request_id:pendingShotRequestId,specification:spec,cost_acknowledged:$("confirmRealCost").checked})});const take=result.take||{};$("realShotResult").textContent=(result.reused?"Existing submission: ":"Shot submitted: ")+(take.take_id||"take ID unavailable");pendingShotRequestId=null;pendingShotPayload=null;$("confirmRealCost").checked=false;note("Submission accepted by controller.");await refreshStudio();}catch(error){$("realShotResult").textContent="Submission not confirmed: "+error.message+". Reusing this request ID is designed to avoid duplicate submission.";note(error.message);}finally{button.textContent="SUBMIT REAL T2V SHOT";button.disabled=!(generationGate&&generationGate.enabled);}});
+$("mockTestButton").addEventListener("click",async function(){try{const result=await api("/mock-test",{method:"POST",body:body({})});$("mockTestResult").textContent="Mock take: "+result.take.take_id+" · "+(result.reused?"existing safe test reused":"submitted in Mock Mode");note("Mock test submitted; no GPU was used.");await refreshStudio();}catch(error){note(error.message);}});
+$("updateCheckButton").addEventListener("click",async function(){$("updateCheckStatus").textContent="Checking official metadata (read-only)…";try{const result=await api("/updates/check",{method:"POST",body:body({})});$("updateCheckStatus").textContent="Check completed. No software was installed or downloaded.";const candidates=result.candidates||result.sources||[];$("updateCheckResults").innerHTML='<div class="record record-meta">'+esc(JSON.stringify(candidates.slice?candidates.slice(0,5):candidates))+'</div>';}catch(error){$("updateCheckStatus").textContent="Update check failed: "+error.message;}});
+</script>
+</body>
+</html>
