@@ -34,6 +34,7 @@ def patch_archive(archive: Path) -> str:
     workspace = require_file(source_root / "studio" / "studio_workspace.py")
     html = require_file(source_root / "studio" / "studio_control_room.html")
     test_source = require_file(source_root / "studio" / "test_studio_workspace.py")
+    guide = require_file(source_root / "docs" / "STUDIO_CONTROL_ROOM.md")
 
     with zipfile.ZipFile(archive, "r") as incoming:
         bad = incoming.testzip()
@@ -172,6 +173,7 @@ def patch_archive(archive: Path) -> str:
     put(entries, "studio_workspace.py", workspace)
     put(entries, "studio_control_room.html", html)
     put(entries, "tests/test_studio_workspace.py", test_source)
+    put(entries, "docs/STUDIO_CONTROL_ROOM.md", guide)
 
     with tempfile.NamedTemporaryFile(prefix="hrf-studio-rooms-", suffix=".zip", dir=archive.parent, delete=False) as tmp:
         temp_path = Path(tmp.name)
@@ -184,7 +186,7 @@ def patch_archive(archive: Path) -> str:
             bad = validation.testzip()
             if bad:
                 raise RuntimeError(f"Output controller ZIP failed integrity check at {bad}")
-            required = {"director_console.py", "studio_workspace.py", "studio_control_room.html", "tests/test_studio_workspace.py"}
+            required = {"director_console.py", "studio_workspace.py", "studio_control_room.html", "tests/test_studio_workspace.py", "docs/STUDIO_CONTROL_ROOM.md"}
             missing = required - set(validation.namelist())
             if missing:
                 raise RuntimeError(f"Output package is missing required studio room files: {sorted(missing)}")
