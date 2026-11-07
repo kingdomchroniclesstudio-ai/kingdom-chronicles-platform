@@ -382,19 +382,19 @@ class StudioWorkspace:
 
     def update_status(self, resource: str, resource_id: str, status: str) -> dict[str, Any]:
         tables = {
-            "project": ("studio_projects", "project_id", PROJECT_STATUSES),
-            "scene": ("studio_scenes", "scene_id", SCENE_STATUSES),
-            "shot": ("studio_shots", "shot_id", SHOT_STATUSES),
-            "test": ("studio_tests", "test_id", TEST_RESULTS),
+            "project": ("studio_projects", "project_id", "status", PROJECT_STATUSES),
+            "scene": ("studio_scenes", "scene_id", "status", SCENE_STATUSES),
+            "shot": ("studio_shots", "shot_id", "status", SHOT_STATUSES),
+            "test": ("studio_tests", "test_id", "result_status", TEST_RESULTS),
         }
         if resource not in tables:
             raise ValueError("unsupported resource type")
-        table, key, allowed = tables[resource]
+        table, key, status_column, allowed = tables[resource]
         status = self._enum(status, "status", allowed, "")
         resource_id = self._text(resource_id, "id", 80, True)
         now = self._now()
         with self._db() as db:
-            cursor = db.execute(f"UPDATE {table} SET status=?, updated_at=? WHERE {key}=?", (status, now, resource_id))
+            cursor = db.execute(f"UPDATE {table} SET {status_column}=?, updated_at=? WHERE {key}=?", (status, now, resource_id))
             if cursor.rowcount != 1:
                 raise ValueError(f"{resource} was not found")
             row = db.execute(f"SELECT * FROM {table} WHERE {key}=?", (resource_id,)).fetchone()
