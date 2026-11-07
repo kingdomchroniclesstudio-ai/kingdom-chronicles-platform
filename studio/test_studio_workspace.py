@@ -105,7 +105,7 @@ class StudioControlRoomUITests(unittest.TestCase):
             'data-room="overview"', 'data-room="projects"', 'data-room="testing"',
             'data-room="assets"', 'data-room="review"', 'data-room="reports"',
             'data-room="generation"', 'LTX Update Monitor', 'RUN ONE MOCK SHOT',
-            'Director Command', 'id="realShotForm"', 'id="takeList"'
+            'Director Command', 'id="realShotForm"', 'id="takeList"', 'id="comparisonGroups"', 'data-resource="project"', 'data-resource="scene"', 'data-resource="shot"', 'data-resource="test"'
         ):
             with self.subTest(marker=marker):
                 self.assertIn(marker, self.html)
@@ -121,6 +121,38 @@ class StudioControlRoomUITests(unittest.TestCase):
             script_path.write_text("\n".join(scripts), encoding="utf-8")
             checked = subprocess.run([node, "--check", str(script_path)], capture_output=True, text=True)
             self.assertEqual(checked.returncode, 0, checked.stderr)
+
+
+class StudioControlRoomRouteWiringTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        controller_path = Path(__file__).resolve().parents[1] / "director_console.py"
+        cls.source = controller_path.read_text(encoding="utf-8")
+
+    def test_authenticated_studio_get_and_post_routes_are_packaged(self):
+        for marker in (
+            'if path == "/api/studio/overview":',
+            'if path == "/api/studio/projects":',
+            'if path == "/api/studio/scenes":',
+            'if path == "/api/studio/shots":',
+            'if path == "/api/studio/tests":',
+            'if path == "/api/studio/assets":',
+            'if path == "/api/studio/reviews":',
+            'if path == "/api/studio/reports":',
+            'self._console().workspace.create_project(body)',
+            'self._console().workspace.create_scene(body)',
+            'self._console().workspace.create_shot(body)',
+            'self._console().workspace.create_test(body)',
+            'self._console().workspace.create_asset(body)',
+            'self._console().controller.get_take(take_id)',
+            'origin_required',
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, self.source)
+
+    def test_status_route_updates_allowlisted_resources(self):
+        self.assertIn('status_parts[3] in {"projects", "scenes", "shots", "tests"}', self.source)
+        self.assertIn('self._console().workspace.update_status(resource', self.source)
 
 
 if __name__ == "__main__":
