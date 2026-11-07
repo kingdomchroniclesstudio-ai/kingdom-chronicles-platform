@@ -169,6 +169,11 @@ jobs:
           mkdir -p "$staged"
           cp "$archive" "$manifest" "$pin_file" "$staged/"
           git fetch origin "$GITHUB_HEAD_REF"
+          # Build/test steps modified the generated ZIP, manifest and checksum pin.
+          # They are safely staged outside the repository above; clean the temporary
+          # merge-checkout before switching to the PR head branch.
+          git reset --hard HEAD
+          git clean -fd
           git checkout -B "$GITHUB_HEAD_REF" "origin/$GITHUB_HEAD_REF"
           cp "$staged/$(basename "$archive")" "$archive"
           cp "$staged/$(basename "$manifest")" "$manifest"
