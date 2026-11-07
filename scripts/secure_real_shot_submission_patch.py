@@ -616,8 +616,7 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
         "director_console.py",
         [(
             "    def create_mock_test(self) -> dict[str, Any]:\n",
-            real_methods + "    def create_mock_test(self) -> dict[str, Any]:
-",
+            real_methods + "    def create_mock_test(self) -> dict[str, Any]:\n",
             "real shot preflight and submission methods",
         )],
     )
