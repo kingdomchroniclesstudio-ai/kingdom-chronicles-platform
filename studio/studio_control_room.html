@@ -253,6 +253,7 @@ async function refreshStudio(){
   $("metricTests").textContent=overview.tests; $("metricAssets").textContent=overview.assets;
   $("metricPassed").textContent=overview.tests_passed; $("metricFailed").textContent=overview.tests_failed;
   renderProjects(); renderScenes(); renderShots(); renderTests(); renderAssets(); renderReviews(); renderTakes();
+  if(selectedProjectId) await loadScenes();
   renderReports(report); await loadShotTemplate(); await loadGenerationGate();
  }catch(error){if(error.message.indexOf("session expired")<0)note(error.message);}
 }
@@ -264,7 +265,7 @@ function renderProjects(){
  document.querySelectorAll("[data-select-project]").forEach(function(button){button.addEventListener("click",function(){selectProject(button.getAttribute("data-select-project"));});});
  renderProjectSelects();
  wireStatusSelectors();
- if(!selectedProjectId && projects.length) selectProject(projects[0].project_id);
+ if(!selectedProjectId && projects.length){selectedProjectId=projects[0].project_id;$("selectedProjectLabel").textContent=projects[0].title.toUpperCase();}
 }
 function renderProjectSelects(){
  ["testProject","assetProject"].forEach(function(id){const element=$(id);const old=element.value;element.innerHTML='<option value="">'+(id==="testProject"?"Unassigned test":"Studio-wide asset")+'</option>'+projects.map(function(p){return '<option value="'+esc(p.project_id)+'">'+esc(p.title)+'</option>';}).join("");if(old)element.value=old;});
