@@ -7,12 +7,12 @@ The new dashboard submission path supports one real **single-shot Text-to-Video 
 The first release deliberately limits submissions to:
 - 16:9 aspect ratio.
 - 1–20 whole-number seconds.
-- 720p, 1080p, 1440p or 4K.
+- 720p, 1080p or 1440p. 4K is deliberately reserved until the 1440p acceptance run establishes a measured GPU/memory baseline.
 - Whole-number frame rate from 1 to 60 fps.
 - A required nonnegative integer seed.
 - The LTX-2.5 single-shot T2V preset only.
 
-Image-to-video, first-frame, first/last-frame, continuation and multi-shot remain disabled until their genuine ComfyUI API exports and mappings have been separately validated. A quality-preset selector is intentionally omitted because the current mapping contract does not yet expose a verified quality control.
+Image-to-video, first-frame, first/last-frame, continuation and multi-shot remain disabled until their genuine ComfyUI API exports and mappings have been separately validated. 4K is reserved for a later measured GPU acceptance test. A quality-preset selector is intentionally omitted because the current mapping contract does not yet expose a verified quality control.
 
 ## Preconditions before unlocking a real shot
 
