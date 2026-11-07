@@ -203,6 +203,17 @@ class RealShotSubmissionTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(template["data"]["generation_mode"], "TEXT_TO_VIDEO")
 
+    def test_server_requires_explicit_cost_acknowledgement(self):
+        payload = {
+            "request_id": str(uuid.uuid4()),
+            "specification": self.template,
+            "cost_acknowledged": False,
+        }
+        status, result = self.request("POST", "/api/shots/generate", payload)
+        self.assertEqual(status, 409)
+        self.assertIn("cost acknowledgement", result["error"])
+        self.assertEqual(self.controller.generated, [])
+
     def test_mock_mode_refuses_real_shot_submission_without_calling_controller(self):
         request_id = str(uuid.uuid4())
         payload = {"request_id": request_id, "specification": self.template, "cost_acknowledged": True}
@@ -937,7 +948,7 @@ class DurableSubmissionIdempotencyTests(unittest.TestCase):
             )
             self.assertFalse(created)
             self.assertEqual(second["take_id"], first_id)
-            self.assertEqual(len(restarted_controller.list_takes()), 1)
+            self.assertEqual(len(restarted_controller.store.film_takes(self.spec["film_id"])), 1)
         finally:
             restarted_controller.close()
 
@@ -986,6 +997,8 @@ if __name__ == "__main__":
         "function submitRealShot(event)",
         "if(!generationGate||!generationGate.enabled)",
         "The verified LTX-2.5 T2V workflow is not installed and approved",
+        "get_submission_request",
+        "submission_requests",
     ]
     missing = [marker for marker in required if marker not in console]
     if missing:
