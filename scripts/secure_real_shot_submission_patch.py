@@ -358,6 +358,20 @@ class RealShotSubmissionTests(unittest.TestCase):
         with self.assertRaises(WorkflowTemplateError):
             RealComfyUIAdapter._mapping_values(None, request, {})
 
+    def test_real_submission_rejects_missing_seed_before_take_creation(self):
+        self.controller.adapter = RealComfyUIAdapter()
+        spec = dict(self.template)
+        spec["generation_mode"] = "TEXT_TO_VIDEO"
+        spec.pop("seed", None)
+        status, result = self.request(
+            "POST",
+            "/api/shots/generate",
+            {"request_id": str(uuid.uuid4()), "specification": spec, "cost_acknowledged": True},
+        )
+        self.assertEqual(status, 409)
+        self.assertIn("seed", result["error"])
+        self.assertEqual(self.controller.generated, [])
+
     def test_real_submission_rejects_non_t2v_and_invalid_specification(self):
         self.controller.adapter = RealComfyUIAdapter()
         cfg = json.loads(self.presets_path.read_text(encoding="utf-8"))
@@ -726,6 +740,8 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
             raise ValueError("The first real T2V path accepts whole-number durations from 1 to 20 seconds only.")
         if type(spec.get("frame_rate")) is not int or not 1 <= spec["frame_rate"] <= 60:
             raise ValueError("Frame rate must be a whole number between 1 and 60 fps.")
+        if type(spec.get("seed")) is not int or spec["seed"] < 0:
+            raise ValueError("A nonnegative integer seed is required by the approved T2V workflow mapping.")
 
         validate_specification(spec, self.root)
         payload_hash = hashlib.sha256(
@@ -1167,6 +1183,7 @@ if __name__ == "__main__":
         "The verified LTX-2.5 T2V workflow is not installed and approved",
         "get_submission_request",
         "persistent_storage_ready",
+        "A nonnegative integer seed is required by the approved T2V workflow mapping.",
         "HRF_DATA_DIR is not backed by a mounted persistent volume",
         "required_values = {",
         '"width": 2560',
