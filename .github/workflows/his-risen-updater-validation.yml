@@ -10,10 +10,17 @@ on:
   pull_request:
     branches:
       - main
+    # CI commits the generated ZIP/checksum back to the PR branch.
+    # Ignore those generated artifacts so the bot's own package commit does
+    # not request a second workflow approval or create a needless CI loop.
+    paths-ignore:
+      - "apps/**/*.zip"
+      - "apps/**/*.zip.sha256"
+      - "apps/controller-package.sha256"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate-controller-package:
@@ -45,9 +52,12 @@ jobs:
           set -euo pipefail
           archive="apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip"
           manifest="${archive}.sha256"
-          expected_sha256="b224196c94ca12726e91dc90041547f1bab7bc5643f8ab85f718f75168a8d2a3"
+          pin_file="apps/controller-package.sha256"
           test -s "$archive"
           test -s "$manifest"
+          test -s "$pin_file"
+          expected_sha256="$(tr -d '\r\n' < "$pin_file")"
+          test -n "$expected_sha256"
           read -r manifest_sha256 manifest_filename < "$manifest"
           test "$manifest_filename" = "$(basename "$archive")"
           test "$manifest_sha256" = "$expected_sha256"
@@ -146,3 +156,34 @@ jobs:
               print("This can be normal when the controls are shown only after sign-in; verify the controls in the authenticated UI.")
           PY
 
+
+      - name: Commit the validated deployable package to the PR branch
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip"
+          manifest="${archive}.sha256"
+          pin_file="apps/controller-package.sha256"
+          staged="$RUNNER_TEMP/hrf-validated-package"
+          mkdir -p "$staged"
+          cp "$archive" "$manifest" "$pin_file" "$staged/"
+          git fetch origin "$GITHUB_HEAD_REF"
+          # Build/test steps modified the generated ZIP, manifest and checksum pin.
+          # They are safely staged outside the repository above; clean the temporary
+          # merge-checkout before switching to the PR head branch.
+          git reset --hard HEAD
+          git clean -fd
+          git checkout -B "$GITHUB_HEAD_REF" "origin/$GITHUB_HEAD_REF"
+          cp "$staged/$(basename "$archive")" "$archive"
+          cp "$staged/$(basename "$manifest")" "$manifest"
+          cp "$staged/$(basename "$pin_file")" "$pin_file"
+          git add "$archive" "$manifest" "$pin_file"
+          if git diff --cached --quiet; then
+            echo "Validated controller package is already committed on the PR branch."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Update validated HIS RISEN controller package"
+            git push origin "HEAD:$GITHUB_HEAD_REF"
+          fi

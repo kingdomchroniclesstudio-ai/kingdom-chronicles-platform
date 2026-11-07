@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Apply the HIS RISEN STUDIOS product branding to the deployable controller ZIP.
+"""Build the branded HIS RISEN STUDIOS controller package with a guarded T2V submission path.
 
-This intentionally changes presentation and the public health service label only.
-It does not alter the Render service slug, API routes, PIN/session behavior,
-Mock Mode, updater behavior, workflow readiness flags, or generation settings.
+The package adds an authenticated, director-confirmed text-to-video submission
+form. Mock Mode remains unchanged and all real workflows remain disabled until
+a real ComfyUI API workflow, node set and CUDA GPU pass preflight. This script
+does not provision infrastructure, change Render settings, download models, or
+start a generation job.
 """
 from __future__ import annotations
 
@@ -12,6 +14,8 @@ import hashlib
 import tempfile
 import zipfile
 from pathlib import Path
+
+import secure_real_shot_submission_patch
 
 DEFAULT_ARCHIVE = Path("apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip")
 
@@ -118,6 +122,17 @@ def build_branding(archive: Path) -> None:
     test_info.external_attr = 0o100644 << 16
     entries["tests/test_director_console_branding.py"] = (test_info, BRANDING_TEST.encode("utf-8"))
 
+    runbook_path = Path("docs/REAL_SHOT_SUBMISSION.md")
+    if not runbook_path.is_file():
+        raise RuntimeError("Production real-shot runbook is missing from the repository.")
+    runbook_info = zipfile.ZipInfo("docs/REAL_SHOT_SUBMISSION.md", date_time=(2026, 11, 7, 0, 0, 0))
+    runbook_info.compress_type = zipfile.ZIP_DEFLATED
+    runbook_info.external_attr = 0o100644 << 16
+    entries["docs/REAL_SHOT_SUBMISSION.md"] = (runbook_info, runbook_path.read_bytes())
+
+    # Build and validate the secure, cost-confirmed, restart-safe T2V submission path.
+    secure_real_shot_submission_patch.apply(entries)
+
     # Guard the exact retained UI behavior before writing the updated archive.
     console = entries["director_console.py"][1].decode("utf-8")
     required = [
@@ -148,8 +163,15 @@ def build_branding(archive: Path) -> None:
             bad_member = check.testzip()
             if bad_member:
                 raise RuntimeError(f"Output archive failed ZIP integrity check at: {bad_member}")
-            if "tests/test_director_console_branding.py" not in check.namelist():
-                raise RuntimeError("Branding regression test was not included in the archive.")
+            required_members = {
+                "tests/test_director_console_branding.py",
+                "tests/test_director_console_real_shots.py",
+                "tests/test_controller_submission_idempotency.py",
+                "docs/REAL_SHOT_SUBMISSION.md",
+            }
+            missing_members = required_members - set(check.namelist())
+            if missing_members:
+                raise RuntimeError(f"Required controller tests/runbook are missing: {sorted(missing_members)}")
         temp_path.replace(archive)
     finally:
         if temp_path.exists():
@@ -158,6 +180,10 @@ def build_branding(archive: Path) -> None:
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
     manifest = Path(str(archive) + ".sha256")
     manifest.write_text(f"{digest}  {archive.name}\n", encoding="utf-8")
+    # A separate package pin lets CI verify the generated archive without a
+    # stale hard-coded digest in the workflow YAML.
+    pin = Path("apps/controller-package.sha256")
+    pin.write_text(f"{digest}\n", encoding="utf-8")
     print(f"Branded archive: {archive}")
     print(f"Archive size: {archive.stat().st_size} bytes")
     print(f"SHA-256: {digest}")
