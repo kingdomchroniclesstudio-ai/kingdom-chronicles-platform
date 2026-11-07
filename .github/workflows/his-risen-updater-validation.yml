@@ -45,21 +45,7 @@ jobs:
             echo "Branded package already present; skipping original-only patch transforms."
           fi
           python scripts/brand_his_risen_studios.py
-
-      - name: Export controller source for control-room upgrade inspection
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/hrf-controller-source"
-          unzip -p "apps/his_risen_controller_ltx25_audited_update_2026-10-10 (2).zip" director_console.py > "$RUNNER_TEMP/hrf-controller-source/director_console.py"
-          test -s "$RUNNER_TEMP/hrf-controller-source/director_console.py"
-
-      - name: Upload controller source inspection artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: hrf-controller-source
-          path: ${{ runner.temp }}/hrf-controller-source/director_console.py
-          retention-days: 1
+          python scripts/studio_control_room_patch.py
 
       - name: Verify staged archive identity and ZIP integrity
         shell: bash
