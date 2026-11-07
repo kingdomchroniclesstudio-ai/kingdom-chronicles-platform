@@ -132,6 +132,12 @@ class StudioWorkspace:
                 CREATE INDEX IF NOT EXISTS idx_studio_assets_project ON studio_assets(project_id, category);
                 CREATE INDEX IF NOT EXISTS idx_studio_reviews_take ON studio_reviews(take_id, created_at);
             """)
+            # Safe forward migration for a workspace database created by an
+            # earlier pre-GPU build: add the new status-update timestamp once.
+            test_columns = {row["name"] for row in db.execute("PRAGMA table_info(studio_tests)").fetchall()}
+            if "updated_at" not in test_columns:
+                db.execute("ALTER TABLE studio_tests ADD COLUMN updated_at TEXT NOT NULL DEFAULT ''")
+                db.execute("UPDATE studio_tests SET updated_at=created_at WHERE updated_at=''")
 
     @staticmethod
     def _now() -> str:
