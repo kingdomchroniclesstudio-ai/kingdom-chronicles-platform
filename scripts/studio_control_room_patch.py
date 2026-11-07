@@ -46,9 +46,6 @@ def patch_archive(archive: Path) -> str:
         raise RuntimeError("Controller package does not contain director_console.py")
     info, raw = entries["director_console.py"]
     console = raw.decode("utf-8")
-    if "import re\\n" not in console:
-        console = console.replace("import os\\n", "import os\\nimport re\\n", 1)
-
     import_anchor = "from config.data_paths import resolve_data_root\n"
     if "from studio_workspace import StudioWorkspace" not in console:
         if console.count(import_anchor) != 1:
@@ -145,12 +142,12 @@ def patch_archive(archive: Path) -> str:
                     raise ValueError("request body must be an object")
                 self._json(201, {"ok": True, "data": self._console().workspace.create_review(body)})
                 return
-            status_match = re.fullmatch(r"/api/studio/(projects|scenes|shots|tests)/([^/]+)/status", path)
-            if status_match:
-                resource = {"projects": "project", "scenes": "scene", "shots": "shot", "tests": "test"}[status_match.group(1)]
+            status_parts = path.split("/")
+            if len(status_parts) == 6 and status_parts[1:3] == ["api", "studio"] and status_parts[5] == "status" and status_parts[3] in {"projects", "scenes", "shots", "tests"}:
+                resource = {"projects": "project", "scenes": "scene", "shots": "shot", "tests": "test"}[status_parts[3]]
                 if not isinstance(body, dict):
                     raise ValueError("request body must be an object")
-                result = self._console().workspace.update_status(resource, unquote(status_match.group(2)), body.get("status"))
+                result = self._console().workspace.update_status(resource, unquote(status_parts[4]), body.get("status"))
                 self._json(200, {"ok": True, "data": result})
                 return
 '''
