@@ -11,7 +11,7 @@ from typing import Any, Iterator
 
 PROJECT_STATUSES = {"DEVELOPMENT", "PRE_PRODUCTION", "PRODUCTION", "POST_PRODUCTION", "COMPLETED", "ON_HOLD"}
 SCENE_STATUSES = {"PLANNED", "IN_PROGRESS", "READY", "COMPLETE", "ON_HOLD"}
-SHOT_STATUSES = {"PLANNED", "READY", "GENERATED", "IN_REVIEW", "APPROVED", "REJECTED", "ON_HOLD"}
+SHOT_STATUSES = {"PLANNED", "READY", "GENERATED", "IN_REVIEW", "NEEDS_REVISION", "COMPLETE", "ON_HOLD"}
 TEST_RESULTS = {"PLANNED", "PASSED", "FAILED", "NEEDS_REVIEW"}
 ASSET_CATEGORIES = {"CHARACTER", "LOCATION", "PROP", "WARDROBE", "REFERENCE", "SOUND", "OTHER"}
 
@@ -207,7 +207,7 @@ class StudioWorkspace:
                 SELECT p.*,
                   (SELECT COUNT(*) FROM studio_scenes s WHERE s.project_id=p.project_id) AS scene_count,
                   (SELECT COUNT(*) FROM studio_shots h WHERE h.project_id=p.project_id) AS shot_count,
-                  (SELECT COUNT(*) FROM studio_shots h WHERE h.project_id=p.project_id AND h.status='APPROVED') AS approved_shot_count,
+                  (SELECT COUNT(*) FROM studio_shots h WHERE h.project_id=p.project_id AND h.status='COMPLETE') AS completed_shot_count,
                   (SELECT COUNT(*) FROM studio_tests t WHERE t.project_id=p.project_id) AS test_count,
                   (SELECT COUNT(*) FROM studio_assets a WHERE a.project_id=p.project_id) AS asset_count
                 FROM studio_projects p ORDER BY p.updated_at DESC
@@ -421,7 +421,7 @@ class StudioWorkspace:
             "summary": overview,
             "projects": [{
                 "project_id": p["project_id"], "title": p["title"], "status": p["status"],
-                "scene_count": p["scene_count"], "shot_count": p["shot_count"], "approved_shot_count": p["approved_shot_count"],
+                "scene_count": p["scene_count"], "shot_count": p["shot_count"], "completed_shot_count": p["completed_shot_count"],
                 "test_count": p["test_count"], "asset_count": p["asset_count"]
             } for p in projects],
             "test_results": {
