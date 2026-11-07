@@ -29,6 +29,7 @@ def _test_source() -> str:
     return r'''from __future__ import annotations
 
 import json
+import os
 import tempfile
 import threading
 import unittest
@@ -144,13 +145,16 @@ class RealShotSubmissionTests(unittest.TestCase):
         self.workflow_path = "workflows/real/t2v.api.json"
         self.mapping_path = "workflows/real/t2v.mapping.json"
         (self.root / self.workflow_path).write_text(
-            json.dumps({"1": {"class_type": "TestLTXNode", "inputs": {"prompt": ""}}}),
+            json.dumps({"1": {"class_type": "TestLTXNode", "inputs": {
+                "prompt": "", "duration": 8, "seed": 0, "width": 2560, "height": 1440, "fps": 24
+            }}}),
             encoding="utf-8",
         )
-        (self.root / self.mapping_path).write_text(
-            json.dumps({"prompt": {"node_id": "1", "input": "prompt", "required": True}}),
-            encoding="utf-8",
-        )
+        self.mapping = {
+            key: {"node_id": "1", "input": key, "required": True}
+            for key in ("prompt", "duration", "seed", "width", "height", "fps")
+        }
+        (self.root / self.mapping_path).write_text(json.dumps(self.mapping), encoding="utf-8")
         self.presets_path = self.root / "workflows" / "real_presets.json"
         self.presets_path.write_text(json.dumps({
             "L25-T2V-SINGLE": {
@@ -160,6 +164,12 @@ class RealShotSubmissionTests(unittest.TestCase):
             }
         }), encoding="utf-8")
         self.controller = _FakeController(self.root)
+        (self.root / "storage").mkdir()
+        database_path = self.root / "storage" / "controller.sqlite3"
+        database_path.touch()
+        self.controller.store.path = database_path
+        self._old_data_root = os.environ.get("HRF_DATA_DIR")
+        os.environ["HRF_DATA_DIR"] = str(self.root)
         self.console = DirectorConsole(self.controller, "123456", self.root)
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.server.console = self.console
@@ -174,6 +184,10 @@ class RealShotSubmissionTests(unittest.TestCase):
         self.server.server_close()
         self.thread.join(timeout=2)
         self.console.stop()
+        if self._old_data_root is None:
+            os.environ.pop("HRF_DATA_DIR", None)
+        else:
+            os.environ["HRF_DATA_DIR"] = self._old_data_root
         self.temp.cleanup()
 
     def request(self, method, path, payload=None, *, auth=True, origin=True):
@@ -253,9 +267,12 @@ class RealShotSubmissionTests(unittest.TestCase):
         cfg["L25-T2V-SINGLE"]["ready"] = True
         self.presets_path.write_text(json.dumps(cfg), encoding="utf-8")
 
-        status, readiness = self.request("GET", "/api/generation-readiness")
+        from unittest.mock import patch
+        with patch.object(Path, "is_mount", autospec=True, side_effect=lambda path: path.resolve() == self.root.resolve()):
+            status, readiness = self.request("GET", "/api/generation-readiness")
         self.assertEqual(status, 200)
         self.assertTrue(readiness["data"]["enabled"])
+        self.assertTrue(readiness["data"]["persistent_storage_ready"])
         self.assertEqual(readiness["data"]["gpu_vram_gib"], 80)
 
         request_id = str(uuid.uuid4())
@@ -281,6 +298,64 @@ class RealShotSubmissionTests(unittest.TestCase):
         )
         self.assertEqual(status, 409)
         self.assertEqual(len(self.controller.generated), 1)
+
+    def test_real_preflight_requires_all_director_settings_to_be_mapped(self):
+        from unittest.mock import patch
+        self.controller.adapter = RealComfyUIAdapter()
+        cfg = json.loads(self.presets_path.read_text(encoding="utf-8"))
+        cfg["L25-T2V-SINGLE"]["ready"] = True
+        self.presets_path.write_text(json.dumps(cfg), encoding="utf-8")
+        self.mapping["fps"]["required"] = False
+        (self.root / self.mapping_path).write_text(json.dumps(self.mapping), encoding="utf-8")
+        with patch.object(Path, "is_mount", autospec=True, side_effect=lambda path: path.resolve() == self.root.resolve()):
+            readiness = self.console.real_shot_readiness(force=True)
+        self.assertFalse(readiness["enabled"])
+        self.assertIn("fps", readiness["reason"])
+
+    def test_real_preflight_refuses_ephemeral_storage(self):
+        from unittest.mock import patch
+        self.controller.adapter = RealComfyUIAdapter()
+        cfg = json.loads(self.presets_path.read_text(encoding="utf-8"))
+        cfg["L25-T2V-SINGLE"]["ready"] = True
+        self.presets_path.write_text(json.dumps(cfg), encoding="utf-8")
+        with patch.dict(os.environ, {"HRF_DATA_DIR": str(self.root)}):
+            with patch.object(Path, "is_mount", autospec=True, return_value=False):
+                readiness = self.console.real_shot_readiness(force=True)
+        self.assertFalse(readiness["enabled"])
+        self.assertIn("mounted persistent volume", readiness["reason"])
+
+    def test_resolution_and_frame_rate_are_forwarded_to_comfyui_mapping(self):
+        from comfyui.adapter import RealComfyUIAdapter
+        request = {
+            "prompt": "Moses raises his staff.",
+            "specification": {
+                "duration": 8,
+                "seed": 1234,
+                "resolution": "1440p",
+                "aspect_ratio": "16:9",
+                "frame_rate": 24,
+            },
+        }
+        values = RealComfyUIAdapter._mapping_values(None, request, {})
+        self.assertEqual(values["width"], 2560)
+        self.assertEqual(values["height"], 1440)
+        self.assertEqual(values["fps"], 24)
+        self.assertEqual(values["seed"], 1234)
+
+    def test_non_16_by_9_resolution_is_rejected_by_first_t2v_mapper(self):
+        from comfyui.adapter import RealComfyUIAdapter
+        from workflows.loader import WorkflowTemplateError
+        request = {
+            "prompt": "Moses raises his staff.",
+            "specification": {
+                "duration": 8,
+                "resolution": "1440p",
+                "aspect_ratio": "9:16",
+                "frame_rate": 24,
+            },
+        }
+        with self.assertRaises(WorkflowTemplateError):
+            RealComfyUIAdapter._mapping_values(None, request, {})
 
     def test_real_submission_rejects_non_t2v_and_invalid_specification(self):
         self.controller.adapter = RealComfyUIAdapter()
@@ -322,6 +397,16 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
                 "director console guarded submission state",
             ),
         ],
+    )
+
+    patch_text(
+        entries,
+        "storage/sqlite_store.py",
+        [(
+            "        path.parent.mkdir(parents=True,exist_ok=True); self.connection=sqlite3.connect(path,isolation_level=None,timeout=10,check_same_thread=False); self._lock=RLock();",
+            "        path.parent.mkdir(parents=True,exist_ok=True); self.path=path.resolve(); self.connection=sqlite3.connect(path,isolation_level=None,timeout=10,check_same_thread=False); self._lock=RLock();",
+            "record durable SQLite database path",
+        )],
     )
 
     patch_text(
@@ -501,6 +586,23 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
             return dict(result)
 
         try:
+            data_root_text = os.environ.get("HRF_DATA_DIR", "").strip()
+            if not data_root_text:
+                raise ValueError("Persistent controller storage is not configured. Attach a durable Render volume and set HRF_DATA_DIR before enabling real shots.")
+            configured_data_root = Path(data_root_text)
+            if not configured_data_root.is_absolute():
+                raise ValueError("HRF_DATA_DIR must be an absolute path on an attached durable volume.")
+            data_root = configured_data_root.resolve()
+            if not data_root.is_dir():
+                raise ValueError("HRF_DATA_DIR does not exist or is not a directory.")
+            database_path = getattr(self.controller.store, "path", None)
+            if database_path is None or not Path(database_path).resolve().is_relative_to(data_root):
+                raise ValueError("The controller SQLite database is not located inside HRF_DATA_DIR.")
+            mount_path = data_root
+            while mount_path != mount_path.parent and not mount_path.is_mount():
+                mount_path = mount_path.parent
+            if not mount_path.is_mount() or mount_path == Path("/"):
+                raise ValueError("HRF_DATA_DIR is not backed by a mounted persistent volume; ephemeral filesystem storage is not safe for real-shot submissions.")
             presets_path = self.root / "workflows" / "real_presets.json"
             presets = json.loads(presets_path.read_text(encoding="utf-8"))
             config = presets.get("L25-T2V-SINGLE") if isinstance(presets, dict) else None
@@ -516,18 +618,24 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
             mapping = json.loads(mapping_path.read_text(encoding="utf-8"))
             if not isinstance(mapping, dict):
                 raise ValueError("The T2V mapping must be a JSON object.")
-            loader.validate_required_mappings(
-                workflow,
-                mapping,
-                {
-                    "prompt": "HIS RISEN read-only preflight",
-                    "duration": 8,
-                    "seed": 0,
-                    "width": 2560,
-                    "height": 1440,
-                    "fps": 24,
-                },
-            )
+            required_values = {
+                "prompt": "HIS RISEN read-only preflight",
+                "duration": 8,
+                "seed": 0,
+                "width": 2560,
+                "height": 1440,
+                "fps": 24,
+            }
+            missing_mappings = [
+                key for key in required_values
+                if not isinstance(mapping.get(key), dict) or mapping[key].get("required") is not True
+            ]
+            if missing_mappings:
+                raise ValueError(
+                    "The exported T2V mapping must explicitly require these director controls: "
+                    + ", ".join(missing_mappings)
+                )
+            loader.validate_required_mappings(workflow, mapping, required_values)
 
             node_types = {
                 node.get("class_type")
@@ -569,6 +677,8 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
                 "reason": "The T2V API workflow, required node classes, remote ComfyUI endpoint and CUDA GPU passed read-only preflight.",
                 "workflow": "L25-T2V-SINGLE",
                 "comfyui_reachable": True,
+                "persistent_storage_ready": True,
+                "persistent_storage_mount": str(mount_path),
                 "gpu_name": str(gpu.get("name", "CUDA GPU")),
                 "gpu_vram_gib": round(gpu["vram_total"] / (1024 ** 3), 1),
                 "supported_modes": ["TEXT_TO_VIDEO"],
@@ -611,6 +721,10 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
             raise ValueError("The first real T2V submission path currently supports 16:9 only.")
         if spec.get("resolution") not in {"720p", "1080p", "1440p", "4K"}:
             raise ValueError("Select a supported resolution before submitting.")
+        if type(spec.get("duration")) is not int or not 1 <= spec["duration"] <= 20:
+            raise ValueError("The first real T2V path accepts whole-number durations from 1 to 20 seconds only.")
+        if type(spec.get("frame_rate")) is not int or not 1 <= spec["frame_rate"] <= 60:
+            raise ValueError("Frame rate must be a whole number between 1 and 60 fps.")
 
         validate_specification(spec, self.root)
         payload_hash = hashlib.sha256(
@@ -646,7 +760,7 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
                 )
                 return {"created": False, "reused": True, "take": take, "message": message}
 
-            readiness = self.real_shot_readiness()
+            readiness = self.real_shot_readiness(force=True)
             if not readiness.get("enabled"):
                 raise ValueError(str(readiness.get("reason", "Real shot submission is locked by preflight.")))
 
@@ -704,10 +818,9 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
         <label>Voice profile IDs (comma-separated)<input id="shotVoices" required autocomplete="off"></label>
         <label>Duration (seconds)<input id="shotDuration" type="number" min="1" max="20" step="1" required></label>
         <label>Resolution<select id="shotResolution"><option>720p</option><option>1080p</option><option>1440p</option><option>4K</option></select></label>
-        <label>Aspect ratio<input id="shotAspectRatio" value="16:9" required></label>
+        <label>Aspect ratio<input id="shotAspectRatio" value="16:9" readonly></label>
         <label>Frame rate<input id="shotFrameRate" type="number" min="1" max="60" step="1" required></label>
         <label>Seed (optional)<input id="shotSeed" type="number" min="0" step="1" placeholder="Random seed"></label>
-        <label>Quality preset<input id="shotQuality" required></label>
       </div>
       <label>Environment<textarea id="shotEnvironment" required></textarea></label>
       <label>Action<textarea id="shotAction" required></textarea></label>
@@ -780,7 +893,6 @@ async function loadShotTemplate(){
   $('shotResolution').value=shotTemplate.resolution||'1440p';
   $('shotAspectRatio').value=shotTemplate.aspect_ratio||'16:9';
   $('shotFrameRate').value=shotTemplate.frame_rate||24;
-  $('shotQuality').value=shotTemplate.quality_preset||'LTX-2.5 Fast workhorse';
   $('shotSeed').value=shotTemplate.seed===undefined?'':shotTemplate.seed;
   return true;
  }catch(e){
@@ -819,7 +931,7 @@ function buildShotSpecification(){
  spec.resolution=$('shotResolution').value;
  spec.aspect_ratio=$('shotAspectRatio').value.trim();
  spec.frame_rate=Number($('shotFrameRate').value);
- spec.quality_preset=$('shotQuality').value.trim();
+ delete spec.quality_preset;
  spec.status='READY';
  spec.generation_mode='TEXT_TO_VIDEO';
  spec.reference_assets=Array.isArray(shotTemplate.reference_assets)?shotTemplate.reference_assets:[];
@@ -1052,6 +1164,12 @@ if __name__ == "__main__":
         "if(!generationGate||!generationGate.enabled)",
         "The verified LTX-2.5 T2V workflow is not installed and approved",
         "get_submission_request",
+        "persistent_storage_ready",
+        "HRF_DATA_DIR is not backed by a mounted persistent volume",
+        "required_values = {",
+        '"width": 2560',
+        '"height": 1440',
+        '"fps": 24',
     ]
     missing = [marker for marker in required if marker not in console]
     if missing:
@@ -1059,4 +1177,6 @@ if __name__ == "__main__":
     storage_source = entries["storage/sqlite_store.py"][1].decode("utf-8")
     if "submission_requests" not in storage_source or "get_submission_request" not in storage_source:
         raise RuntimeError("Durable submission idempotency schema or lookup is missing from SQLiteStore.")
+    if "self.path=path.resolve()" not in storage_source:
+        raise RuntimeError("SQLiteStore does not expose its resolved database path for persistent-volume verification.")
     print("SECURE_REAL_SHOT_SUBMISSION_PATCH_APPLIED")
