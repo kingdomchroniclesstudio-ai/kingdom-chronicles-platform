@@ -122,6 +122,14 @@ def build_branding(archive: Path) -> None:
     test_info.external_attr = 0o100644 << 16
     entries["tests/test_director_console_branding.py"] = (test_info, BRANDING_TEST.encode("utf-8"))
 
+    runbook_path = Path("docs/REAL_SHOT_SUBMISSION.md")
+    if not runbook_path.is_file():
+        raise RuntimeError("Production real-shot runbook is missing from the repository.")
+    runbook_info = zipfile.ZipInfo("docs/REAL_SHOT_SUBMISSION.md", date_time=(2026, 11, 7, 0, 0, 0))
+    runbook_info.compress_type = zipfile.ZIP_DEFLATED
+    runbook_info.external_attr = 0o100644 << 16
+    entries["docs/REAL_SHOT_SUBMISSION.md"] = (runbook_info, runbook_path.read_bytes())
+
     # Build and validate the secure, cost-confirmed, restart-safe T2V submission path.
     secure_real_shot_submission_patch.apply(entries)
 
@@ -155,14 +163,15 @@ def build_branding(archive: Path) -> None:
             bad_member = check.testzip()
             if bad_member:
                 raise RuntimeError(f"Output archive failed ZIP integrity check at: {bad_member}")
-            required_tests = {
+            required_members = {
                 "tests/test_director_console_branding.py",
                 "tests/test_director_console_real_shots.py",
                 "tests/test_controller_submission_idempotency.py",
+                "docs/REAL_SHOT_SUBMISSION.md",
             }
-            missing_tests = required_tests - set(check.namelist())
-            if missing_tests:
-                raise RuntimeError(f"Required controller regression tests are missing: {sorted(missing_tests)}")
+            missing_members = required_members - set(check.namelist())
+            if missing_members:
+                raise RuntimeError(f"Required controller tests/runbook are missing: {sorted(missing_members)}")
         temp_path.replace(archive)
     finally:
         if temp_path.exists():
