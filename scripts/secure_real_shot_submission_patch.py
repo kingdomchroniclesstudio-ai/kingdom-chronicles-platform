@@ -354,16 +354,37 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
             parent_reason=None""",
                 "atomic durable request lookup",
             ),
-            (
-                '            self._event(take_id,None,"PENDING",0); return take_id',
-                """            if submission_request_id is not None:
-                self.connection.execute("INSERT INTO submission_requests (request_id,payload_hash,take_id,created_at) VALUES (?,?,?,?)",(submission_request_id,submission_payload_hash,take_id,timestamp))
-            self._event(take_id,None,"PENDING",0)
-            return (take_id, True) if submission_request_id is not None else take_id""",
-                "atomic durable request record",
-            ),
         ],
     )
+
+    # Insert the durable request row immediately before reserve_take returns.
+    # Keep this transformation resilient to whitespace differences in the packaged controller.
+    store_info, store_raw = entries["storage/sqlite_store.py"]
+    store_source = store_raw.decode("utf-8")
+    reserve_start = store_source.index("    def reserve_take(")
+    reserve_end = store_source.index("    def record_submission(", reserve_start)
+    reserve_method = store_source[reserve_start:reserve_end]
+    if "INSERT INTO submission_requests" not in reserve_method:
+        return_pos = reserve_method.rfind("return take_id")
+        if return_pos < 0:
+            raise RuntimeError("Could not locate reserve_take return statement for durable idempotency.")
+        line_start = reserve_method.rfind("\n", 0, return_pos) + 1
+        line_end = reserve_method.find("\n", return_pos)
+        if line_end < 0:
+            line_end = len(reserve_method)
+        original_line = reserve_method[line_start:line_end]
+        prefix = original_line[:original_line.rfind("return take_id")].strip().rstrip(";")
+        if not prefix:
+            raise RuntimeError("Could not preserve the PENDING progress event while adding durable idempotency.")
+        replacement_line = (
+            "            " + prefix + "\n"
+            "            if submission_request_id is not None:\n"
+            "                self.connection.execute(\\"INSERT INTO submission_requests (request_id,payload_hash,take_id,created_at) VALUES (?,?,?,?)\\",(submission_request_id,submission_payload_hash,take_id,timestamp))\n"
+            "            return (take_id, True) if submission_request_id is not None else take_id"
+        )
+        reserve_method = reserve_method[:line_start] + replacement_line + reserve_method[line_end:]
+        store_source = store_source[:reserve_start] + reserve_method + store_source[reserve_end:]
+        entries["storage/sqlite_store.py"] = (store_info, store_source.encode("utf-8"))
 
     patch_text(
         entries,
