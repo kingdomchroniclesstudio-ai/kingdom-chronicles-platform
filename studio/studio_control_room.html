@@ -329,7 +329,24 @@ function buildShotSpecification(){
 function newShotRequestId(){if(window.crypto&&typeof window.crypto.randomUUID==="function")return window.crypto.randomUUID();throw new Error("Secure UUID generation is not supported by this browser.");}
 $("realShotForm").addEventListener("submit",async function(event){event.preventDefault();if(!generationGate||!generationGate.enabled){note("Real shot submission remains locked by production preflight.");return;}if(!$("confirmRealCost").checked){note("Confirm the generation cost acknowledgement first.");return;}let spec,payload;try{spec=buildShotSpecification();payload=JSON.stringify(spec);}catch(error){note(error.message);return;}if(!pendingShotRequestId||pendingShotPayload!==payload){pendingShotRequestId=newShotRequestId();pendingShotPayload=payload;}const button=$("submitRealShotButton");button.disabled=true;button.textContent="SUBMITTING…";try{const result=await api("/shots/generate",{method:"POST",body:body({request_id:pendingShotRequestId,specification:spec,cost_acknowledged:$("confirmRealCost").checked})});const take=result.take||{};$("realShotResult").textContent=(result.reused?"Existing submission: ":"Shot submitted: ")+(take.take_id||"take ID unavailable");pendingShotRequestId=null;pendingShotPayload=null;$("confirmRealCost").checked=false;note("Submission accepted by controller.");await refreshStudio();}catch(error){$("realShotResult").textContent="Submission not confirmed: "+error.message+". Reusing this request ID is designed to avoid duplicate submission.";note(error.message);}finally{button.textContent="SUBMIT REAL T2V SHOT";button.disabled=!(generationGate&&generationGate.enabled);}});
 $("mockTestButton").addEventListener("click",async function(){try{const result=await api("/mock-test",{method:"POST",body:body({})});$("mockTestResult").textContent="Mock take: "+result.take.take_id+" · "+(result.reused?"existing safe test reused":"submitted in Mock Mode");note("Mock test submitted; no GPU was used.");await refreshStudio();}catch(error){note(error.message);}});
-$("updateCheckButton").addEventListener("click",async function(){$("updateCheckStatus").textContent="Checking official metadata (read-only)…";try{const result=await api("/updates/check",{method:"POST",body:body({})});$("updateCheckStatus").textContent="Check completed. No software was installed or downloaded.";const candidates=result.candidates||result.sources||[];$("updateCheckResults").innerHTML='<div class="record record-meta">'+esc(JSON.stringify(candidates.slice?candidates.slice(0,5):candidates))+'</div>';}catch(error){$("updateCheckStatus").textContent="Update check failed: "+error.message;}});
+async function runUpdateCheck(){
+ const button=$("updateCheckButton");
+ button.disabled=true;
+ button.textContent="CHECKING…";
+ $("updateCheckStatus").textContent="Checking official sources. Nothing will be installed or downloaded…";
+ try{
+  const result=await api("/updates/check",{method:"POST",body:body({})});
+  $("updateCheckStatus").textContent="Check completed. No software was installed or downloaded.";
+  const candidates=result.candidates||result.sources||[];
+  $("updateCheckResults").innerHTML='<div class="record record-meta">'+esc(JSON.stringify(candidates.slice?candidates.slice(0,5):candidates))+'</div>';
+ }catch(error){
+  $("updateCheckStatus").textContent="Update check failed: "+error.message;
+ }finally{
+  button.disabled=false;
+  button.textContent="CHECK FOR UPDATES";
+ }
+}
+$("updateCheckButton").addEventListener("click",runUpdateCheck);
 </script>
 </body>
 </html>
