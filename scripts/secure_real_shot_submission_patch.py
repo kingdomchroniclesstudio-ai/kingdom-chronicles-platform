@@ -50,6 +50,10 @@ class _FakeStore:
     def __init__(self):
         self.connection = _FakeConnection()
         self._lock = threading.RLock()
+        self.requests = {}
+
+    def get_submission_request(self, request_id):
+        return self.requests.get(request_id)
 
 
 class _FakeHTTP:
@@ -79,7 +83,14 @@ class _FakeController:
         self.generated = []
         self.takes = {}
 
-    def generate(self, specification):
+    def generate(self, specification, submission_request_id=None, submission_payload_hash=None, return_created=False):
+        if submission_request_id:
+            existing = self.store.get_submission_request(submission_request_id)
+            if existing:
+                if existing["payload_hash"] != submission_payload_hash:
+                    raise ValueError("This request_id was already used with a different shot specification.")
+                take = self.takes[existing["take_id"]]
+                return (take, False) if return_created else take
         self.generated.append(json.loads(json.dumps(specification)))
         take = {
             "take_id": f"TAKE-{len(self.generated):03d}",
@@ -89,7 +100,13 @@ class _FakeController:
             "status": "SUBMITTED",
         }
         self.takes[take["take_id"]] = take
-        return take
+        if submission_request_id:
+            self.store.requests[submission_request_id] = {
+                "request_id": submission_request_id,
+                "payload_hash": submission_payload_hash,
+                "take_id": take["take_id"],
+            }
+        return (take, True) if submission_request_id and return_created else take
 
     def get_take(self, take_id):
         return self.takes[take_id]
@@ -188,7 +205,7 @@ class RealShotSubmissionTests(unittest.TestCase):
 
     def test_mock_mode_refuses_real_shot_submission_without_calling_controller(self):
         request_id = str(uuid.uuid4())
-        payload = {"request_id": request_id, "specification": self.template}
+        payload = {"request_id": request_id, "specification": self.template, "cost_acknowledged": True}
         status, result = self.request("POST", "/api/shots/generate", payload)
         self.assertEqual(status, 409)
         self.assertFalse(result["ok"])
@@ -233,7 +250,7 @@ class RealShotSubmissionTests(unittest.TestCase):
         request_id = str(uuid.uuid4())
         spec = dict(self.template)
         spec["generation_mode"] = "TEXT_TO_VIDEO"
-        payload = {"request_id": request_id, "specification": spec}
+        payload = {"request_id": request_id, "specification": spec, "cost_acknowledged": True}
         status, first = self.request("POST", "/api/shots/generate", payload)
         self.assertEqual(status, 202)
         self.assertTrue(first["data"]["created"])
@@ -249,7 +266,7 @@ class RealShotSubmissionTests(unittest.TestCase):
         status, conflict = self.request(
             "POST",
             "/api/shots/generate",
-            {"request_id": request_id, "specification": changed},
+            {"request_id": request_id, "specification": changed, "cost_acknowledged": True},
         )
         self.assertEqual(status, 409)
         self.assertEqual(len(self.controller.generated), 1)
@@ -264,7 +281,7 @@ class RealShotSubmissionTests(unittest.TestCase):
         status, result = self.request(
             "POST",
             "/api/shots/generate",
-            {"request_id": str(uuid.uuid4()), "specification": invalid},
+            {"request_id": str(uuid.uuid4()), "specification": invalid, "cost_acknowledged": True},
         )
         self.assertEqual(status, 409)
         self.assertEqual(self.controller.generated, [])
@@ -526,18 +543,40 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
             if existing:
                 if existing["payload_hash"] != payload_hash:
                     raise ValueError("This request_id was already used with a different shot specification.")
-                return {
-                    "created": False,
-                    "reused": True,
-                    "take": self.controller.get_take(existing["take_id"]),
-                    "message": "The existing submission was returned; no second GPU job was created.",
+                take = self.controller.get_take(existing["take_id"])
+                message = (
+                    "This request is still PENDING. It was not submitted again automatically; inspect ComfyUI queue/history before taking further action."
+                    if take.get("status") == "PENDING"
+                    else "The existing durable submission was returned; no second GPU job was created."
+                )
+                return {"created": False, "reused": True, "take": take, "message": message}
+
+            durable = self.controller.store.get_submission_request(request_id)
+            if durable:
+                if durable["payload_hash"] != payload_hash:
+                    raise ValueError("This request_id was already used with a different shot specification.")
+                take = self.controller.get_take(durable["take_id"])
+                self._generation_requests[request_id] = {
+                    "payload_hash": payload_hash,
+                    "take_id": durable["take_id"],
                 }
+                message = (
+                    "A previous attempt reserved this shot but left it PENDING. It was not re-queued to avoid a duplicate GPU job; inspect ComfyUI queue/history before deciding what to do next."
+                    if take.get("status") == "PENDING"
+                    else "The existing durable submission was returned; no second GPU job was created."
+                )
+                return {"created": False, "reused": True, "take": take, "message": message}
 
             readiness = self.real_shot_readiness()
             if not readiness.get("enabled"):
                 raise ValueError(str(readiness.get("reason", "Real shot submission is locked by preflight.")))
 
-            take = self.controller.generate(spec)
+            take, created = self.controller.generate(
+                spec,
+                submission_request_id=request_id,
+                submission_payload_hash=payload_hash,
+                return_created=True,
+            )
             take_id = take.get("take_id") if isinstance(take, dict) else None
             if not isinstance(take_id, str) or not take_id:
                 raise RuntimeError("Controller did not return a valid take_id after submission.")
@@ -547,11 +586,16 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
             }
             while len(self._generation_requests) > 256:
                 self._generation_requests.pop(next(iter(self._generation_requests)))
+            message = (
+                "An existing durable submission was returned; no second GPU job was created."
+                if not created
+                else "Real T2V shot accepted by the controller. Monitor its progress and review the output before approval."
+            )
             return {
-                "created": True,
-                "reused": False,
+                "created": created,
+                "reused": not created,
                 "take": take,
-                "message": "Real T2V shot accepted by the controller. Monitor its progress and review the output before approval.",
+                "message": message,
             }
 
 '''
@@ -732,7 +776,7 @@ async function submitRealShot(event){
  button.disabled=true;button.textContent='SUBMITTING…';
  $('realShotResult').textContent='Submitting through the secured controller…';
  try{
-  const result=await api('/shots/generate',{method:'POST',body:JSON.stringify({request_id:pendingShotRequestId,specification:spec})});
+  const result=await api('/shots/generate',{method:'POST',body:JSON.stringify({request_id:pendingShotRequestId,specification:spec,cost_acknowledged:$('confirmRealCost').checked})});
   const take=result.take||{};
   $('realShotResult').textContent=(result.reused?'Existing submission returned: ':'Shot submitted: ')+(take.take_id||'take ID unavailable');
   note(result.message||'Shot submission accepted.');
@@ -806,8 +850,10 @@ async function submitRealShot(event){
                 if not self.headers.get("Origin"):
                     self._json(HTTPStatus.FORBIDDEN, {"ok": False, "error": "origin_required"})
                     return
-                if not isinstance(body, dict) or set(body) != {"request_id", "specification"}:
-                    raise ValueError("shot submission requires exactly request_id and specification")
+                if not isinstance(body, dict) or set(body) != {"request_id", "specification", "cost_acknowledged"}:
+                    raise ValueError("shot submission requires request_id, specification and cost_acknowledged")
+                if body["cost_acknowledged"] is not True:
+                    raise ValueError("director cost acknowledgement is required before real generation")
                 if not isinstance(body["specification"], dict):
                     raise ValueError("specification must be a JSON object")
                 result = self._console().submit_real_shot(body["specification"], body["request_id"])
@@ -837,6 +883,96 @@ async function submitRealShot(event){
     info.compress_type = zipfile.ZIP_DEFLATED
     info.external_attr = 0o100644 << 16
     entries["tests/test_director_console_real_shots.py"] = (info, _test_source().encode("utf-8"))
+
+    idempotency_source = r'''from __future__ import annotations
+
+import hashlib
+import json
+import shutil
+import tempfile
+import unittest
+import uuid
+from pathlib import Path
+
+from config.bootstrap import build_controller
+
+
+class DurableSubmissionIdempotencyTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="his-risen-durable-idempotency-")
+        source = Path(__file__).resolve().parents[1]
+        self.project = Path(self.temp.name) / "project"
+        shutil.copytree(source, self.project, ignore=shutil.ignore_patterns("*.sqlite3", "__pycache__", "*.pyc"))
+        self.spec = json.loads((self.project / "config" / "test_shot.json").read_text(encoding="utf-8"))
+        self.spec["generation_mode"] = "TEXT_TO_VIDEO"
+        self.request_id = str(uuid.uuid4())
+        self.payload_hash = hashlib.sha256(
+            json.dumps(self.spec, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        ).hexdigest()
+
+    def tearDown(self):
+        self.temp.cleanup()
+
+    def test_request_survives_controller_restart_and_never_reserves_second_take(self):
+        first_controller = build_controller(self.project, backend="mock")
+        try:
+            first, created = first_controller.generate(
+                self.spec,
+                submission_request_id=self.request_id,
+                submission_payload_hash=self.payload_hash,
+                return_created=True,
+            )
+            self.assertTrue(created)
+            first_id = first["take_id"]
+        finally:
+            first_controller.close()
+
+        restarted_controller = build_controller(self.project, backend="mock")
+        try:
+            second, created = restarted_controller.generate(
+                self.spec,
+                submission_request_id=self.request_id,
+                submission_payload_hash=self.payload_hash,
+                return_created=True,
+            )
+            self.assertFalse(created)
+            self.assertEqual(second["take_id"], first_id)
+            self.assertEqual(len(restarted_controller.list_takes()), 1)
+        finally:
+            restarted_controller.close()
+
+    def test_request_id_cannot_be_reused_for_changed_specification(self):
+        controller = build_controller(self.project, backend="mock")
+        try:
+            controller.generate(
+                self.spec,
+                submission_request_id=self.request_id,
+                submission_payload_hash=self.payload_hash,
+                return_created=True,
+            )
+            changed = dict(self.spec)
+            changed["action"] = "A different action."
+            changed_hash = hashlib.sha256(
+                json.dumps(changed, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+            ).hexdigest()
+            with self.assertRaisesRegex(ValueError, "different shot specification"):
+                controller.generate(
+                    changed,
+                    submission_request_id=self.request_id,
+                    submission_payload_hash=changed_hash,
+                    return_created=True,
+                )
+        finally:
+            controller.close()
+
+
+if __name__ == "__main__":
+    unittest.main()
+'''
+    idempotency_info = zipfile.ZipInfo("tests/test_controller_submission_idempotency.py", date_time=(2026, 11, 7, 0, 0, 0))
+    idempotency_info.compress_type = zipfile.ZIP_DEFLATED
+    idempotency_info.external_attr = 0o100644 << 16
+    entries["tests/test_controller_submission_idempotency.py"] = (idempotency_info, idempotency_source.encode("utf-8"))
 
     console = entries["director_console.py"][1].decode("utf-8")
     required = [
