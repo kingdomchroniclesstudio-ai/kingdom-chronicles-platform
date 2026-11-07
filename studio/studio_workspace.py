@@ -103,7 +103,8 @@ class StudioWorkspace:
                     comparison_group TEXT NOT NULL DEFAULT '',
                     result_status TEXT NOT NULL DEFAULT 'PLANNED',
                     notes TEXT NOT NULL DEFAULT '',
-                    created_at TEXT NOT NULL
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
                 );
                 CREATE TABLE IF NOT EXISTS studio_assets (
                     asset_id TEXT PRIMARY KEY,
@@ -200,6 +201,7 @@ class StudioWorkspace:
                 SELECT p.*,
                   (SELECT COUNT(*) FROM studio_scenes s WHERE s.project_id=p.project_id) AS scene_count,
                   (SELECT COUNT(*) FROM studio_shots h WHERE h.project_id=p.project_id) AS shot_count,
+                  (SELECT COUNT(*) FROM studio_shots h WHERE h.project_id=p.project_id AND h.status='APPROVED') AS approved_shot_count,
                   (SELECT COUNT(*) FROM studio_tests t WHERE t.project_id=p.project_id) AS test_count,
                   (SELECT COUNT(*) FROM studio_assets a WHERE a.project_id=p.project_id) AS asset_count
                 FROM studio_projects p ORDER BY p.updated_at DESC
@@ -290,11 +292,11 @@ class StudioWorkspace:
         result_status = self._enum(body.get("result_status"), "result_status", TEST_RESULTS, "PLANNED")
         notes = self._text(body.get("notes"), "notes", 3000)
         now = self._now()
-        item = {"test_id": self._id("TST"), "project_id": project_id or None, "scene_id": scene_id or None, "shot_code": self._text(body.get("shot_code"), "shot_code", 64), "test_name": test_name, "purpose": purpose, "model_name": model_name, "workflow": workflow, "prompt": prompt, "seed": seed, "resolution": resolution, "frame_rate": int(frame_rate_raw) if frame_rate_raw is not None and frame_rate_raw.is_integer() else frame_rate_raw, "duration_seconds": duration, "gpu_minutes": gpu_minutes, "cost_usd": cost_usd, "comparison_group": comparison_group, "result_status": result_status, "notes": notes, "created_at": now}
+        item = {"test_id": self._id("TST"), "project_id": project_id or None, "scene_id": scene_id or None, "shot_code": self._text(body.get("shot_code"), "shot_code", 64), "test_name": test_name, "purpose": purpose, "model_name": model_name, "workflow": workflow, "prompt": prompt, "seed": seed, "resolution": resolution, "frame_rate": int(frame_rate_raw) if frame_rate_raw is not None and frame_rate_raw.is_integer() else frame_rate_raw, "duration_seconds": duration, "gpu_minutes": gpu_minutes, "cost_usd": cost_usd, "comparison_group": comparison_group, "result_status": result_status, "notes": notes, "created_at": now, "updated_at": now}
         with self._db() as db:
-            db.execute("""INSERT INTO studio_tests(test_id,project_id,scene_id,shot_code,test_name,purpose,model_name,workflow,prompt,seed,resolution,frame_rate,duration_seconds,gpu_minutes,cost_usd,comparison_group,result_status,notes,created_at)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-                tuple(item[key] for key in ("test_id","project_id","scene_id","shot_code","test_name","purpose","model_name","workflow","prompt","seed","resolution","frame_rate","duration_seconds","gpu_minutes","cost_usd","comparison_group","result_status","notes","created_at")))
+            db.execute("""INSERT INTO studio_tests(test_id,project_id,scene_id,shot_code,test_name,purpose,model_name,workflow,prompt,seed,resolution,frame_rate,duration_seconds,gpu_minutes,cost_usd,comparison_group,result_status,notes,created_at,updated_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                tuple(item[key] for key in ("test_id","project_id","scene_id","shot_code","test_name","purpose","model_name","workflow","prompt","seed","resolution","frame_rate","duration_seconds","gpu_minutes","cost_usd","comparison_group","result_status","notes","created_at","updated_at")))
         return item
 
     def list_tests(self, project_id: str = "") -> list[dict[str, Any]]:
@@ -413,7 +415,7 @@ class StudioWorkspace:
             "summary": overview,
             "projects": [{
                 "project_id": p["project_id"], "title": p["title"], "status": p["status"],
-                "scene_count": p["scene_count"], "shot_count": p["shot_count"],
+                "scene_count": p["scene_count"], "shot_count": p["shot_count"], "approved_shot_count": p["approved_shot_count"],
                 "test_count": p["test_count"], "asset_count": p["asset_count"]
             } for p in projects],
             "test_results": {
