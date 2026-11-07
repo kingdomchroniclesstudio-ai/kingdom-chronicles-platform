@@ -37,7 +37,7 @@ class StudioBrandingTests(unittest.TestCase):
             "LTX Update Monitor",
             "RUN ONE MOCK SHOT",
             "Director Command",
-            "<video class=\\"video\\"",
+            '<video class="video"',
             "APPROVE",
             "REJECT",
             "async function approve(",
