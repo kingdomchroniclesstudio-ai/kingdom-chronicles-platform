@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b1020">
 <meta name="description" content="HIS RISEN STUDIOS — film production workspace">
-<title>HIS RISEN STUDIOS | Production Control Room</title>
+<title>HIS RISEN STUDIOS</title>
 <style>
 :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:#0a0f1d;color:#edf1ff;--panel:#121a2b;--panel2:#172238;--line:#26344f;--muted:#99a8c3;--cyan:#45d4e8;--violet:#a78bfa;--blue:#6b9cff;--green:#55d6a2;--amber:#f6c76a;--coral:#ff8e92;--pink:#f38bc2}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 18% -10%,#263366 0,transparent 38%),radial-gradient(ellipse at 100% 0%,#183b54 0,transparent 32%),#0a0f1d}
@@ -21,7 +21,7 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
 .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 .panel{border:1px solid var(--line);border-radius:17px;background:linear-gradient(160deg,#151f32,#101827);padding:17px;box-shadow:0 12px 32px #0002;min-width:0}.panel.soft{background:#111b2b}.metric{position:relative;overflow:hidden;min-height:118px}.metric:after{content:"";position:absolute;width:95px;height:95px;border-radius:50%;right:-25px;top:-25px;background:var(--glow,#4355a5);opacity:.16;filter:blur(2px)}.metric .value{font-size:31px;font-weight:900;letter-spacing:-.05em;margin-top:12px}.metric .label{font-size:11px;color:#a8b7d1;font-weight:750;text-transform:uppercase;letter-spacing:.12em}.metric .icon{font-size:18px;color:var(--accent,var(--cyan))}
 .section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 14px}.section-head p{margin:0}.section-head .sub{font-size:12px;color:var(--muted)}
-.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.form-grid .wide{grid-column:1/-1}.form-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.status-select{width:auto;max-width:190px;padding:7px 9px;font-size:10px;font-weight:800;background:#16243b;border-color:#3b5175}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.form-grid .wide{grid-column:1/-1}.form-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
 .stack{display:grid;gap:10px}.record{border:1px solid #293b58;border-radius:13px;padding:13px;background:#101a2a}.record-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.record-title{font-size:13px;font-weight:800;overflow-wrap:anywhere}.record-meta{font-size:11px;color:var(--muted);line-height:1.6;margin-top:5px}.empty{border:1px dashed #41516e;border-radius:13px;padding:20px;text-align:center;color:var(--muted);font-size:12px}
 .tag{display:inline-block;padding:4px 8px;border-radius:7px;background:#243554;color:#b9ddff;font-size:10px;font-weight:800;margin:3px 4px 0 0}.tag.violet-tag{background:#342950;color:#dfd0ff}.tag.green-tag{background:#163c37;color:#a7f4dc}.tag.amber-tag{background:#45371f;color:#ffe0a0}.tag.coral-tag{background:#4b2934;color:#ffbdc3}
 .progress{height:7px;border-radius:50px;background:#28344a;overflow:hidden;margin-top:9px}.bar{height:100%;border-radius:50px;background:linear-gradient(90deg,var(--violet),var(--cyan));width:0}
@@ -40,7 +40,7 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
     <div class="brandline"><span class="brand-mark">HR</span><div><div class="brand">HIS RISEN STUDIOS</div><div class="muted tiny">FILM PRODUCTION WORKSPACE</div></div></div>
     <div class="eyebrow">Director access</div>
     <h1>Welcome to the studio.</h1>
-    <p class="muted">Your film projects, tests, assets and production decisions—together in one secure control room.</p>
+    <p class="muted">Secure access to the HIS RISEN STUDIOS production workspace.</p><p class="muted small">Your film projects, tests, assets and production decisions—together in one secure control room.</p>
     <input id="pin" type="password" inputmode="numeric" maxlength="12" autocomplete="current-password" placeholder="DIRECTOR PIN">
     <button id="loginButton" class="primary" style="width:100%">ENTER STUDIO <span aria-hidden="true">→</span></button>
     <p id="loginMsg" class="small muted" role="status" aria-live="polite"></p>
@@ -49,8 +49,8 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
 
 <div id="app" class="wrap hidden">
   <div class="topbar">
-    <div class="statusline"><span class="brand-mark">HR</span><div><div class="brand">HIS RISEN STUDIOS</div><div class="muted tiny">PRODUCTION CONTROL ROOM</div></div></div>
-    <div class="statusline"><span id="backend" class="pill warn">Checking engine…</span><span id="storageState" class="pill warn">Checking storage…</span><button id="refreshButton" class="quiet">↻ REFRESH</button><button id="logoutButton" class="quiet">LOCK STUDIO</button></div>
+    <div class="statusline"><span class="brand-mark">HR</span><div><div class="brand">HIS RISEN STUDIOS</div><div class="muted tiny">Film Production Control Room</div></div></div>
+    <div class="statusline"><span id="backend" class="pill warn">Checking engine…</span><span id="storageState" class="pill warn">Checking storage…</span><button id="refreshButton" class="quiet">Refresh</button><button id="logoutButton" class="quiet">LOCK STUDIO</button></div>
   </div>
 
   <div class="shell">
@@ -109,7 +109,7 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
         <div class="panel" style="margin-top:14px"><div class="section-head"><div><div class="eyebrow">Scene breakdown</div><h2>Selected film structure</h2></div><span id="selectedProjectLabel" class="pill">NO PROJECT SELECTED</span></div>
           <div class="grid-2">
             <form id="sceneForm" class="stack"><h3>＋ Add scene</h3><label>Scene number<input id="sceneNumber" type="number" min="1" max="9999" required placeholder="1"></label><label>Scene title<input id="sceneTitle" required maxlength="120" placeholder="e.g. The Garden Tomb"></label><label>Location / set<input id="sceneLocation" maxlength="160" placeholder="Jerusalem — garden tomb"></label><label>Scene synopsis<textarea id="sceneSynopsis" maxlength="2000"></textarea></label><button class="cyan" type="submit">ADD SCENE</button></form>
-            <div><h3>Scenes and shots</h3><div id="sceneList" class="stack"><div class="empty">Select or create a project to plan its scenes.</div></div></div>
+            <div><h3>Scenes and shots</h3><div id="sceneList" class="stack"><div class="empty">Select or create a project to plan its scenes.</div></div><h3 style="margin-top:16px">Shots within this film</h3><div id="shotList" class="stack"><div class="empty">Add shots to a scene to build the shot list.</div></div></div>
           </div>
           <div class="color-line"></div>
           <form id="shotForm" class="stack"><h3>＋ Add shot to selected scene</h3><div class="form-grid"><label>Scene<select id="shotSceneSelect" required><option value="">Select a scene</option></select></label><label>Shot code<input id="shotCode" required maxlength="64" placeholder="SC001-SH001"></label><label class="wide">Shot description<textarea id="shotDescription" maxlength="2000" placeholder="Describe the visual action, framing and continuity requirements."></textarea></label></div><button class="green" type="submit">ADD SHOT TO BREAKDOWN</button></form>
@@ -222,7 +222,7 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
 let currentRoom = "overview";
 let currentFilm = null;
 let selectedProjectId = "";
-let projects = [], scenes = [], tests = [], assets = [], reviews = [], takes = [];
+let projects = [], scenes = [], shots = [], tests = [], assets = [], reviews = [], takes = [];
 let shotTemplate = null, generationGate = null, pendingShotRequestId = null, pendingShotPayload = null;
 const $ = function(id){ return document.getElementById(id); };
 function esc(value){ return String(value == null ? "" : value).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
@@ -252,17 +252,18 @@ async function refreshStudio(){
   $("metricProjects").textContent=overview.projects; $("metricScenes").textContent=overview.scenes+" / "+overview.shots;
   $("metricTests").textContent=overview.tests; $("metricAssets").textContent=overview.assets;
   $("metricPassed").textContent=overview.tests_passed; $("metricFailed").textContent=overview.tests_failed;
-  renderProjects(); renderScenes(); renderTests(); renderAssets(); renderReviews(); renderTakes();
+  renderProjects(); renderScenes(); renderShots(); renderTests(); renderAssets(); renderReviews(); renderTakes();
   renderReports(report); await loadShotTemplate(); await loadGenerationGate();
  }catch(error){if(error.message.indexOf("session expired")<0)note(error.message);}
 }
 function renderProjects(){
  const target=$("projectList"); const overview=$("overviewProjects");
- const rows=projects.map(function(p){return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(p.title)+'</div><div class="record-meta">'+esc(p.film_type.replaceAll("_"," "))+' · '+p.scene_count+' scenes · '+p.shot_count+' shots</div></div><span class="tag violet-tag">'+esc(p.status.replaceAll("_"," "))+'</span></div><div class="form-actions"><button class="quiet" data-select-project="'+esc(p.project_id)+'">OPEN PROJECT</button></div></div>';}).join("");
+ const rows=projects.map(function(p){return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(p.title)+'</div><div class="record-meta">'+esc(p.film_type.replaceAll("_"," "))+' · '+p.scene_count+' scenes · '+p.shot_count+' shots</div></div><select class="status-select" data-resource="project" data-id="'+esc(p.project_id)+'">'+statusOptions(p.status,["DEVELOPMENT","PRE_PRODUCTION","PRODUCTION","POST_PRODUCTION","ON_HOLD","COMPLETED"])+'</select></div><div class="form-actions"><button class="quiet" data-select-project="'+esc(p.project_id)+'">OPEN PROJECT</button></div></div>';}).join("");
  target.innerHTML=rows||'<div class="empty">No projects registered yet. Create your first film project.</div>';
  overview.innerHTML=projects.slice(0,4).map(function(p){return '<div class="record"><div class="record-top"><strong>'+esc(p.title)+'</strong><span class="tag violet-tag">'+esc(p.status.replaceAll("_"," "))+'</span></div><div class="record-meta">'+p.scene_count+' scenes · '+p.shot_count+' shots · '+p.test_count+' tests</div></div>';}).join("")||'<div class="empty">Your film projects will appear here.</div>';
  document.querySelectorAll("[data-select-project]").forEach(function(button){button.addEventListener("click",function(){selectProject(button.getAttribute("data-select-project"));});});
  renderProjectSelects();
+ wireStatusSelectors();
  if(!selectedProjectId && projects.length) selectProject(projects[0].project_id);
 }
 function renderProjectSelects(){
@@ -270,15 +271,24 @@ function renderProjectSelects(){
 }
 async function selectProject(id){selectedProjectId=id;const project=projects.find(function(p){return p.project_id===id;});$("selectedProjectLabel").textContent=project?project.title.toUpperCase():"NO PROJECT SELECTED";await loadScenes();}
 async function loadScenes(){
- if(!selectedProjectId){scenes=[];$("sceneList").innerHTML='<div class="empty">Select or create a project to plan its scenes.</div>';$("shotSceneSelect").innerHTML='<option value="">Select a scene</option>';return;}
- scenes=await api("/studio/scenes?project_id="+encodeURIComponent(selectedProjectId));
- renderScenes();
+ if(!selectedProjectId){scenes=[];shots=[];$("sceneList").innerHTML='<div class="empty">Select or create a project to plan its scenes.</div>';$("shotSceneSelect").innerHTML='<option value="">Select a scene</option>';return;}
+ const result=await Promise.all([api("/studio/scenes?project_id="+encodeURIComponent(selectedProjectId)),api("/studio/shots?project_id="+encodeURIComponent(selectedProjectId))]);scenes=result[0];shots=result[1];
+ renderScenes();renderShots();
 }
+function statusOptions(current,allowed){return allowed.map(function(value){return '<option value="'+value+'" '+(value===current?'selected':'')+'>'+value.replaceAll("_"," ")+'</option>';}).join("");}
+function wireStatusSelectors(){document.querySelectorAll("[data-resource][data-id]").forEach(function(select){select.onchange=async function(){try{await api("/studio/"+select.getAttribute("data-resource")+"s/"+encodeURIComponent(select.getAttribute("data-id"))+"/status",{method:"POST",body:body({status:select.value})});note("Production status updated.");await refreshStudio();}catch(error){note(error.message);await refreshStudio();}};});}
 function renderScenes(){
  if(!$("sceneList"))return;
- $("sceneList").innerHTML=scenes.map(function(scene){return '<div class="record"><div class="record-top"><div><div class="record-title">SCENE '+scene.scene_number+' · '+esc(scene.title)+'</div><div class="record-meta">'+esc(scene.location||"Location not set")+' · '+scene.shot_count+' shots</div></div><span class="tag">'+esc(scene.status)+'</span></div><div class="record-meta">'+esc(scene.synopsis)+'</div></div>';}).join("")||'<div class="empty">No scenes have been added to this project yet.</div>';
+ $("sceneList").innerHTML=scenes.map(function(scene){return '<div class="record"><div class="record-top"><div><div class="record-title">SCENE '+scene.scene_number+' · '+esc(scene.title)+'</div><div class="record-meta">'+esc(scene.location||"Location not set")+' · '+scene.shot_count+' shots</div></div><select class="status-select" data-resource="scene" data-id="'+esc(scene.scene_id)+'">'+statusOptions(scene.status,["PLANNED","IN_PROGRESS","READY","COMPLETE","ON_HOLD"])+'</select></div><div class="record-meta">'+esc(scene.synopsis)+'</div></div>';}).join("")||'<div class="empty">No scenes have been added to this project yet.</div>';
  $("shotSceneSelect").innerHTML='<option value="">Select a scene</option>'+scenes.map(function(scene){return '<option value="'+esc(scene.scene_id)+'">Scene '+scene.scene_number+' — '+esc(scene.title)+'</option>';}).join("");
  $("testScene").innerHTML='<option value="">No scene selected</option>'+scenes.map(function(scene){return '<option value="'+esc(scene.scene_id)+'">Scene '+scene.scene_number+' — '+esc(scene.title)+'</option>';}).join("");
+ wireStatusSelectors();
+}
+function renderShots(){
+ if(!$("shotList"))return;
+ const selected=shots.filter(function(shot){return shot.project_id===selectedProjectId;});
+ $("shotList").innerHTML=selected.map(function(shot){return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(shot.shot_code)+'</div><div class="record-meta">'+esc(shot.description)+'</div></div><select class="status-select" data-resource="shot" data-id="'+esc(shot.shot_id)+'">'+statusOptions(shot.status,["PLANNED","READY","GENERATED","IN_REVIEW","APPROVED","REJECTED","ON_HOLD"])+'</select></div></div>';}).join("")||'<div class="empty">No shots have been added to this project yet.</div>';
+ wireStatusSelectors();
 }
 $("projectForm").addEventListener("submit",async function(event){event.preventDefault();try{const item=await api("/studio/projects",{method:"POST",body:body({title:$("projectTitle").value,film_type:$("projectType").value,status:$("projectStatus").value,synopsis:$("projectSynopsis").value})});$("projectForm").reset();await refreshStudio();await selectProject(item.project_id);openRoom("projects");note("Film project created.");}catch(error){note(error.message);}});
 $("sceneForm").addEventListener("submit",async function(event){event.preventDefault();if(!selectedProjectId){note("Select a film project first.");return;}try{await api("/studio/scenes",{method:"POST",body:body({project_id:selectedProjectId,scene_number:$("sceneNumber").value,title:$("sceneTitle").value,status:"PLANNED",location:$("sceneLocation").value,synopsis:$("sceneSynopsis").value})});$("sceneForm").reset();await refreshStudio();await loadScenes();note("Scene added to the project.");}catch(error){note(error.message);}});
@@ -288,7 +298,11 @@ $("assetForm").addEventListener("submit",async function(event){event.preventDefa
 $("reviewForm").addEventListener("submit",async function(event){event.preventDefault();try{await api("/studio/reviews",{method:"POST",body:body({take_id:$("reviewTakeId").value,rating:$("reviewRating").value,decision:$("reviewDecision").value,note:$("reviewNote").value})});$("reviewNote").value="";await refreshStudio();openRoom("review");note("Director notes saved.");}catch(error){note(error.message);}});
 $("testProject").addEventListener("change",async function(){const projectId=$("testProject").value;const rows=projectId?await api("/studio/scenes?project_id="+encodeURIComponent(projectId)):[];$("testScene").innerHTML='<option value="">No scene selected</option>'+rows.map(function(scene){return '<option value="'+esc(scene.scene_id)+'">Scene '+scene.scene_number+' — '+esc(scene.title)+'</option>';}).join("");});
 $("reviewRefresh").addEventListener("click",refreshStudio);$("reportRefresh").addEventListener("click",refreshStudio);
-function renderTests(){ $("testCount").textContent=tests.length+" RECORDS";$("testList").innerHTML=tests.map(function(t){const color=t.result_status==="PASSED"?"green-tag":t.result_status==="FAILED"?"coral-tag":"amber-tag";return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(t.test_name)+'</div><div class="record-meta">'+esc(t.model_name||"Model not recorded")+' · '+esc(t.workflow||"Workflow not recorded")+'</div></div><span class="tag '+color+'">'+esc(t.result_status)+'</span></div><div class="record-meta">'+esc(t.test_name)+' · '+esc(t.resolution||"Resolution n/a")+' · '+esc(t.frame_rate||"—")+' fps · '+esc(t.duration_seconds||"—")+' sec</div><div class="record-meta">Comparison: '+esc(t.comparison_group||"No group")+' · GPU: '+Number(t.gpu_minutes||0).toFixed(2)+' min · tracked: $'+Number(t.cost_usd||0).toFixed(2)+'</div>'+(t.notes?'<div class="record-meta">'+esc(t.notes)+'</div>':"")+'</div>';}).join("")||'<div class="empty">No tests logged yet. Start by recording a planned experiment.</div>'; }
+function renderTests(){
+ $("testCount").textContent=tests.length+" RECORDS";
+ $("testList").innerHTML=tests.map(function(t){const color=t.result_status==="PASSED"?"green-tag":t.result_status==="FAILED"?"coral-tag":"amber-tag";return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(t.test_name)+'</div><div class="record-meta">'+esc(t.model_name||"Model not recorded")+' · '+esc(t.workflow||"Workflow not recorded")+'</div></div><span class="tag '+color+'">'+esc(t.result_status)+'</span></div><div class="record-meta">'+esc(t.resolution||"Resolution n/a")+' · '+esc(t.frame_rate||"—")+' fps · '+esc(t.duration_seconds||"—")+' sec</div><div class="record-meta">Comparison: '+esc(t.comparison_group||"No group")+' · GPU: '+Number(t.gpu_minutes||0).toFixed(2)+' min · tracked: $'+Number(t.cost_usd||0).toFixed(2)+'</div>'+(t.notes?'<div class="record-meta">'+esc(t.notes)+'</div>':"")+'<div class="form-actions"><select class="status-select" data-resource="test" data-id="'+esc(t.test_id)+'">'+statusOptions(t.result_status,["PLANNED","PASSED","FAILED","NEEDS_REVIEW"])+'</select></div></div>';}).join("")||'<div class="empty">No tests logged yet. Start by recording a planned experiment.</div>';
+ wireStatusSelectors();
+}
 function renderAssets(){ $("assetCount").textContent=assets.length+" ASSETS";$("assetList").innerHTML=assets.map(function(a){let tags=[];try{tags=Array.isArray(a.tags)?a.tags:JSON.parse(a.tags||"[]");}catch(e){}return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(a.name)+'</div><div class="record-meta">'+esc(a.reference_code||a.asset_id)+' · '+esc(a.project_id||"Studio-wide")+'</div></div><span class="tag violet-tag">'+esc(a.category)+'</span></div><div class="record-meta">'+esc(a.description)+'</div>'+(a.continuity_notes?'<div class="record-meta"><strong>Continuity:</strong> '+esc(a.continuity_notes)+'</div>':"")+'<div>'+tags.map(function(tag){return '<span class="tag">'+esc(tag)+'</span>';}).join("")+'</div></div>';}).join("")||'<div class="empty">No assets registered yet.</div>'; }
 function renderReviews(){ $("reviewList").innerHTML=reviews.map(function(r){return '<div class="record"><div class="record-top"><strong>'+esc(r.take_id)+'</strong><span class="tag '+(r.decision==="REVISION_REQUEST"?"coral-tag":"green-tag")+'">'+esc(r.decision.replaceAll("_"," "))+'</span></div><div class="record-meta">Director rating: '+r.rating+'/5 · '+esc(r.created_at)+'</div><p style="margin:7px 0 0;font-size:12px;color:#d3dced">'+esc(r.note)+'</p></div>';}).join("")||'<div class="empty">No director notes recorded.</div>'; }
 function renderTakes(){
