@@ -402,27 +402,42 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
         )],
     )
 
-    patch_text(
-        entries,
-        "controller/service.py",
-        [(
-            "def generate(self,specification):\n        spec=copy.deepcopy(specification); validate_specification(spec,self.root); profiles=self.profiles.resolve(spec); workflow=self.workflows.select(spec); continuation=self._continuation_snapshot(spec); ltx25_plan=self.capability_registry.recommend(spec,workflow); snapshot={\"specification\":spec,\"profiles\":profiles,\"workflow\":workflow,\"ltx25_plan\":ltx25_plan,\"prompt\":build_prompt(spec,profiles),\"continuation\":continuation}; take_id=self.store.reserve_take(snapshot); return self._submit(take_id)",
-            """def generate(self,specification,submission_request_id=None,submission_payload_hash=None,return_created=False):
-        spec=copy.deepcopy(specification); validate_specification(spec,self.root); profiles=self.profiles.resolve(spec); workflow=self.workflows.select(spec); continuation=self._continuation_snapshot(spec); ltx25_plan=self.capability_registry.recommend(spec,workflow); snapshot={"specification":spec,"profiles":profiles,"workflow":workflow,"ltx25_plan":ltx25_plan,"prompt":build_prompt(spec,profiles),"continuation":continuation}
-        reservation=self.store.reserve_take(snapshot,submission_request_id=submission_request_id,submission_payload_hash=submission_payload_hash)
-        if submission_request_id is not None:
-            take_id,created=reservation
-            if not created:
-                existing=self.store.get_take(take_id)
-                return (existing,False) if return_created else existing
-        else:
-            take_id=reservation
-            created=True
-        take=self._submit(take_id)
-        return (take,True) if submission_request_id is not None and return_created else take""",
-            "controller durable idempotent generation method",
-        )],
-    )
+    controller_info, controller_raw = entries["controller/service.py"]
+    controller_source = controller_raw.decode("utf-8")
+    generate_start = controller_source.index("    def generate(")
+    generate_end = controller_source.index("    def _submit(", generate_start)
+    generate_method = controller_source[generate_start:generate_end]
+    if "submission_request_id" not in generate_method:
+        signature_end = generate_method.find("\n")
+        if signature_end < 0:
+            raise RuntimeError("Controller.generate signature could not be parsed.")
+        body = generate_method[signature_end + 1:]
+        reservation_index = body.find("self.store.reserve_take(snapshot)")
+        if reservation_index < 0:
+            raise RuntimeError("Controller.generate reservation point not found; refusing to replace the method.")
+        assignment_start = body.rfind("take_id=", 0, reservation_index)
+        if assignment_start < 0:
+            raise RuntimeError("Controller.generate take reservation assignment could not be located.")
+        prefix = body[:assignment_start]
+        new_signature = "    def generate(self,specification,submission_request_id=None,submission_payload_hash=None,return_created=False):"
+        new_body = (
+            prefix
+            + "reservation=self.store.reserve_take(snapshot,submission_request_id=submission_request_id,submission_payload_hash=submission_payload_hash)\n"
+            + "        if submission_request_id is not None:\n"
+            + "            take_id,created=reservation\n"
+            + "            if not created:\n"
+            + "                existing=self.store.get_take(take_id)\n"
+            + "                return (existing,False) if return_created else existing\n"
+            + "        else:\n"
+            + "            take_id=reservation\n"
+            + "            created=True\n"
+            + "        take=self._submit(take_id)\n"
+            + "        return (take,True) if submission_request_id is not None and return_created else take\n"
+        )
+        generate_method = new_signature + "\n" + new_body
+        controller_source = controller_source[:generate_start] + generate_method + controller_source[generate_end:]
+        entries["controller/service.py"] = (controller_info, controller_source.encode("utf-8"))
+
 
     real_methods = r'''    def shot_template(self) -> dict[str, Any]:
         """Return the validated starter specification used by the Director form."""
