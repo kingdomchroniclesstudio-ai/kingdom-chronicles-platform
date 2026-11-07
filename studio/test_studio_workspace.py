@@ -101,7 +101,7 @@ class StudioControlRoomUITests(unittest.TestCase):
         for marker in (
             'data-room="overview"', 'data-room="projects"', 'data-room="testing"',
             'data-room="assets"', 'data-room="review"', 'data-room="reports"',
-            'data-room="generation"', 'LTX UPDATES', 'RUN ONE MOCK SHOT',
+            'data-room="generation"', 'LTX Update Monitor', 'RUN ONE MOCK SHOT',
             'Director Command', 'id="realShotForm"', 'id="takeList"'
         ):
             with self.subTest(marker=marker):
