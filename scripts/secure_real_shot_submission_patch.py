@@ -1015,9 +1015,11 @@ if __name__ == "__main__":
         "if(!generationGate||!generationGate.enabled)",
         "The verified LTX-2.5 T2V workflow is not installed and approved",
         "get_submission_request",
-        "submission_requests",
     ]
     missing = [marker for marker in required if marker not in console]
     if missing:
         raise RuntimeError("Real-shot submission patch incomplete: " + ", ".join(missing))
+    storage_source = entries["storage/sqlite_store.py"][1].decode("utf-8")
+    if "submission_requests" not in storage_source or "get_submission_request" not in storage_source:
+        raise RuntimeError("Durable submission idempotency schema or lookup is missing from SQLiteStore.")
     print("SECURE_REAL_SHOT_SUBMISSION_PATCH_APPLIED")
