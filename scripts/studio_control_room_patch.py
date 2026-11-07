@@ -162,6 +162,29 @@ def patch_archive(archive: Path) -> str:
         post_block = post_block.replace(post_marker, post_routes + post_marker, 1)
         console = console[:post_start] + post_block
 
+    if "/api/studio/reviews" in post_block:
+        legacy_review = """            if path == "/api/studio/reviews":
+                if not isinstance(body, dict):
+                    raise ValueError("request body must be an object")
+                self._json(201, {"ok": True, "data": self._console().workspace.create_review(body)})
+                return
+"""
+        guarded_review = """            if path == "/api/studio/reviews":
+                if not isinstance(body, dict):
+                    raise ValueError("request body must be an object")
+                take_id = str(body.get("take_id", "")).strip()
+                if not take_id:
+                    raise ValueError("take_id is required")
+                self._console().controller.get_take(take_id)
+                self._json(201, {"ok": True, "data": self._console().workspace.create_review(body)})
+                return
+"""
+        if legacy_review in post_block:
+            post_block = post_block.replace(legacy_review, guarded_review, 1)
+        if "self._console().controller.get_take(take_id)" not in post_block:
+            raise RuntimeError("Director review route must verify the referenced take before saving notes")
+        console = console[:post_start] + post_block
+
     # Replace the duplicated legacy inline page with one clean, accessible workspace.
     if 'INDEX_HTML = Path(__file__).with_name("studio_control_room.html").read_text(encoding="utf-8")' not in console:
         pattern = re.compile(r"INDEX_HTML = r'''[\s\S]*?'''(?=\n\n\nclass Handler)")
