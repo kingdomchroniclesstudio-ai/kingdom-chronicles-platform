@@ -379,7 +379,7 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
         replacement_line = (
             "            " + prefix + "\n"
             "            if submission_request_id is not None:\n"
-            "                self.connection.execute(\"INSERT INTO submission_requests (request_id,payload_hash,take_id,created_at) VALUES (?,?,?,?)\\",(submission_request_id,submission_payload_hash,take_id,timestamp))\n"
+            "                self.connection.execute(\"INSERT INTO submission_requests (request_id,payload_hash,take_id,created_at) VALUES (?,?,?,?)\",(submission_request_id,submission_payload_hash,take_id,timestamp))\n"
             "            return (take_id, True) if submission_request_id is not None else take_id"
         )
         reserve_method = reserve_method[:line_start] + replacement_line + reserve_method[line_end:]
