@@ -52,9 +52,13 @@ class _FakeStore:
         self.connection = _FakeConnection()
         self._lock = threading.RLock()
         self.requests = {}
+        self.active = {}
 
     def get_submission_request(self, request_id):
         return self.requests.get(request_id)
+
+    def active_take_for_shot(self, film_id, scene_id, shot_id):
+        return self.active.get((film_id, scene_id, shot_id))
 
 
 class _FakeHTTP:
@@ -99,8 +103,10 @@ class _FakeController:
             "scene_id": specification["scene_id"],
             "shot_id": specification["shot_id"],
             "status": "SUBMITTED",
+            "snapshot": {"specification": json.loads(json.dumps(specification))},
         }
         self.takes[take["take_id"]] = take
+        self.store.active[(take["film_id"], take["scene_id"], take["shot_id"])] = take["take_id"]
         if submission_request_id:
             self.store.requests[submission_request_id] = {
                 "request_id": submission_request_id,
@@ -300,6 +306,44 @@ class RealShotSubmissionTests(unittest.TestCase):
         self.assertEqual(status, 409)
         self.assertEqual(len(self.controller.generated), 1)
 
+    def test_new_request_id_after_browser_refresh_reuses_same_active_shot(self):
+        from unittest.mock import patch
+        self.controller.adapter = RealComfyUIAdapter()
+        cfg = json.loads(self.presets_path.read_text(encoding="utf-8"))
+        cfg["L25-T2V-SINGLE"]["ready"] = True
+        self.presets_path.write_text(json.dumps(cfg), encoding="utf-8")
+        spec = dict(self.template)
+        spec["generation_mode"] = "TEXT_TO_VIDEO"
+        spec["seed"] = 0
+        first_id = str(uuid.uuid4())
+        second_id = str(uuid.uuid4())
+        with patch.object(Path, "is_mount", autospec=True, side_effect=lambda path: path.resolve() == self.root.resolve()):
+            first_status, first = self.request(
+                "POST",
+                "/api/shots/generate",
+                {"request_id": first_id, "specification": spec, "cost_acknowledged": True},
+            )
+            second_status, second = self.request(
+                "POST",
+                "/api/shots/generate",
+                {"request_id": second_id, "specification": spec, "cost_acknowledged": True},
+            )
+            changed = dict(spec)
+            changed["action"] = "A different action while the original take is active."
+            changed_status, changed_result = self.request(
+                "POST",
+                "/api/shots/generate",
+                {"request_id": str(uuid.uuid4()), "specification": changed, "cost_acknowledged": True},
+            )
+        self.assertEqual(first_status, 202)
+        self.assertTrue(first["data"]["created"])
+        self.assertEqual(second_status, 202)
+        self.assertTrue(second["data"]["reused"])
+        self.assertEqual(second["data"]["take"]["take_id"], first["data"]["take"]["take_id"])
+        self.assertEqual(changed_status, 409)
+        self.assertIn("awaiting Director review", changed_result["error"])
+        self.assertEqual(len(self.controller.generated), 1)
+
     def test_real_preflight_requires_all_director_settings_to_be_mapped(self):
         from unittest.mock import patch
         self.controller.adapter = RealComfyUIAdapter()
@@ -491,7 +535,15 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
         "storage/sqlite_store.py",
         [(
             "    def record_submission(self,take_id,job_id):\n",
-            """    def get_submission_request(self,request_id):
+            """    def active_take_for_shot(self,film_id,scene_id,shot_id):
+        with self._lock:
+            row=self.connection.execute(
+                "SELECT take_id FROM takes WHERE film_id=? AND scene_id=? AND shot_id=? AND status IN ('PENDING','SUBMITTED','RUNNING','COMPLETED') ORDER BY revision DESC LIMIT 1",
+                (film_id,scene_id,shot_id),
+            ).fetchone()
+            return row["take_id"] if row else None
+
+    def get_submission_request(self,request_id):
         with self._lock:
             row=self.connection.execute("SELECT request_id,payload_hash,take_id,created_at FROM submission_requests WHERE request_id=?",(request_id,)).fetchone()
             return dict(row) if row else None
@@ -776,6 +828,35 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
                     else "The existing durable submission was returned; no second GPU job was created."
                 )
                 return {"created": False, "reused": True, "take": take, "message": message}
+
+            active_take_id = self.controller.store.active_take_for_shot(
+                spec["film_id"], spec["scene_id"], spec["shot_id"]
+            )
+            if active_take_id:
+                active_take = self.controller.get_take(active_take_id)
+                active_snapshot = active_take.get("snapshot") if isinstance(active_take, dict) else None
+                active_spec = active_snapshot.get("specification") if isinstance(active_snapshot, dict) else None
+                if not isinstance(active_spec, dict):
+                    raise ValueError(
+                        f"Shot {active_take_id} is already awaiting generation/review. Its saved specification could not be safely compared."
+                    )
+                active_hash = hashlib.sha256(
+                    json.dumps(active_spec, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+                ).hexdigest()
+                if active_hash == payload_hash:
+                    self._generation_requests[request_id] = {
+                        "payload_hash": payload_hash,
+                        "take_id": active_take_id,
+                    }
+                    return {
+                        "created": False,
+                        "reused": True,
+                        "take": active_take,
+                        "message": "An existing take for this shot was found. No additional ComfyUI job was created.",
+                    }
+                raise ValueError(
+                    f"Shot {active_take_id} is already pending, running or awaiting Director review. Review it before submitting a different specification for the same shot ID."
+                )
 
             readiness = self.real_shot_readiness(force=True)
             if not readiness.get("enabled"):
@@ -1182,6 +1263,8 @@ if __name__ == "__main__":
         "if(!generationGate||!generationGate.enabled)",
         "The verified LTX-2.5 T2V workflow is not installed and approved",
         "get_submission_request",
+        "active_take_for_shot",
+        "An existing take for this shot was found",
         "persistent_storage_ready",
         "A nonnegative integer seed is required by the approved T2V workflow mapping.",
         "HRF_DATA_DIR is not backed by a mounted persistent volume",
