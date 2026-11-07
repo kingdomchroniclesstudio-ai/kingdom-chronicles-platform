@@ -163,11 +163,12 @@ def patch_archive(archive: Path) -> str:
         console = console[:post_start] + post_block
 
     # Replace the duplicated legacy inline page with one clean, accessible workspace.
-    pattern = re.compile(r"INDEX_HTML = r'''[\s\S]*?'''(?=\n\n\nclass Handler)")
-    replacement = 'INDEX_HTML = Path(__file__).with_name("studio_control_room.html").read_text(encoding="utf-8")'
-    console, replacements = pattern.subn(replacement, console, count=1)
-    if replacements != 1:
-        raise RuntimeError(f"Expected one embedded INDEX_HTML block; found {replacements}")
+    if 'INDEX_HTML = Path(__file__).with_name("studio_control_room.html").read_text(encoding="utf-8")' not in console:
+        pattern = re.compile(r"INDEX_HTML = r'''[\s\S]*?'''(?=\n\n\nclass Handler)")
+        replacement = 'INDEX_HTML = Path(__file__).with_name("studio_control_room.html").read_text(encoding="utf-8")'
+        console, replacements = pattern.subn(replacement, console, count=1)
+        if replacements != 1:
+            raise RuntimeError(f"Expected one embedded INDEX_HTML block; found {replacements}")
 
     put(entries, "director_console.py", console.encode("utf-8"))
     put(entries, "studio_workspace.py", workspace)
