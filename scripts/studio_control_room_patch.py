@@ -140,6 +140,10 @@ def patch_archive(archive: Path) -> str:
             if path == "/api/studio/reviews":
                 if not isinstance(body, dict):
                     raise ValueError("request body must be an object")
+                take_id = str(body.get("take_id", "")).strip()
+                if not take_id:
+                    raise ValueError("take_id is required")
+                self._console().controller.get_take(take_id)
                 self._json(201, {"ok": True, "data": self._console().workspace.create_review(body)})
                 return
             status_parts = path.split("/")
