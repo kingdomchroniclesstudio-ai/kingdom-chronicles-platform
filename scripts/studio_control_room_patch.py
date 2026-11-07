@@ -35,6 +35,11 @@ def patch_archive(archive: Path) -> str:
     html = require_file(source_root / "studio" / "studio_control_room.html")
     test_source = require_file(source_root / "studio" / "test_studio_workspace.py")
     guide = require_file(source_root / "docs" / "STUDIO_CONTROL_ROOM.md")
+    html_text = html.decode("utf-8")
+    if html_text.count("<script>") != 1 or html_text.count("</script>") != 1:
+        raise RuntimeError("Control-room HTML must contain exactly one complete application script")
+    if html_text.count("</html>") != 1 or not html_text.rstrip().endswith("</html>"):
+        raise RuntimeError("Control-room HTML contains visible content after the closing </html> tag")
 
     with zipfile.ZipFile(archive, "r") as incoming:
         bad = incoming.testzip()
