@@ -11,7 +11,7 @@ The pre-GPU control-room upgrade adds a simple production workspace around the e
 - **Testing Laboratory** — log planned or completed experiments with purpose, model, workflow, prompt, seed, resolution, frame rate, duration, comparison group, notes, manually entered GPU time and cost. Tests sharing a comparison-group label are shown together for visual review.
 - **Asset Library** — register character, location, prop, wardrobe, reference and sound records with identifiers, descriptions, tags and continuity notes.
 - **Review Room** — view existing controller takes, use the existing formal approve/reject actions, and store director notes against an existing take ID. A note is not an approval decision.
-- **Production Reports** — portfolio totals, approved-shot progress, experiment outcomes and manually logged cost/time figures.
+- **Production Reports** — portfolio totals, completed-shot progress, experiment outcomes and manually logged cost/time figures.
 - **Generation Room** — retains the existing Mock Mode test and guarded single-shot T2V form. Real generation remains locked by the controller's preflight and cost acknowledgement.
 
 ## Data and persistence
@@ -25,7 +25,7 @@ SQLite uses foreign-key constraints, WAL journaling, a busy timeout and full syn
 - Asset records are metadata and continuity notes. Direct image/binary uploads and image thumbnails are deferred until persistent media storage and retention are configured.
 - Test GPU minutes and cost are entered by the director; this release does not read live RunPod billing or GPU telemetry.
 - Comparison groups organise recorded parameters but do not score visual quality automatically.
-- Studio notes do not approve/reject controller takes. The existing director approval actions remain authoritative.
+- Project, scene and shot status values are planning markers; a shot marked COMPLETE is not automatically an approved controller take. Studio notes do not approve/reject controller takes. The existing director approval actions remain authoritative.
 - Production project records are a planning layer. The current single-shot generation form still uses its validated specification inputs; a later integration can prefill those inputs from selected project/scene/shot records after end-to-end acceptance.
 - Director Command remains visibly disconnected; it does not execute natural-language instructions.
 - This release does not install ComfyUI, download LTX weights, enable real workflow presets, provision storage or start GPU jobs.
