@@ -439,6 +439,27 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
         entries["controller/service.py"] = (controller_info, controller_source.encode("utf-8"))
 
 
+    # Pass the actual requested dimensions and frame rate into the ComfyUI mapping layer.
+    # The workflow's authentic exported graph must expose mappings for these values.
+    patch_text(
+        entries,
+        "comfyui/adapter.py",
+        [(
+            '        values: dict[str, Any] = {"prompt": request["prompt"], "duration": spec.get("duration"), "seed": spec.get("seed")}\n',
+            '''        values: dict[str, Any] = {"prompt": request["prompt"], "duration": spec.get("duration"), "seed": spec.get("seed")}
+        dimensions = {"720p": (1280, 720), "1080p": (1920, 1080), "1440p": (2560, 1440), "4K": (3840, 2160)}
+        resolution = spec.get("resolution")
+        if resolution in dimensions:
+            if spec.get("aspect_ratio", "16:9") != "16:9":
+                raise WorkflowTemplateError("The initial director submission path supports 16:9 only.")
+            values["width"], values["height"] = dimensions[resolution]
+        if spec.get("frame_rate") is not None:
+            values["fps"] = spec["frame_rate"]
+''',
+            "map requested resolution and frame rate",
+        )],
+    )
+
     real_methods = r'''    def shot_template(self) -> dict[str, Any]:
         """Return the validated starter specification used by the Director form."""
         template_path = self.root / "config" / "test_shot.json"
@@ -498,7 +519,14 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
             loader.validate_required_mappings(
                 workflow,
                 mapping,
-                {"prompt": "HIS RISEN read-only preflight", "duration": 8, "seed": 0},
+                {
+                    "prompt": "HIS RISEN read-only preflight",
+                    "duration": 8,
+                    "seed": 0,
+                    "width": 2560,
+                    "height": 1440,
+                    "fps": 24,
+                },
             )
 
             node_types = {
@@ -579,6 +607,10 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
             raise ValueError("The first real-shot submission path currently accepts SINGLE-SHOT only.")
         if spec.get("input_image") or spec.get("frame_conditioning") or spec.get("continuation_source"):
             raise ValueError("Image conditioning and continuation are not enabled in the first T2V submission path.")
+        if spec.get("aspect_ratio", "16:9") != "16:9":
+            raise ValueError("The first real T2V submission path currently supports 16:9 only.")
+        if spec.get("resolution") not in {"720p", "1080p", "1440p", "4K"}:
+            raise ValueError("Select a supported resolution before submitting.")
 
         validate_specification(spec, self.root)
         payload_hash = hashlib.sha256(
