@@ -10,6 +10,13 @@ on:
   pull_request:
     branches:
       - main
+    # CI commits the generated ZIP/checksum back to the PR branch.
+    # Ignore those generated artifacts so the bot's own package commit does
+    # not request a second workflow approval or create a needless CI loop.
+    paths-ignore:
+      - "apps/**/*.zip"
+      - "apps/**/*.zip.sha256"
+      - "apps/controller-package.sha256"
   workflow_dispatch:
 
 permissions:
