@@ -46,6 +46,8 @@ def patch_archive(archive: Path) -> str:
         raise RuntimeError("Controller package does not contain director_console.py")
     info, raw = entries["director_console.py"]
     console = raw.decode("utf-8")
+    if "import re\\n" not in console:
+        console = console.replace("import os\\n", "import os\\nimport re\\n", 1)
 
     import_anchor = "from config.data_paths import resolve_data_root\n"
     if "from studio_workspace import StudioWorkspace" not in console:
