@@ -270,24 +270,25 @@ class RealShotSubmissionTests(unittest.TestCase):
         from unittest.mock import patch
         with patch.object(Path, "is_mount", autospec=True, side_effect=lambda path: path.resolve() == self.root.resolve()):
             status, readiness = self.request("GET", "/api/generation-readiness")
-        self.assertEqual(status, 200)
-        self.assertTrue(readiness["data"]["enabled"])
-        self.assertTrue(readiness["data"]["persistent_storage_ready"])
-        self.assertEqual(readiness["data"]["gpu_vram_gib"], 80)
+            self.assertEqual(status, 200)
+            self.assertTrue(readiness["data"]["enabled"])
+            self.assertTrue(readiness["data"]["persistent_storage_ready"])
+            self.assertEqual(readiness["data"]["gpu_vram_gib"], 80)
 
-        request_id = str(uuid.uuid4())
-        spec = dict(self.template)
-        spec["generation_mode"] = "TEXT_TO_VIDEO"
-        payload = {"request_id": request_id, "specification": spec, "cost_acknowledged": True}
-        status, first = self.request("POST", "/api/shots/generate", payload)
-        self.assertEqual(status, 202)
-        self.assertTrue(first["data"]["created"])
-        self.assertEqual(len(self.controller.generated), 1)
+            request_id = str(uuid.uuid4())
+            spec = dict(self.template)
+            spec["generation_mode"] = "TEXT_TO_VIDEO"
+            spec["seed"] = 0
+            payload = {"request_id": request_id, "specification": spec, "cost_acknowledged": True}
+            status, first = self.request("POST", "/api/shots/generate", payload)
+            self.assertEqual(status, 202)
+            self.assertTrue(first["data"]["created"])
+            self.assertEqual(len(self.controller.generated), 1)
 
-        status, retry = self.request("POST", "/api/shots/generate", payload)
-        self.assertEqual(status, 202)
-        self.assertTrue(retry["data"]["reused"])
-        self.assertEqual(len(self.controller.generated), 1)
+            status, retry = self.request("POST", "/api/shots/generate", payload)
+            self.assertEqual(status, 202)
+            self.assertTrue(retry["data"]["reused"])
+            self.assertEqual(len(self.controller.generated), 1)
 
         changed = dict(spec)
         changed["action"] = "A different action."
@@ -820,7 +821,7 @@ def apply(entries: dict[str, tuple[zipfile.ZipInfo, bytes]]) -> None:
         <label>Resolution<select id="shotResolution"><option>720p</option><option>1080p</option><option>1440p</option><option>4K</option></select></label>
         <label>Aspect ratio<input id="shotAspectRatio" value="16:9" readonly></label>
         <label>Frame rate<input id="shotFrameRate" type="number" min="1" max="60" step="1" required></label>
-        <label>Seed (optional)<input id="shotSeed" type="number" min="0" step="1" placeholder="Random seed"></label>
+        <label>Seed<input id="shotSeed" type="number" min="0" step="1" value="0" required></label>
       </div>
       <label>Environment<textarea id="shotEnvironment" required></textarea></label>
       <label>Action<textarea id="shotAction" required></textarea></label>
@@ -893,7 +894,7 @@ async function loadShotTemplate(){
   $('shotResolution').value=shotTemplate.resolution||'1440p';
   $('shotAspectRatio').value=shotTemplate.aspect_ratio||'16:9';
   $('shotFrameRate').value=shotTemplate.frame_rate||24;
-  $('shotSeed').value=shotTemplate.seed===undefined?'':shotTemplate.seed;
+  $('shotSeed').value=shotTemplate.seed===undefined?0:shotTemplate.seed;
   return true;
  }catch(e){
   $('realShotGateMessage').textContent='Shot template could not be loaded: '+e.message;
@@ -937,7 +938,8 @@ function buildShotSpecification(){
  spec.reference_assets=Array.isArray(shotTemplate.reference_assets)?shotTemplate.reference_assets:[];
  delete spec.input_image;delete spec.frame_conditioning;delete spec.continuation_source;
  const seed=$('shotSeed').value.trim();
- if(seed==='')delete spec.seed;else spec.seed=Number(seed);
+ if(seed==='')throw Error('A numeric seed is required for the approved T2V mapping.');
+ spec.seed=Number(seed);
  return spec;
 }
 function newShotRequestId(){
