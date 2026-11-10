@@ -161,5 +161,20 @@ class StudioControlRoomRouteWiringTests(unittest.TestCase):
         self.assertIn('self._console().workspace.update_status(resource', self.source)
 
 
+    def test_mira_intelligence_room_has_holographic_identity_and_truthful_states(self):
+        for marker in (
+            'data-room="mira"', 'id="room-mira"', 'id="miraOrb"',
+            'id="miraBriefing"', 'id="miraWatchlist"', 'id="miraVoiceButton"',
+            'VOICE ENGINE NOT CONNECTED', 'Mira does not execute commands',
+            'prefers-reduced-motion:reduce', 'miraSetState', 'refreshMiraBriefing',
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, self.html)
+
+    def test_mira_briefing_discloses_manual_cost_and_missing_live_telemetry(self):
+        self.assertIn('manually entered test-log values', self.html)
+        self.assertIn('not live RunPod billing or telemetry', self.html)
+
+
 if __name__ == "__main__":
     unittest.main()
