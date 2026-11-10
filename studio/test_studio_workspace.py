@@ -173,6 +173,19 @@ class StudioControlRoomRouteWiringTests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, self.html)
 
+    def test_mira_is_persistently_visible_across_authenticated_studio_rooms(self):
+        app_start = self.html.index('<div id="app"')
+        homebar = self.html.index('id="miraHomebar"')
+        shell = self.html.index('<div class="shell">', app_start)
+        self.assertLess(homebar, shell)
+        for marker in (
+            'id="miraHomeGreeting"', 'id="miraHomeSummary"',
+            'id="miraHomeVoiceState"', 'data-go="mira">TALK TO MIRA',
+            'await refreshMiraBriefing();',
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, self.html)
+
     def test_mira_briefing_discloses_manual_cost_and_missing_live_telemetry(self):
         self.assertIn('manually entered test-log values', self.html)
         self.assertIn('not live RunPod billing or telemetry', self.html)
