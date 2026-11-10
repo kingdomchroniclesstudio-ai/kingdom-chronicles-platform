@@ -338,7 +338,7 @@ $("logoutButton").addEventListener("click",async function(){await fetch("/api/lo
 $("refreshButton").addEventListener("click",refreshStudio);
 document.querySelectorAll("[data-room]").forEach(function(button){button.addEventListener("click",function(){openRoom(button.getAttribute("data-room"));});});
 document.querySelectorAll("[data-go]").forEach(function(button){button.addEventListener("click",function(){openRoom(button.getAttribute("data-go"));});});
-function openRoom(name){currentRoom=name;document.querySelectorAll(".room").forEach(function(room){room.classList.toggle("active",room.id==="room-"+name);});document.querySelectorAll("[data-room]").forEach(function(button){button.classList.toggle("active",button.getAttribute("data-room")===name);});}
+function openRoom(name){currentRoom=name;document.querySelectorAll(".room").forEach(function(room){room.classList.toggle("active",room.id==="room-"+name);});document.querySelectorAll("[data-room]").forEach(function(button){button.classList.toggle("active",button.getAttribute("data-room")===name);});if(name==="mira"&&typeof refreshMiraBriefing==="function")refreshMiraBriefing();}
 async function refreshStudio(){
  try{
   const results=await Promise.all([api("/status"),api("/studio/overview"),api("/studio/projects"),api("/studio/tests"),api("/studio/assets"),api("/studio/reviews"),api("/studio/reports"),api("/takes")]);
