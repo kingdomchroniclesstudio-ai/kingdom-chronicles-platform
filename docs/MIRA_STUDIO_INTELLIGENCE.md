@@ -12,6 +12,12 @@ The orb supports four presentation states:
 
 The UI respects reduced-motion preferences and adapts to mobile screens.
 
+## Persistent dashboard presence
+
+Mira is visible immediately after a director successfully signs in. A compact holographic identity, time-appropriate greeting, verified briefing summary and shortcut to the full Mira room sit between the studio top bar and the production-room navigation. This keeps her present while the director moves between rooms; it does not require opening the Mira navigation item first.
+
+The welcome summary is refreshed from the authenticated studio records after the main workspace refresh. The voice indicator remains explicitly disconnected until microphone, speech recognition and speech output are integrated. The persistent dashboard presence is scoped to the authenticated browser session; it is not a background process after logout or browser closure.
+
 ## First milestone: verified studio briefing
 
 The first release reuses existing authenticated studio endpoints to read:
