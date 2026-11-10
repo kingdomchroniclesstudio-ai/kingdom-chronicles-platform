@@ -33,6 +33,17 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
 @media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.shell{grid-template-columns:1fr}.side{position:relative;top:auto}.nav{grid-template-columns:repeat(4,minmax(0,1fr))}.nav button{justify-content:center;padding:9px 5px;font-size:10px}.nav .ico{width:auto}}
 @media(max-width:650px){.wrap{padding:12px}.grid,.grid-2,.grid-3,.form-grid{grid-template-columns:1fr}.nav{grid-template-columns:repeat(3,minmax(0,1fr))}.nav button{flex-direction:column;gap:4px;font-size:9px}.topbar{align-items:flex-start;flex-direction:column}.hero{padding:20px}.hero-row{display:block}.hero-row .form-actions{margin-top:12px}.panel{padding:14px}}
 
+/* MIRA — persistent studio presence */
+.mira-homebar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:16px;margin:0 0 18px;padding:14px 18px;border:1px solid #3c4d78;border-radius:18px;background:linear-gradient(110deg,#171d38 0%,#142b42 58%,#1d2343 100%);box-shadow:0 14px 42px #0004}
+.mira-home-orb{width:72px;height:72px;position:relative;display:grid;place-items:center;filter:drop-shadow(0 0 15px #7479ff66)}
+.mira-home-core{width:31px;height:31px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#fff 0 5%,#c9fbff 13%,#69dfff 30%,#5b7cff 58%,#8b57fa 82%,#292b6d 100%);box-shadow:0 0 12px #76dfff,0 0 30px #6b78ff99;animation:miraCorePulse 4s ease-in-out infinite}
+.mira-home-ring{position:absolute;inset:5px;border:1px solid #7f9cffaa;border-radius:50%;animation:miraOrbit 12s linear infinite}
+.mira-home-ring.two{inset:13px;border-color:#5deaff99;transform:rotateX(65deg);animation:miraOrbitReverse 8s linear infinite}
+.mira-home-ring.three{inset:-2px;border-color:#b28aff88;transform:rotateY(65deg);animation:miraOrbit 16s linear infinite}
+.mira-home-copy{min-width:0}.mira-home-title{font-size:17px;font-weight:850;letter-spacing:-.02em;margin:3px 0 4px}.mira-home-summary{font-size:12px;color:#b8c8e5;line-height:1.5}.mira-home-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+@media(max-width:650px){.mira-homebar{grid-template-columns:54px minmax(0,1fr);gap:10px;padding:12px}.mira-home-orb{width:52px;height:52px}.mira-home-core{width:24px;height:24px}.mira-home-actions{grid-column:1/-1;justify-content:flex-end}.mira-home-title{font-size:15px}}
+@media(prefers-reduced-motion:reduce){.mira-home-core,.mira-home-ring{animation:none!important}}
+
 /* MIRA — Studio Intelligence identity */
 .mira-quick{display:inline-flex;align-items:center;gap:9px;background:#1a2340;border:1px solid #5965a0;color:#e7e4ff;padding:8px 12px}
 .mira-mini-orb{width:17px;height:17px;display:inline-block;border-radius:50%;background:radial-gradient(circle at 38% 34%,#e4f8ff 0 8%,#7eeaff 14%,#557dff 42%,#8d5bff 70%,#1a2048 100%);box-shadow:0 0 12px #7a83ff99;position:relative}
@@ -109,6 +120,16 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
     <div class="statusline"><span class="brand-mark">HR</span><div><div class="brand">HIS RISEN STUDIOS</div><div class="muted tiny">Film Production Control Room</div></div></div>
     <div class="statusline"><button class="mira-quick" data-go="mira" aria-label="Open Mira Studio Intelligence"><span class="mira-mini-orb" aria-hidden="true"></span> CALL MIRA</button><span id="backend" class="pill warn">Checking engine…</span><span id="storageState" class="pill warn">Checking storage…</span><button id="refreshButton" class="quiet">Refresh</button><button id="logoutButton" class="quiet">LOCK STUDIO</button></div>
   </div>
+
+  <section class="mira-homebar" id="miraHomebar" aria-label="Mira studio assistant">
+    <div class="mira-home-orb" aria-hidden="true"><span class="mira-home-ring"></span><span class="mira-home-ring two"></span><span class="mira-home-ring three"></span><span class="mira-home-core"></span></div>
+    <div class="mira-home-copy">
+      <div class="eyebrow">MIRA · STUDIO INTELLIGENCE · SESSION ONLINE</div>
+      <div class="mira-home-title" id="miraHomeGreeting">Welcome back, boss.</div>
+      <div class="mira-home-summary" id="miraHomeSummary">I'm preparing your verified studio briefing. You can open my intelligence room from anywhere in the studio.</div>
+    </div>
+    <div class="mira-home-actions"><span class="pill warn" id="miraHomeVoiceState">VOICE NOT CONNECTED</span><button class="violet" type="button" data-go="mira">TALK TO MIRA</button></div>
+  </section>
 
   <div class="shell">
     <aside class="side">
@@ -354,7 +375,7 @@ async function refreshStudio(){
   $("metricPassed").textContent=overview.tests_passed; $("metricFailed").textContent=overview.tests_failed;
   renderProjects(); renderScenes(); renderShots(); renderTests(); renderAssets(); renderReviews(); renderTakes();
   if(selectedProjectId) await loadScenes();
-  renderReports(report); await loadShotTemplate(); await loadGenerationGate();
+  renderReports(report); await loadShotTemplate(); await loadGenerationGate(); await refreshMiraBriefing();
  }catch(error){if(error.message.indexOf("session expired")<0)note(error.message);}
 }
 function renderProjects(){
@@ -489,6 +510,13 @@ function renderMiraBriefing(){
  if(needsReview||failed||completed)paragraphs.push("Attention: "+needsReview+" test record(s) need review, "+failed+" failed test record(s), and "+completed+" completed take(s) are awaiting director decisions.");
  else paragraphs.push("No failed or review-flagged test records are currently recorded.");
  $("miraBriefing").innerHTML="<p>"+paragraphs.map(esc).join("</p><p>")+"</p>";
+ const hour=new Date().getHours();
+ const greeting=hour<12?"Good morning, boss.":hour<17?"Good afternoon, boss.":"Good evening, boss.";
+ $("miraHomeGreeting").textContent=greeting+" I'm here.";
+ const attention=needsReview+failed+completed;
+ $("miraHomeSummary").textContent="Your verified briefing is ready: "+active+" active project(s), "+overview.scenes+" planned scene(s), "+overview.shots+" planned shot(s), and "+attention+" item(s) requiring attention. Ask me about the studio or open the full briefing.";
+ $("miraHomeVoiceState").textContent="VOICE NOT CONNECTED";
+
  $("miraDataSourceNote").textContent="Source: live controller/status and generation-preflight responses plus saved studio records. Cost and GPU minutes are manually entered test-log values, not live RunPod billing or telemetry.";
  const watch=[];
  if(!overview.storage||!overview.storage.data_root_configured)watch.push(miraRow("Persistent storage","Not configured"));
