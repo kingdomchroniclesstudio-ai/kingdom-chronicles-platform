@@ -132,8 +132,10 @@ class StudioControlRoomUITests(unittest.TestCase):
 class StudioControlRoomRouteWiringTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        controller_path = Path(__file__).resolve().parents[1] / "director_console.py"
+        root = Path(__file__).resolve().parents[1]
+        controller_path = root / "director_console.py"
         cls.source = controller_path.read_text(encoding="utf-8")
+        cls.html = (root / "studio_control_room.html").read_text(encoding="utf-8")
 
     def test_authenticated_studio_get_and_post_routes_are_packaged(self):
         for marker in (
