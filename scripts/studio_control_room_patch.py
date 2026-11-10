@@ -35,6 +35,7 @@ def patch_archive(archive: Path) -> str:
     html = require_file(source_root / "studio" / "studio_control_room.html")
     test_source = require_file(source_root / "studio" / "test_studio_workspace.py")
     guide = require_file(source_root / "docs" / "STUDIO_CONTROL_ROOM.md")
+    mira_guide = require_file(source_root / "docs" / "MIRA_STUDIO_INTELLIGENCE.md")
     html_text = html.decode("utf-8")
     if html_text.count("<script>") != 1 or html_text.count("</script>") != 1:
         raise RuntimeError("Control-room HTML must contain exactly one complete application script")
@@ -203,6 +204,7 @@ def patch_archive(archive: Path) -> str:
     put(entries, "studio_control_room.html", html)
     put(entries, "tests/test_studio_workspace.py", test_source)
     put(entries, "docs/STUDIO_CONTROL_ROOM.md", guide)
+    put(entries, "docs/MIRA_STUDIO_INTELLIGENCE.md", mira_guide)
 
     with tempfile.NamedTemporaryFile(prefix="hrf-studio-rooms-", suffix=".zip", dir=archive.parent, delete=False) as tmp:
         temp_path = Path(tmp.name)
