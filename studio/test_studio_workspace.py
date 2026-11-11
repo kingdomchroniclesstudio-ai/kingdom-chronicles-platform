@@ -132,8 +132,10 @@ class StudioControlRoomUITests(unittest.TestCase):
 class StudioControlRoomRouteWiringTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        controller_path = Path(__file__).resolve().parents[1] / "director_console.py"
+        root = Path(__file__).resolve().parents[1]
+        controller_path = root / "director_console.py"
         cls.source = controller_path.read_text(encoding="utf-8")
+        cls.html = (root / "studio_control_room.html").read_text(encoding="utf-8")
 
     def test_authenticated_studio_get_and_post_routes_are_packaged(self):
         for marker in (
@@ -160,6 +162,58 @@ class StudioControlRoomRouteWiringTests(unittest.TestCase):
         self.assertIn('status_parts[3] in {"projects", "scenes", "shots", "tests"}', self.source)
         self.assertIn('self._console().workspace.update_status(resource', self.source)
 
+
+    def test_mira_intelligence_room_has_holographic_identity_and_truthful_states(self):
+        for marker in (
+            'data-room="mira"', 'id="room-mira"', 'id="miraOrb"',
+            'id="miraBriefing"', 'id="miraWatchlist"', 'id="miraVoiceButton"',
+            'VOICE ENGINE NOT CONNECTED', 'Mira does not execute commands',
+            'prefers-reduced-motion:reduce', 'miraSetState', 'refreshMiraBriefing',
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, self.html)
+
+    def test_mira_is_persistently_visible_across_authenticated_studio_rooms(self):
+        app_start = self.html.index('<div id="app"')
+        homebar = self.html.index('id="miraHomebar"')
+        shell = self.html.index('<div class="shell">', app_start)
+        self.assertLess(homebar, shell)
+        for marker in (
+            'id="miraHomeGreeting"', 'id="miraHomeSummary"',
+            'id="miraHomeVoiceState"', 'data-go="mira">TALK TO MIRA',
+            'await refreshMiraBriefing();',
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, self.html)
+
+    def test_mira_briefing_discloses_manual_cost_and_missing_live_telemetry(self):
+        self.assertIn('manually entered test-log values', self.html)
+        self.assertIn('not live RunPod billing or telemetry', self.html)
+
+    def test_mira_chat_is_authenticated_read_only_and_discloses_gemini_free_tier(self):
+        for marker in (
+            'if path == "/api/mira/status":',
+            'if path == "/api/mira/chat":',
+            'body.get("data_use_acknowledged") is not True',
+            'self._console().mira_briefing_context()',
+            'MiraProviderError',
+            'def mira_briefing_context(self)',
+            'self.mira = MiraAssistant()',
+            'self._console().mira.clear_session(self._cookie_token() or "")',
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, self.source)
+        for marker in (
+            'id="miraprivacynotice"',
+            'id="miradataconsent"',
+            'id="mirachatstatus"',
+            'id="mirachatinput"',
+            'not type confidential scripts',
+            'human reviewers may read',
+            'store=false',
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, self.html.lower())
 
 if __name__ == "__main__":
     unittest.main()

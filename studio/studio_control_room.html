@@ -32,6 +32,74 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
 #realShotForm input,#realShotForm textarea,#realShotForm select{margin-top:6px}#realShotForm label{margin-top:10px}
 @media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.shell{grid-template-columns:1fr}.side{position:relative;top:auto}.nav{grid-template-columns:repeat(4,minmax(0,1fr))}.nav button{justify-content:center;padding:9px 5px;font-size:10px}.nav .ico{width:auto}}
 @media(max-width:650px){.wrap{padding:12px}.grid,.grid-2,.grid-3,.form-grid{grid-template-columns:1fr}.nav{grid-template-columns:repeat(3,minmax(0,1fr))}.nav button{flex-direction:column;gap:4px;font-size:9px}.topbar{align-items:flex-start;flex-direction:column}.hero{padding:20px}.hero-row{display:block}.hero-row .form-actions{margin-top:12px}.panel{padding:14px}}
+
+/* MIRA — persistent studio presence */
+.mira-homebar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:16px;margin:0 0 18px;padding:14px 18px;border:1px solid #3c4d78;border-radius:18px;background:linear-gradient(110deg,#171d38 0%,#142b42 58%,#1d2343 100%);box-shadow:0 14px 42px #0004}
+.mira-home-orb{width:72px;height:72px;position:relative;display:grid;place-items:center;filter:drop-shadow(0 0 15px #7479ff66)}
+.mira-home-core{width:31px;height:31px;border-radius:50%;background:radial-gradient(circle at 34% 30%,#fff 0 5%,#c9fbff 13%,#69dfff 30%,#5b7cff 58%,#8b57fa 82%,#292b6d 100%);box-shadow:0 0 12px #76dfff,0 0 30px #6b78ff99;animation:miraCorePulse 4s ease-in-out infinite}
+.mira-home-ring{position:absolute;inset:5px;border:1px solid #7f9cffaa;border-radius:50%;animation:miraOrbit 12s linear infinite}
+.mira-home-ring.two{inset:13px;border-color:#5deaff99;transform:rotateX(65deg);animation:miraOrbitReverse 8s linear infinite}
+.mira-home-ring.three{inset:-2px;border-color:#b28aff88;transform:rotateY(65deg);animation:miraOrbit 16s linear infinite}
+.mira-home-copy{min-width:0}.mira-home-title{font-size:17px;font-weight:850;letter-spacing:-.02em;margin:3px 0 4px}.mira-home-summary{font-size:12px;color:#b8c8e5;line-height:1.5}.mira-home-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+@media(max-width:650px){.mira-homebar{grid-template-columns:54px minmax(0,1fr);gap:10px;padding:12px}.mira-home-orb{width:52px;height:52px}.mira-home-core{width:24px;height:24px}.mira-home-actions{grid-column:1/-1;justify-content:flex-end}.mira-home-title{font-size:15px}}
+@media(prefers-reduced-motion:reduce){.mira-home-core,.mira-home-ring{animation:none!important}}
+
+/* MIRA — Studio Intelligence identity */
+.mira-quick{display:inline-flex;align-items:center;gap:9px;background:#1a2340;border:1px solid #5965a0;color:#e7e4ff;padding:8px 12px}
+.mira-mini-orb{width:17px;height:17px;display:inline-block;border-radius:50%;background:radial-gradient(circle at 38% 34%,#e4f8ff 0 8%,#7eeaff 14%,#557dff 42%,#8d5bff 70%,#1a2048 100%);box-shadow:0 0 12px #7a83ff99;position:relative}
+.mira-mini-orb:after{content:"";position:absolute;inset:-4px;border:1px solid #8c9dff88;border-radius:50%;transform:rotate(-25deg) scaleX(1.35)}
+.mira-layout{display:grid;grid-template-columns:minmax(260px,.82fr) minmax(0,1.5fr);gap:14px;align-items:stretch}
+.mira-stage{min-height:390px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#25265a 0,#151d36 42%,#0e1728 78%);border-color:#39436f}
+.mira-stage:before,.mira-stage:after{content:"";position:absolute;border:1px solid #7789ff18;border-radius:50%;width:330px;height:330px;pointer-events:none}
+.mira-stage:after{width:430px;height:430px;border-color:#4ad9f018}
+.mira-orb{width:210px;height:210px;position:relative;display:grid;place-items:center;isolation:isolate;margin:8px auto 22px;filter:drop-shadow(0 0 28px #706eff55)}
+.mira-core{width:86px;height:86px;border-radius:50%;position:absolute;background:radial-gradient(circle at 34% 30%,#fff 0 3%,#c9fbff 9%,#69dfff 24%,#5b7cff 52%,#8b57fa 76%,#292b6d 100%);box-shadow:0 0 18px #76dfff,0 0 46px #6b78ff99,0 0 95px #8a5dff66;animation:miraCorePulse 4s ease-in-out infinite}
+.mira-ring{position:absolute;inset:8px;border:1px solid #7f9cffaa;border-radius:50%;box-shadow:0 0 16px #6b8cff44,inset 0 0 18px #5e83ff22;animation:miraOrbit 12s linear infinite}
+.mira-ring.ring-two{inset:25px;border-color:#5deaff99;transform:rotateX(64deg);animation:miraOrbitReverse 9s linear infinite}
+.mira-ring.ring-three{inset:-5px;border-color:#b28aff88;transform:rotateY(66deg);animation:miraOrbit 16s linear infinite}
+.mira-ring.ring-four{inset:42px;border-style:dashed;border-color:#8d9cff77;animation:miraOrbitReverse 18s linear infinite}
+.mira-orb:before,.mira-orb:after{content:"";position:absolute;border-radius:50%;border:1px solid #8edfff55;inset:-17px;transform:scaleY(.42) rotate(-18deg);box-shadow:0 0 20px #5d9cff22}
+.mira-orb:after{inset:-26px;transform:scaleY(.32) rotate(28deg);border-color:#b08bff55}
+.mira-orb .mira-spark{position:absolute;width:5px;height:5px;border-radius:50%;background:#d9fbff;box-shadow:0 0 12px #75eaff;top:20px;right:28px}
+.mira-stage[data-state="listening"] .mira-ring{border-color:#7fffe0;box-shadow:0 0 22px #59ffdd88}
+.mira-stage[data-state="listening"] .mira-core{animation:miraCorePulse .7s ease-in-out infinite}
+.mira-stage[data-state="thinking"] .mira-ring{animation-duration:2.2s}
+.mira-stage[data-state="thinking"] .mira-ring.ring-three{animation-duration:3.2s}
+.mira-stage[data-state="speaking"] .mira-core{animation:miraCorePulse .55s ease-in-out infinite}
+.mira-stage[data-state="speaking"] .mira-ring-two{animation-duration:3.5s}
+.mira-state{font-size:10px;letter-spacing:.2em;font-weight:900;color:#b9c9ff;text-transform:uppercase;text-align:center}
+.mira-name{font-size:27px;font-weight:950;letter-spacing:.28em;margin:5px 0 3px;color:#f0f2ff;text-shadow:0 0 22px #9b91ff66}
+.mira-subtitle{font-size:11px;color:#a9b8d7;text-align:center}
+.mira-signal{display:flex;align-items:center;justify-content:center;gap:4px;height:24px;margin-top:12px}
+.mira-signal i{display:block;width:3px;height:5px;border-radius:5px;background:#7edfff;opacity:.65}
+.mira-stage[data-state="speaking"] .mira-signal i,.mira-stage[data-state="listening"] .mira-signal i{animation:miraWave .65s ease-in-out infinite alternate}
+.mira-signal i:nth-child(2n){animation-delay:.12s}.mira-signal i:nth-child(3n){animation-delay:.24s}
+.mira-briefing{display:grid;gap:12px}
+.mira-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.mira-stat{border:1px solid #2e4164;background:#111c30;border-radius:12px;padding:12px;min-width:0}
+.mira-stat strong{display:block;font-size:22px;letter-spacing:-.04em;margin-top:5px}
+.mira-stat span{font-size:9px;letter-spacing:.1em;color:#9eafcc;text-transform:uppercase;font-weight:850}
+.mira-message{border:1px solid #34436b;border-radius:14px;padding:14px;background:linear-gradient(120deg,#1c2342,#14263b)}
+.mira-message p:last-child{margin-bottom:0}
+.mira-chat{display:grid;gap:10px}
+.mira-chat-log{min-height:120px;max-height:220px;overflow:auto;display:grid;gap:8px}
+.mira-chat-line{max-width:92%;padding:10px 12px;border-radius:12px;background:#1b2941;color:#dce7fa;font-size:12px;line-height:1.5}
+.mira-chat-line.assistant{border:1px solid #4a4c80;background:#1d2140}
+.mira-chat-line.user{justify-self:end;background:#174252;border:1px solid #286477}
+.mira-chat-controls{display:grid;grid-template-columns:1fr auto;gap:8px}
+.mira-chat-controls input{min-width:0}
+.mira-disabled-note{font-size:11px;color:#a9b8d7;border:1px dashed #455578;border-radius:10px;padding:10px}
+.mira-source-note{font-size:10px;color:#91a4c6;line-height:1.55}
+.mira-activity{display:grid;gap:8px}
+.mira-activity-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #273750;font-size:11px}
+.mira-activity-row:last-child{border-bottom:0}
+@keyframes miraOrbit{to{transform:rotate(360deg)}}
+@keyframes miraOrbitReverse{to{transform:rotate(-360deg)}}
+@keyframes miraCorePulse{0%,100%{transform:scale(.94);filter:brightness(.95)}50%{transform:scale(1.08);filter:brightness(1.22)}}
+@keyframes miraWave{from{height:4px;opacity:.5}to{height:19px;opacity:1}}
+@media(max-width:850px){.mira-layout{grid-template-columns:1fr}.mira-stage{min-height:330px}.mira-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.mira-ring,.mira-core,.mira-signal i{animation:none!important}}
+
 </style>
 </head>
 <body>
@@ -50,8 +118,18 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
 <div id="app" class="wrap hidden">
   <div class="topbar">
     <div class="statusline"><span class="brand-mark">HR</span><div><div class="brand">HIS RISEN STUDIOS</div><div class="muted tiny">Film Production Control Room</div></div></div>
-    <div class="statusline"><span id="backend" class="pill warn">Checking engine…</span><span id="storageState" class="pill warn">Checking storage…</span><button id="refreshButton" class="quiet">Refresh</button><button id="logoutButton" class="quiet">LOCK STUDIO</button></div>
+    <div class="statusline"><button class="mira-quick" data-go="mira" aria-label="Open Mira Studio Intelligence"><span class="mira-mini-orb" aria-hidden="true"></span> CALL MIRA</button><span id="backend" class="pill warn">Checking engine…</span><span id="storageState" class="pill warn">Checking storage…</span><button id="refreshButton" class="quiet">Refresh</button><button id="logoutButton" class="quiet">LOCK STUDIO</button></div>
   </div>
+
+  <section class="mira-homebar" id="miraHomebar" aria-label="Mira studio assistant">
+    <div class="mira-home-orb" aria-hidden="true"><span class="mira-home-ring"></span><span class="mira-home-ring two"></span><span class="mira-home-ring three"></span><span class="mira-home-core"></span></div>
+    <div class="mira-home-copy">
+      <div class="eyebrow">MIRA · STUDIO INTELLIGENCE · SESSION ONLINE</div>
+      <div class="mira-home-title" id="miraHomeGreeting">Welcome back, boss.</div>
+      <div class="mira-home-summary" id="miraHomeSummary">I'm preparing your verified studio briefing. You can open my intelligence room from anywhere in the studio.</div>
+    </div>
+    <div class="mira-home-actions"><span class="pill warn" id="miraHomeVoiceState">VOICE NOT CONNECTED</span><button class="violet" type="button" data-go="mira">TALK TO MIRA</button></div>
+  </section>
 
   <div class="shell">
     <aside class="side">
@@ -63,6 +141,7 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
         <button data-room="assets"><span class="ico">▧</span><span>Asset Library</span></button>
         <button data-room="review"><span class="ico">▶</span><span>Review Room</span></button>
         <button data-room="reports"><span class="ico">▥</span><span>Reports</span></button>
+        <button data-room="mira"><span class="ico">✧</span><span>Mira Intelligence</span></button>
         <button data-room="generation"><span class="ico">⚡</span><span>Generation</span></button>
       </nav>
       <div class="sidefoot"><div class="eyebrow">Production mode</div><div id="modeLabel" style="font-weight:850;margin-top:6px">SAFE MODE</div><div class="muted tiny" style="margin-top:5px">Real generation stays locked until all preflight checks pass.</div></div>
@@ -213,6 +292,49 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
         </div>
         <div class="panel" style="margin-top:14px"><div class="eyebrow">Generation history</div><h2 style="margin-top:6px">Recent takes & review controls</h2><div id="generationTakes" class="stack"></div></div>
       </section>
+
+      <section id="room-mira" class="room">
+        <div class="roombar"><div><div class="eyebrow">Studio Intelligence · Personal production assistant</div><h1>Meet Mira.</h1><p class="muted small">Your studio's intelligence layer. Production briefings are built from recorded studio data and connected controller checks.</p></div><span class="pill ok">INTELLIGENCE FOUNDATION</span></div>
+        <div class="mira-layout">
+          <div class="panel mira-stage" id="miraStage" data-state="idle" aria-live="polite">
+            <div class="mira-orb" id="miraOrb" role="img" aria-label="Mira's animated holographic intelligence orb">
+              <span class="mira-ring"></span><span class="mira-ring ring-two"></span><span class="mira-ring ring-three"></span><span class="mira-ring ring-four"></span><span class="mira-core"></span><span class="mira-spark"></span>
+            </div>
+            <div class="mira-name">MIRA</div>
+            <div class="mira-subtitle">HIS RISEN STUDIOS · INTELLIGENCE</div>
+            <div class="mira-signal" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            <div id="miraState" class="mira-state">STANDING BY · PREVIEW MODE</div>
+            <p class="mira-subtitle" style="max-width:260px;margin:9px 0 0">A calm, focused presence across your production workspace.</p>
+          </div>
+          <div class="mira-briefing">
+            <div class="panel">
+              <div class="section-head"><div><div class="eyebrow">Your studio briefing</div><h2>Good to have you back, boss.</h2></div><button id="miraRefresh" class="quiet">↻ REFRESH</button></div>
+              <div id="miraBriefing" class="mira-message"><p class="muted small">Loading verified studio records…</p></div>
+              <div class="mira-stat-grid" style="margin-top:12px">
+                <div class="mira-stat"><span>Active projects</span><strong id="miraProjects">—</strong></div>
+                <div class="mira-stat"><span>Scenes planned</span><strong id="miraScenes">—</strong></div>
+                <div class="mira-stat"><span>Shots planned</span><strong id="miraShots">—</strong></div>
+                <div class="mira-stat"><span>Tests needing review</span><strong id="miraNeedsReview">—</strong></div>
+                <div class="mira-stat"><span>Completed takes</span><strong id="miraCompletedTakes">—</strong></div>
+                <div class="mira-stat"><span>Tracked test cost</span><strong id="miraTrackedCost">—</strong></div>
+              </div>
+              <p id="miraDataSourceNote" class="mira-source-note" style="margin:10px 0 0">Figures will be labelled by source. Manually entered costs are not live provider billing.</p>
+            </div>
+            <div class="grid-2">
+              <div class="panel"><div class="eyebrow">Needs attention</div><h3 style="margin-top:7px">Production watchlist</h3><div id="miraWatchlist" class="mira-activity"><div class="empty">No briefing loaded.</div></div></div>
+              <div class="panel"><div class="eyebrow">Studio activity</div><h3 style="margin-top:7px">Current production slate</h3><div id="miraRecentProjects" class="mira-activity"><div class="empty">No projects loaded.</div></div></div>
+            </div>
+            <div class="panel mira-chat">
+              <div><div class="eyebrow">Talk to Mira</div><h2 style="margin-top:6px">Conversation interface</h2><p class="muted small">Ask about the studio's recorded status and production totals. Mira's text assistant is read-only; voice remains disconnected.</p><p id="miraChatStatus" class="mira-source-note" role="status" aria-live="polite">Checking Gemini connection…</p></div>
+              <div class="mira-disabled-note" id="miraPrivacyNotice"><strong>Before you chat — Gemini free-tier privacy</strong><p>When you send a message, that message and a small aggregate studio snapshot (counts and status totals only) are sent to Google's Gemini API. Google says free-tier content may be used to improve its products. The automatic studio snapshot excludes project names, screenplay text, generation prompts, assets, continuity notes, review comments and manually entered costs. Your current message and up to eight recent chat turns may be resent to Google with each request. Google says its unpaid Gemini services may use submitted content and generated responses to improve products, and human reviewers may read, annotate or process them. Mira sends requests with store=false, which prevents the Interactions API from retaining a retrievable interaction record; it does not override Google's free-service data-use terms. Do not type confidential scripts, private prompts, credentials, personal details or other sensitive production information into Mira. Before enabling the server key and MIRA_GEMINI_FREE_TIER_ACK=true, verify in Google AI Studio that the key belongs to a Free-tier project with no active Cloud Billing linked. The app cannot independently verify Google's billing tier; a key on a paid project may incur charges.</p><label class="checkline"><input id="miraDataConsent" type="checkbox"> I understand Google's free-tier data-use terms, and I have checked that my Google AI Studio project is on the Free tier with no Cloud Billing linked.</label></div>
+              <div id="miraChatLog" class="mira-chat-log" aria-live="polite"><div class="mira-chat-line assistant">Hello, boss. I'm Mira. My verified studio briefing is above. Check the privacy notice and connect the server-side Gemini key to start our text conversation.</div></div>
+              <div class="mira-chat-controls"><input id="miraChatInput" type="text" disabled placeholder="Add the Gemini key and acknowledge the privacy notice first"><button id="miraSend" class="violet" disabled>SEND</button></div>
+              <div class="form-actions"><button id="miraVoiceButton" class="quiet" disabled>VOICE ENGINE NOT CONNECTED</button><span class="muted tiny">Voice input and spoken replies will be enabled after the approved voice integration.</span></div>
+              <div class="mira-disabled-note">Mira does not execute commands, spend money, launch GPU jobs, delete assets or publish content in this foundation release.</div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   </div>
 </div>
@@ -227,9 +349,9 @@ let shotTemplate = null, generationGate = null, pendingShotRequestId = null, pen
 const $ = function(id){ return document.getElementById(id); };
 function esc(value){ return String(value == null ? "" : value).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
 function note(message){ $("notice").textContent=message; $("notice").style.display="block"; window.clearTimeout(note.handle); note.handle=window.setTimeout(function(){$("notice").style.display="none";},3600); }
-async function api(path, options){ options=options||{}; const response=await fetch("/api"+path,Object.assign({headers:{"Content-Type":"application/json"}},options)); if(response.status===401){showLogin();throw new Error("Your session expired. Please sign in again.");} const payload=await response.json(); if(!response.ok)throw new Error(payload.error||"Request failed"); return payload.data; }
+async function api(path, options){ options=options||{}; const response=await fetch("/api"+path,Object.assign({headers:{"Content-Type":"application/json"}},options)); if(response.status===401){showLogin();throw new Error("Your session expired. Please sign in again.");} const payload=await response.json(); if(!response.ok)throw new Error(payload.message||payload.error||"Request failed"); return payload.data; }
 function body(value){return JSON.stringify(value);}
-function showLogin(){ $("app").classList.add("hidden"); $("login").classList.remove("hidden"); }
+function showLogin(){ $("app").classList.add("hidden"); $("login").classList.remove("hidden"); if(typeof miraDataUseAcknowledged!=="undefined"){miraDataUseAcknowledged=false;if($("miraDataConsent"))$("miraDataConsent").checked=false;syncMiraChatControls();} }
 function showApp(){ $("login").classList.add("hidden"); $("app").classList.remove("hidden"); }
 async function signIn(){ $("loginMsg").textContent=""; try{await api("/login",{method:"POST",body:body({pin:$("pin").value})}); $("pin").value=""; showApp(); await refreshStudio();}catch(error){$("loginMsg").textContent="Access denied or temporarily locked.";}}
 $("loginButton").addEventListener("click",signIn);
@@ -238,7 +360,7 @@ $("logoutButton").addEventListener("click",async function(){await fetch("/api/lo
 $("refreshButton").addEventListener("click",refreshStudio);
 document.querySelectorAll("[data-room]").forEach(function(button){button.addEventListener("click",function(){openRoom(button.getAttribute("data-room"));});});
 document.querySelectorAll("[data-go]").forEach(function(button){button.addEventListener("click",function(){openRoom(button.getAttribute("data-go"));});});
-function openRoom(name){currentRoom=name;document.querySelectorAll(".room").forEach(function(room){room.classList.toggle("active",room.id==="room-"+name);});document.querySelectorAll("[data-room]").forEach(function(button){button.classList.toggle("active",button.getAttribute("data-room")===name);});}
+function openRoom(name){currentRoom=name;document.querySelectorAll(".room").forEach(function(room){room.classList.toggle("active",room.id==="room-"+name);});document.querySelectorAll("[data-room]").forEach(function(button){button.classList.toggle("active",button.getAttribute("data-room")===name);});if(name==="mira"&&typeof refreshMiraBriefing==="function")refreshMiraBriefing();}
 async function refreshStudio(){
  try{
   const results=await Promise.all([api("/status"),api("/studio/overview"),api("/studio/projects"),api("/studio/tests"),api("/studio/assets"),api("/studio/reviews"),api("/studio/reports"),api("/takes")]);
@@ -254,7 +376,7 @@ async function refreshStudio(){
   $("metricPassed").textContent=overview.tests_passed; $("metricFailed").textContent=overview.tests_failed;
   renderProjects(); renderScenes(); renderShots(); renderTests(); renderAssets(); renderReviews(); renderTakes();
   if(selectedProjectId) await loadScenes();
-  renderReports(report); await loadShotTemplate(); await loadGenerationGate();
+  renderReports(report); await loadShotTemplate(); await loadGenerationGate(); await refreshMiraBriefing();
  }catch(error){if(error.message.indexOf("session expired")<0)note(error.message);}
 }
 function renderProjects(){
@@ -354,6 +476,134 @@ async function runUpdateCheck(){
  }
 }
 $("updateCheckButton").addEventListener("click",runUpdateCheck);
+
+/* MIRA Studio Intelligence — truthful briefing from existing studio records */
+let miraSnapshot = null;
+let miraProviderReady = false;
+let miraDataUseAcknowledged = false;
+let miraSending = false;
+
+function syncMiraChatControls(){
+ const enabled=miraProviderReady&&miraDataUseAcknowledged&&!miraSending;
+ $("miraChatInput").disabled=!enabled;
+ $("miraSend").disabled=!enabled;
+ if(!miraProviderReady)$("miraChatInput").placeholder="Gemini key not configured on Render";
+ else if(!miraDataUseAcknowledged)$("miraChatInput").placeholder="Acknowledge the Gemini privacy notice to chat";
+ else $("miraChatInput").placeholder="Message Mira…";
+}
+function appendMiraChatLine(role,text){
+ const item=document.createElement("div");
+ item.className="mira-chat-line "+(role==="user"?"user":"assistant");
+ item.textContent=String(text);
+ $("miraChatLog").appendChild(item);
+ $("miraChatLog").scrollTop=$("miraChatLog").scrollHeight;
+}
+function miraSetState(state,label){
+ const stage=$("miraStage");if(!stage)return;
+ stage.setAttribute("data-state",state);
+ $("miraState").textContent=label||({idle:"STANDING BY · PREVIEW MODE",listening:"LISTENING",thinking:"REVIEWING STUDIO RECORDS",speaking:"SPEAKING"}[state]||"STANDING BY");
+}
+function miraRow(label,value){
+ return '<div class="mira-activity-row"><span class="muted">'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>';
+}
+function renderMiraBriefing(){
+ if(!miraSnapshot)return;
+ const data=miraSnapshot,status=data.status||{},overview=data.overview||{},report=data.report||{},readiness=generationGate||{};
+ const active=projects.filter(function(p){return p.status!=="COMPLETED"&&p.status!=="ON_HOLD";}).length;
+ const needsReview=tests.filter(function(t){return t.result_status==="NEEDS_REVIEW";}).length;
+ const failed=tests.filter(function(t){return t.result_status==="FAILED";}).length;
+ const completed=takes.filter(function(t){return t.status==="COMPLETED";}).length;
+ const pending=tests.filter(function(t){return t.result_status==="PLANNED";}).length;
+ const trackedCost=Number((report.summary||{}).tracked_cost_usd||overview.tracked_cost_usd||0);
+ $("miraProjects").textContent=String(active);
+ $("miraScenes").textContent=String(overview.scenes||0);
+ $("miraShots").textContent=String(overview.shots||0);
+ $("miraNeedsReview").textContent=String(needsReview);
+ $("miraCompletedTakes").textContent=String(completed);
+ $("miraTrackedCost").textContent="$"+trackedCost.toFixed(2);
+ const controller=status.controller||"Controller status unavailable";
+ const storage=overview.storage&&overview.storage.data_root_configured?"Persistent data root configured":"Persistent storage not configured";
+ const gpu=readiness.enabled?"Real-generation preflight reports ready":"Real generation remains locked";
+ const paragraphs=[];
+ paragraphs.push("Your studio currently has "+projects.length+" registered project(s), including "+active+" active production(s).");
+ paragraphs.push(controller+". "+storage+". "+gpu+".");
+ if(needsReview||failed||completed)paragraphs.push("Attention: "+needsReview+" test record(s) need review, "+failed+" failed test record(s), and "+completed+" completed take(s) are awaiting director decisions.");
+ else paragraphs.push("No failed or review-flagged test records are currently recorded.");
+ $("miraBriefing").innerHTML="<p>"+paragraphs.map(esc).join("</p><p>")+"</p>";
+ const hour=new Date().getHours();
+ const greeting=hour<12?"Good morning, boss.":hour<17?"Good afternoon, boss.":"Good evening, boss.";
+ $("miraHomeGreeting").textContent=greeting+" I'm here.";
+ const attention=needsReview+failed+completed;
+ $("miraHomeSummary").textContent="Your verified briefing is ready: "+active+" active project(s), "+overview.scenes+" planned scene(s), "+overview.shots+" planned shot(s), and "+attention+" item(s) requiring attention. Ask me about the studio or open the full briefing.";
+ $("miraHomeVoiceState").textContent="VOICE NOT CONNECTED";
+
+ $("miraDataSourceNote").textContent="Source: live controller/status and generation-preflight responses plus saved studio records. Cost and GPU minutes are manually entered test-log values, not live RunPod billing or telemetry.";
+ const watch=[];
+ if(!overview.storage||!overview.storage.data_root_configured)watch.push(miraRow("Persistent storage","Not configured"));
+ if(!readiness.enabled)watch.push(miraRow("Real generation","Locked by preflight"));
+ if(needsReview)watch.push(miraRow("Tests needing review",String(needsReview)));
+ if(failed)watch.push(miraRow("Failed tests",String(failed)));
+ if(completed)watch.push(miraRow("Completed takes awaiting director decision",String(completed)));
+ if(!watch.length)watch.push(miraRow("Production watchlist","No recorded issues"));
+ $("miraWatchlist").innerHTML=watch.join("");
+ const recent=projects.slice(0,4).map(function(p){return miraRow(p.title,p.status.replaceAll("_"," ")+" · "+p.scene_count+" scenes / "+p.shot_count+" shots");});
+ $("miraRecentProjects").innerHTML=recent.join("")||'<div class="empty">No film projects have been registered yet.</div>';
+ miraSetState("idle","STANDING BY · STUDIO BRIEFING READY");
+}
+async function refreshMiraBriefing(){
+ miraSetState("thinking","REFRESHING VERIFIED STUDIO DATA");
+ try{
+  const results=await Promise.all([api("/status"),api("/studio/overview"),api("/studio/reports"),api("/generation-readiness"),api("/mira/status")]);
+  generationGate=results[3];
+  miraSnapshot={status:results[0],overview:results[1],report:results[2]};
+  const geminiStatus=results[4]||{};
+  miraProviderReady=Boolean(geminiStatus.configured);
+  $("miraChatStatus").textContent=miraProviderReady
+    ?"Gemini connection configured · "+(geminiStatus.model||"model selected")+" · text-only · read-only"
+    :geminiStatus.key_present&&!geminiStatus.free_tier_acknowledged
+      ?"Gemini key detected · chat locked until the free-tier/no-billing check is confirmed in Render"
+      :"Gemini connection not configured · add a Free-tier GEMINI_API_KEY and complete the no-billing check in Render";
+  syncMiraChatControls();
+  renderMiraBriefing();
+ }catch(error){
+  miraProviderReady=false;
+  $("miraChatStatus").textContent="Mira could not check the Gemini connection: "+error.message;
+  syncMiraChatControls();
+  $("miraBriefing").innerHTML='<p class="muted small">Mira could not refresh the studio briefing: '+esc(error.message)+'</p>';
+  miraSetState("idle","BRIEFING REFRESH FAILED");
+ }
+}
+$("miraRefresh").addEventListener("click",refreshMiraBriefing);
+$("miraDataConsent").addEventListener("change",function(){
+ miraDataUseAcknowledged=$("miraDataConsent").checked;
+ syncMiraChatControls();
+});
+async function sendMiraMessage(){
+ const message=$("miraChatInput").value.trim();
+ if(!message)return;
+ if(!miraProviderReady){note("Mira's Gemini key is not configured on Render yet.");return;}
+ if(!miraDataUseAcknowledged){note("Please acknowledge the Gemini privacy notice first.");return;}
+ miraSending=true;
+ syncMiraChatControls();
+ $("miraChatInput").value="";
+ appendMiraChatLine("user",message);
+ miraSetState("thinking","MIRA IS THINKING");
+ try{
+  const result=await api("/mira/chat",{method:"POST",body:body({message:message,data_use_acknowledged:true})});
+  appendMiraChatLine("assistant",result.answer||"I couldn't form a text response. Please try again.");
+  miraSetState("idle","STANDING BY · TEXT RESPONSE READY");
+ }catch(error){
+  appendMiraChatLine("assistant","I couldn't complete that request: "+error.message);
+  miraSetState("idle","STANDING BY · REQUEST NOT COMPLETED");
+ }finally{
+  miraSending=false;
+  syncMiraChatControls();
+  if(miraDataUseAcknowledged&&miraProviderReady)$("miraChatInput").focus();
+ }
+}
+$("miraSend").addEventListener("click",sendMiraMessage);
+$("miraChatInput").addEventListener("keydown",function(event){if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();sendMiraMessage();}});
+
 </script>
 </body>
 </html>

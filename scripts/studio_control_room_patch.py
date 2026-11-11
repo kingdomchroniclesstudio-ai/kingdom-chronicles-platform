@@ -35,6 +35,9 @@ def patch_archive(archive: Path) -> str:
     html = require_file(source_root / "studio" / "studio_control_room.html")
     test_source = require_file(source_root / "studio" / "test_studio_workspace.py")
     guide = require_file(source_root / "docs" / "STUDIO_CONTROL_ROOM.md")
+    mira_guide = require_file(source_root / "docs" / "MIRA_STUDIO_INTELLIGENCE.md")
+    mira_assistant = require_file(source_root / "studio" / "mira_assistant.py")
+    mira_test_source = require_file(source_root / "studio" / "test_mira_assistant.py")
     html_text = html.decode("utf-8")
     if html_text.count("<script>") != 1 or html_text.count("</script>") != 1:
         raise RuntimeError("Control-room HTML must contain exactly one complete application script")
@@ -52,11 +55,25 @@ def patch_archive(archive: Path) -> str:
         raise RuntimeError("Controller package does not contain director_console.py")
     info, raw = entries["director_console.py"]
     console = raw.decode("utf-8")
+
+    def validate_console(source: str, stage: str) -> None:
+        try:
+            compile(source, "director_console.py", "exec")
+        except SyntaxError as exc:
+            lines = source.splitlines()
+            first = max(1, (exc.lineno or 1) - 2)
+            last = min(len(lines), (exc.lineno or 1) + 2)
+            excerpt = "\\n".join(f"{number}: {lines[number - 1]}" for number in range(first, last + 1))
+            raise RuntimeError(f"Controller syntax failed at {stage}: {exc}\\n{excerpt}") from exc
+
+    validate_console(console, "input controller ZIP")
     import_anchor = "from config.data_paths import resolve_data_root\n"
     if "from studio_workspace import StudioWorkspace" not in console:
         if console.count(import_anchor) != 1:
             raise RuntimeError("Could not safely locate the controller data-path import")
         console = console.replace(import_anchor, import_anchor + "from studio_workspace import StudioWorkspace\n", 1)
+    if "from mira_assistant import MiraAssistant" not in console:
+        console = console.replace(import_anchor, import_anchor + "from mira_assistant import MiraAssistant, MiraConfigurationError, MiraProviderError, MiraRateLimitError\n", 1)
 
     init_anchor = "        self.root = root.resolve()\n"
     init_replacement = init_anchor + "        self.workspace = StudioWorkspace(resolve_data_root(self.root))\n"
@@ -64,6 +81,13 @@ def patch_archive(archive: Path) -> str:
         if console.count(init_anchor) != 1:
             raise RuntimeError("Could not safely locate DirectorConsole initialization")
         console = console.replace(init_anchor, init_replacement, 1)
+    workspace_init = "        self.workspace = StudioWorkspace(resolve_data_root(self.root))\n"
+    if "self.mira = MiraAssistant()" not in console:
+        if console.count(workspace_init) != 1:
+            raise RuntimeError("Could not safely locate the studio workspace initialization for Mira")
+        console = console.replace(workspace_init, workspace_init + "        self.mira = MiraAssistant()\n", 1)
+
+    validate_console(console, "after Mira import and initialization")
 
     marker = '            if path == "/api/shot-template":\n'
     get_routes = '''            if path == "/api/studio/overview":
@@ -103,14 +127,28 @@ def patch_archive(archive: Path) -> str:
                 self._json(200, {"ok": True, "data": self._console().workspace.reports()})
                 return
 '''
+    mira_get_route = '''            if path == "/api/mira/status":
+                self._json(200, {"ok": True, "data": self._console().mira.status()})
+                return
+'''
     get_start = console.index("    def do_GET(self) -> None:")
     get_end = console.index("    def do_POST(self) -> None:", get_start)
     get_block = console[get_start:get_end]
+    if "/api/mira/status" not in get_block:
+        marker_mira = '            if path == "/api/shot-template":\n'
+        if marker_mira not in get_block:
+            raise RuntimeError("Could not safely locate authenticated Mira GET route")
+        get_block = get_block.replace(marker_mira, mira_get_route + marker_mira, 1)
+        console = console[:get_start] + get_block + console[get_end:]
+        get_end = console.index("    def do_POST(self) -> None:", get_start)
+        get_block = console[get_start:get_end]
     if "/api/studio/overview" not in get_block:
         if marker not in get_block:
             raise RuntimeError("Could not safely locate authenticated GET API routes")
         get_block = get_block.replace(marker, get_routes + marker, 1)
         console = console[:get_start] + get_block + console[get_end:]
+
+    validate_console(console, "after authenticated GET route changes")
 
     post_start = console.index("    def do_POST(self) -> None:")
     post_block = console[post_start:]
@@ -161,11 +199,95 @@ def patch_archive(archive: Path) -> str:
                 self._json(200, {"ok": True, "data": result})
                 return
 '''
+    mira_post_route = '''            if path == "/api/mira/chat":
+                if not self.headers.get("Origin"):
+                    self._json(HTTPStatus.FORBIDDEN, {"ok": False, "error": "origin_required", "message": "A same-origin browser request is required."})
+                    return
+                if not isinstance(body, dict):
+                    raise ValueError("request body must be an object")
+                if body.get("data_use_acknowledged") is not True:
+                    self._json(HTTPStatus.FORBIDDEN, {"ok": False, "error": "data_use_consent_required", "message": "Please acknowledge the Gemini free-tier data-use notice before chatting."})
+                    return
+                try:
+                    result = self._console().mira.chat(
+                        message=body.get("message"),
+                        studio_context=self._console().mira_briefing_context(),
+                        session_id=self._cookie_token() or "",
+                    )
+                except MiraConfigurationError as exc:
+                    self._json(503, {"ok": False, "error": "mira_not_configured", "message": str(exc)})
+                    return
+                except MiraRateLimitError as exc:
+                    self._json(429, {"ok": False, "error": "mira_rate_limited", "message": str(exc)})
+                    return
+                except MiraProviderError as exc:
+                    self._json(502, {"ok": False, "error": "mira_provider_unavailable", "message": str(exc)})
+                    return
+                self._json(200, {"ok": True, "data": result})
+                return
+'''
+    if "/api/mira/chat" not in post_block:
+        if post_marker not in post_block:
+            raise RuntimeError("Could not safely locate authenticated Mira POST route")
+        post_block = post_block.replace(post_marker, mira_post_route + post_marker, 1)
+        console = console[:post_start] + post_block
+        post_block = console[post_start:]
+    logout_route = '''            if path == "/api/logout":
+                self._console().sessions.revoke(self._cookie_token())
+'''
+    logout_route_with_mira = logout_route + '''                self._console().mira.clear_session(self._cookie_token() or "")
+'''
+    if "self._console().mira.clear_session" not in post_block:
+        if post_block.count(logout_route) != 1:
+            raise RuntimeError("Could not safely locate logout route to clear Mira's session memory")
+        post_block = post_block.replace(logout_route, logout_route_with_mira, 1)
+        console = console[:post_start] + post_block
     if "/api/studio/projects" not in post_block:
         if post_marker not in post_block:
             raise RuntimeError("Could not safely locate authenticated POST API routes")
         post_block = post_block.replace(post_marker, post_routes + post_marker, 1)
         console = console[:post_start] + post_block
+
+    if "def mira_briefing_context(self)" not in console:
+        context_method = '''    def mira_briefing_context(self) -> dict[str, Any]:
+        """Return only aggregate studio counts and safe status labels for Mira."""
+        overview = self.workspace.overview()
+        projects = self.workspace.list_projects()
+        tests = self.workspace.list_tests()
+        project_states: dict[str, int] = {}
+        for project in projects:
+            state = str(project.get("status", "UNKNOWN"))
+            project_states[state] = project_states.get(state, 0) + 1
+        test_states: dict[str, int] = {}
+        for test in tests:
+            state = str(test.get("result_status", "UNKNOWN"))
+            test_states[state] = test_states.get(state, 0) + 1
+        status = self.status()
+        allowed_totals = ("projects", "scenes", "shots", "tests", "assets", "reviews", "tests_passed", "tests_failed")
+        return {
+            "controller": {
+                "online": True,
+                "backend_adapter": status.get("backend_adapter", "unknown"),
+                "mock_mode": status.get("mock_mode", True),
+                "approval_required": status.get("approval_required", True),
+            },
+            "workspace": {key: int(overview.get(key, 0) or 0) for key in allowed_totals},
+            "project_status_counts": project_states,
+            "test_status_counts": test_states,
+            "persistent_data_root_configured": bool((overview.get("storage") or {}).get("data_root_configured", False)),
+        }
+
+'''
+        context_anchor = "    def check_for_updates(self) -> dict[str, Any]:\n"
+        if console.count(context_anchor) != 1:
+            raise RuntimeError("Could not safely locate DirectorConsole methods for Mira context")
+        console = console.replace(context_anchor, context_method + context_anchor, 1)
+
+    # The DirectorConsole helper is inserted before Handler, so recalculate the
+    # POST slice boundary before splicing the already-patched handler block back.
+    post_start = console.index("    def do_POST(self) -> None:")
+
+    validate_console(console, "before final POST handler splice")
 
     if "/api/studio/reviews" in post_block:
         legacy_review = """            if path == "/api/studio/reviews":
@@ -190,6 +312,8 @@ def patch_archive(archive: Path) -> str:
             raise RuntimeError("Director review route must verify the referenced take before saving notes")
         console = console[:post_start] + post_block
 
+    validate_console(console, "after authenticated POST route splice")
+
     # Replace the duplicated legacy inline page with one clean, accessible workspace.
     if 'INDEX_HTML = Path(__file__).with_name("studio_control_room.html").read_text(encoding="utf-8")' not in console:
         pattern = re.compile(r"INDEX_HTML = r'''[\s\S]*?'''(?=\n\n\nclass Handler)")
@@ -203,6 +327,9 @@ def patch_archive(archive: Path) -> str:
     put(entries, "studio_control_room.html", html)
     put(entries, "tests/test_studio_workspace.py", test_source)
     put(entries, "docs/STUDIO_CONTROL_ROOM.md", guide)
+    put(entries, "docs/MIRA_STUDIO_INTELLIGENCE.md", mira_guide)
+    put(entries, "mira_assistant.py", mira_assistant)
+    put(entries, "tests/test_mira_assistant.py", mira_test_source)
 
     with tempfile.NamedTemporaryFile(prefix="hrf-studio-rooms-", suffix=".zip", dir=archive.parent, delete=False) as tmp:
         temp_path = Path(tmp.name)
@@ -215,7 +342,8 @@ def patch_archive(archive: Path) -> str:
             bad = validation.testzip()
             if bad:
                 raise RuntimeError(f"Output controller ZIP failed integrity check at {bad}")
-            required = {"director_console.py", "studio_workspace.py", "studio_control_room.html", "tests/test_studio_workspace.py", "docs/STUDIO_CONTROL_ROOM.md"}
+            required = {"director_console.py", "studio_workspace.py", "studio_control_room.html", "tests/test_studio_workspace.py", "tests/test_mira_assistant.py", "mira_assistant.py", "docs/STUDIO_CONTROL_ROOM.md", "docs/MIRA_STUDIO_INTELLIGENCE.md"}
+            compile(validation.read("mira_assistant.py").decode("utf-8"), "mira_assistant.py", "exec")
             missing = required - set(validation.namelist())
             if missing:
                 raise RuntimeError(f"Output package is missing required studio room files: {sorted(missing)}")
