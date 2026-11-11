@@ -80,7 +80,7 @@ class MiraAssistantTests(unittest.TestCase):
         request = captured["request"]
         payload = json.loads(request.data.decode("utf-8"))
         system_text = payload["system_instruction"]
-        self.assertTrue(request.full_url.endswith("/v1/interactions"))
+        self.assertTrue(request.full_url.endswith("/v1beta/interactions"))
         self.assertEqual(request.get_header("X-goog-api-key"), "test-key")
         self.assertEqual(captured["timeout"], 22)
         self.assertFalse(payload["store"])
