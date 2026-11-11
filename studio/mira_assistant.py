@@ -220,7 +220,7 @@ class MiraAssistant:
                 "input": input_steps,
                 "system_instruction": self._system_instruction(self._safe_context(studio_context)),
                 "store": False,
-                "generation_config": {"temperature": 0.45, "max_output_tokens": 700},
+                "generation_config": {"max_output_tokens": 700},
             }
             request = urllib.request.Request(
                 "https://generativelanguage.googleapis.com/v1beta/interactions",
