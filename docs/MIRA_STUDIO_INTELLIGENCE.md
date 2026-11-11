@@ -33,11 +33,11 @@ GPU minutes and costs entered in the test log are **manual tracking values**, no
 
 ## Conversational AI — Gemini free-tier text assistant
 
-The first conversational provider is Google Gemini, using the current stable low-cost model code **gemini-3.5-flash-lite**. The controller calls Google's recommended Interactions API from the server. Each request sets `store=false` and sends bounded client-side chat history, avoiding server-side Interaction record retention and retrieval. No browser-side SDK or permanent provider key is used.
+The first conversational provider is Google Gemini, using the current stable low-cost model code **gemini-3.8-flash**. The controller calls Google's recommended Interactions API from the server. Each request sets `store=false` and sends bounded client-side chat history, avoiding server-side Interaction record retention and retrieval. No browser-side SDK or permanent provider key is used.
 
 - Required server-side secret: **GEMINI_API_KEY**, stored only in Render environment settings. Never commit it or send it in chat.
 - Required separate operator acknowledgement: **MIRA_GEMINI_FREE_TIER_ACK=true**. Set it only after verifying that the Google AI Studio project is on the Free tier and has no Cloud Billing linked. The application cannot query or independently verify the project's billing tier.
-- The model is fixed to **gemini-3.5-flash-lite** in this milestone; there is no browser-side model override or paid-provider fallback.
+- The model is fixed to **gemini-3.8-flash** in this milestone; there is no browser-side model override or paid-provider fallback.
 - No paid-tier upgrade, billing activation or automatic paid fallback is part of this implementation. A key tied to a paid Google Cloud billing project may incur charges; the acknowledgement flag is an operator guard, not a technical billing lock.
 - The service uses bounded messages, at most eight recent conversation turns, a short request timeout, a per-session rate limit and a capped answer length.
 - Up to eight recent turns are resent with the current message on each request. Google documents that its Unpaid Services may use submitted content and generated responses to improve products and may allow human reviewers to read, annotate or process inputs and outputs. `store=false` stops the API from retaining retrievable Interaction objects; it does not opt out of the Unpaid Services data-use terms.

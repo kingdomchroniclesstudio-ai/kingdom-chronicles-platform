@@ -53,7 +53,7 @@ class MiraAssistantTests(unittest.TestCase):
     def test_status_never_returns_api_key(self):
         status = self.mira.status()
         self.assertTrue(status["configured"])
-        self.assertEqual(status["model"], "gemini-3.5-flash-lite")
+        self.assertEqual(status["model"], "gemini-3.8-flash")
         self.assertEqual(status["api"], "Interactions API (store=false; short history in session memory)")
         self.assertNotIn("test-key", json.dumps(status))
 
@@ -84,7 +84,7 @@ class MiraAssistantTests(unittest.TestCase):
         self.assertEqual(request.get_header("X-goog-api-key"), "test-key")
         self.assertEqual(captured["timeout"], 22)
         self.assertFalse(payload["store"])
-        self.assertEqual(payload["model"], "gemini-3.5-flash-lite")
+        self.assertEqual(payload["model"], "gemini-3.8-flash")
         self.assertEqual(payload["input"][-1], {"type": "user_input", "content": "How is the studio?"})
         self.assertIn('"projects":2', system_text)
         self.assertIn('"PRE_PRODUCTION":2', system_text)

@@ -10,7 +10,7 @@ import urllib.request
 from typing import Any
 
 
-DEFAULT_MODEL = "gemini-3.5-flash-lite"
+DEFAULT_MODEL = "gemini-3.8-flash"
 MAX_MESSAGE_CHARS = 2000
 MAX_HISTORY_TURNS = 8
 MAX_REQUESTS_PER_MINUTE = 8
@@ -223,7 +223,7 @@ class MiraAssistant:
                 "generation_config": {"temperature": 0.45, "max_output_tokens": 700},
             }
             request = urllib.request.Request(
-                "https://generativelanguage.googleapis.com/v1/interactions",
+                "https://generativelanguage.googleapis.com/v1beta/interactions",
                 data=json.dumps(request_payload, ensure_ascii=False).encode("utf-8"),
                 headers={"Content-Type": "application/json", "x-goog-api-key": api_key},
                 method="POST",
