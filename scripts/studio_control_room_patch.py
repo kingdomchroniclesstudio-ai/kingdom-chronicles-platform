@@ -143,7 +143,6 @@ def patch_archive(archive: Path) -> str:
         get_end = console.index("    def do_POST(self) -> None:", get_start)
         get_block = console[get_start:get_end]
     if "/api/studio/overview" not in get_block:
-    if "/api/studio/overview" not in get_block:
         if marker not in get_block:
             raise RuntimeError("Could not safely locate authenticated GET API routes")
         get_block = get_block.replace(marker, get_routes + marker, 1)
