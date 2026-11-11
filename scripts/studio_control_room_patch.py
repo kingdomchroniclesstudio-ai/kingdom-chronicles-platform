@@ -55,6 +55,18 @@ def patch_archive(archive: Path) -> str:
         raise RuntimeError("Controller package does not contain director_console.py")
     info, raw = entries["director_console.py"]
     console = raw.decode("utf-8")
+
+    def validate_console(source: str, stage: str) -> None:
+        try:
+            compile(source, "director_console.py", "exec")
+        except SyntaxError as exc:
+            lines = source.splitlines()
+            first = max(1, (exc.lineno or 1) - 2)
+            last = min(len(lines), (exc.lineno or 1) + 2)
+            excerpt = "\\n".join(f"{number}: {lines[number - 1]}" for number in range(first, last + 1))
+            raise RuntimeError(f"Controller syntax failed at {stage}: {exc}\\n{excerpt}") from exc
+
+    validate_console(console, "input controller ZIP")
     import_anchor = "from config.data_paths import resolve_data_root\n"
     if "from studio_workspace import StudioWorkspace" not in console:
         if console.count(import_anchor) != 1:
@@ -74,6 +86,8 @@ def patch_archive(archive: Path) -> str:
         if console.count(workspace_init) != 1:
             raise RuntimeError("Could not safely locate the studio workspace initialization for Mira")
         console = console.replace(workspace_init, workspace_init + "        self.mira = MiraAssistant()\n", 1)
+
+    validate_console(console, "after Mira import and initialization")
 
     marker = '            if path == "/api/shot-template":\n'
     get_routes = '''            if path == "/api/studio/overview":
@@ -129,10 +143,13 @@ def patch_archive(archive: Path) -> str:
         get_end = console.index("    def do_POST(self) -> None:", get_start)
         get_block = console[get_start:get_end]
     if "/api/studio/overview" not in get_block:
+    if "/api/studio/overview" not in get_block:
         if marker not in get_block:
             raise RuntimeError("Could not safely locate authenticated GET API routes")
         get_block = get_block.replace(marker, get_routes + marker, 1)
         console = console[:get_start] + get_block + console[get_end:]
+
+    validate_console(console, "after authenticated GET route changes")
 
     post_start = console.index("    def do_POST(self) -> None:")
     post_block = console[post_start:]
@@ -267,6 +284,12 @@ def patch_archive(archive: Path) -> str:
             raise RuntimeError("Could not safely locate DirectorConsole methods for Mira context")
         console = console.replace(context_anchor, context_method + context_anchor, 1)
 
+    # The DirectorConsole helper is inserted before Handler, so recalculate the
+    # POST slice boundary before splicing the already-patched handler block back.
+    post_start = console.index("    def do_POST(self) -> None:")
+
+    validate_console(console, "before final POST handler splice")
+
     if "/api/studio/reviews" in post_block:
         legacy_review = """            if path == "/api/studio/reviews":
                 if not isinstance(body, dict):
@@ -289,6 +312,8 @@ def patch_archive(archive: Path) -> str:
         if "self._console().controller.get_take(take_id)" not in post_block:
             raise RuntimeError("Director review route must verify the referenced take before saving notes")
         console = console[:post_start] + post_block
+
+    validate_console(console, "after authenticated POST route splice")
 
     # Replace the duplicated legacy inline page with one clean, accessible workspace.
     if 'INDEX_HTML = Path(__file__).with_name("studio_control_room.html").read_text(encoding="utf-8")' not in console:
