@@ -190,6 +190,30 @@ class StudioControlRoomRouteWiringTests(unittest.TestCase):
         self.assertIn('manually entered test-log values', self.html)
         self.assertIn('not live RunPod billing or telemetry', self.html)
 
+    def test_mira_chat_is_authenticated_read_only_and_discloses_gemini_free_tier(self):
+        for marker in (
+            'if path == "/api/mira/status":',
+            'if path == "/api/mira/chat":',
+            'body.get("data_use_acknowledged") is not True',
+            'self._console().mira_briefing_context()',
+            'MiraProviderError',
+            'def mira_briefing_context(self)',
+            'self.mira = MiraAssistant()',
+            'self._console().mira.clear_session(self._cookie_token() or "")',
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, self.source)
+        for marker in (
+            'id="miraPrivacyNotice"',
+            'id="miraDataConsent"',
+            'id="miraChatStatus"',
+            'id="miraChatInput"',
+            'not type confidential scripts',
+            'human reviewers may read',
+            'store=false',
+        ):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, self.html.lower())
 
 if __name__ == "__main__":
     unittest.main()

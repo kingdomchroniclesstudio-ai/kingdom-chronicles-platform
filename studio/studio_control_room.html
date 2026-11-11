@@ -325,9 +325,10 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
               <div class="panel"><div class="eyebrow">Studio activity</div><h3 style="margin-top:7px">Current production slate</h3><div id="miraRecentProjects" class="mira-activity"><div class="empty">No projects loaded.</div></div></div>
             </div>
             <div class="panel mira-chat">
-              <div><div class="eyebrow">Talk to Mira</div><h2 style="margin-top:6px">Conversation interface</h2><p class="muted small">The visual and interaction foundation is here. The secure conversational AI and voice services are not connected yet.</p></div>
-              <div id="miraChatLog" class="mira-chat-log" aria-live="polite"><div class="mira-chat-line assistant">Hello, boss. I'm Mira. My studio briefing is available above. My conversational engine is still being connected.</div></div>
-              <div class="mira-chat-controls"><input id="miraChatInput" type="text" disabled placeholder="Mira's conversation engine is coming next"><button id="miraSend" class="violet" disabled>SEND</button></div>
+              <div><div class="eyebrow">Talk to Mira</div><h2 style="margin-top:6px">Conversation interface</h2><p class="muted small">Ask about the studio's recorded status and production totals. Mira's text assistant is read-only; voice remains disconnected.</p><p id="miraChatStatus" class="mira-source-note" role="status" aria-live="polite">Checking Gemini connection…</p></div>
+              <div class="mira-disabled-note" id="miraPrivacyNotice"><strong>Before you chat — Gemini free-tier privacy</strong><p>When you send a message, that message and a small aggregate studio snapshot (counts and status totals only) are sent to Google's Gemini API. Google says free-tier content may be used to improve its products. The automatic studio snapshot excludes project names, screenplay text, generation prompts, assets, continuity notes, review comments and manually entered costs. Your current message and up to eight recent chat turns may be resent to Google with each request. Google says its unpaid Gemini services may use submitted content and generated responses to improve products, and human reviewers may read, annotate or process them. Mira sends requests with store=false, which prevents the Interactions API from retaining a retrievable interaction record; it does not override Google's free-service data-use terms. Do not type confidential scripts, private prompts, credentials, personal details or other sensitive production information into Mira. Before enabling the server key and MIRA_GEMINI_FREE_TIER_ACK=true, verify in Google AI Studio that the key belongs to a Free-tier project with no active Cloud Billing linked. The app cannot independently verify Google's billing tier; a key on a paid project may incur charges.</p><label class="checkline"><input id="miraDataConsent" type="checkbox"> I understand Google's free-tier data-use terms, and I have checked that my Google AI Studio project is on the Free tier with no Cloud Billing linked.</label></div>
+              <div id="miraChatLog" class="mira-chat-log" aria-live="polite"><div class="mira-chat-line assistant">Hello, boss. I'm Mira. My verified studio briefing is above. Check the privacy notice and connect the server-side Gemini key to start our text conversation.</div></div>
+              <div class="mira-chat-controls"><input id="miraChatInput" type="text" disabled placeholder="Add the Gemini key and acknowledge the privacy notice first"><button id="miraSend" class="violet" disabled>SEND</button></div>
               <div class="form-actions"><button id="miraVoiceButton" class="quiet" disabled>VOICE ENGINE NOT CONNECTED</button><span class="muted tiny">Voice input and spoken replies will be enabled after the approved voice integration.</span></div>
               <div class="mira-disabled-note">Mira does not execute commands, spend money, launch GPU jobs, delete assets or publish content in this foundation release.</div>
             </div>
@@ -348,9 +349,9 @@ let shotTemplate = null, generationGate = null, pendingShotRequestId = null, pen
 const $ = function(id){ return document.getElementById(id); };
 function esc(value){ return String(value == null ? "" : value).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];}); }
 function note(message){ $("notice").textContent=message; $("notice").style.display="block"; window.clearTimeout(note.handle); note.handle=window.setTimeout(function(){$("notice").style.display="none";},3600); }
-async function api(path, options){ options=options||{}; const response=await fetch("/api"+path,Object.assign({headers:{"Content-Type":"application/json"}},options)); if(response.status===401){showLogin();throw new Error("Your session expired. Please sign in again.");} const payload=await response.json(); if(!response.ok)throw new Error(payload.error||"Request failed"); return payload.data; }
+async function api(path, options){ options=options||{}; const response=await fetch("/api"+path,Object.assign({headers:{"Content-Type":"application/json"}},options)); if(response.status===401){showLogin();throw new Error("Your session expired. Please sign in again.");} const payload=await response.json(); if(!response.ok)throw new Error(payload.message||payload.error||"Request failed"); return payload.data; }
 function body(value){return JSON.stringify(value);}
-function showLogin(){ $("app").classList.add("hidden"); $("login").classList.remove("hidden"); }
+function showLogin(){ $("app").classList.add("hidden"); $("login").classList.remove("hidden"); if(typeof miraDataUseAcknowledged!=="undefined"){miraDataUseAcknowledged=false;if($("miraDataConsent"))$("miraDataConsent").checked=false;syncMiraChatControls();} }
 function showApp(){ $("login").classList.add("hidden"); $("app").classList.remove("hidden"); }
 async function signIn(){ $("loginMsg").textContent=""; try{await api("/login",{method:"POST",body:body({pin:$("pin").value})}); $("pin").value=""; showApp(); await refreshStudio();}catch(error){$("loginMsg").textContent="Access denied or temporarily locked.";}}
 $("loginButton").addEventListener("click",signIn);
@@ -478,6 +479,25 @@ $("updateCheckButton").addEventListener("click",runUpdateCheck);
 
 /* MIRA Studio Intelligence — truthful briefing from existing studio records */
 let miraSnapshot = null;
+let miraProviderReady = false;
+let miraDataUseAcknowledged = false;
+let miraSending = false;
+
+function syncMiraChatControls(){
+ const enabled=miraProviderReady&&miraDataUseAcknowledged&&!miraSending;
+ $("miraChatInput").disabled=!enabled;
+ $("miraSend").disabled=!enabled;
+ if(!miraProviderReady)$("miraChatInput").placeholder="Gemini key not configured on Render";
+ else if(!miraDataUseAcknowledged)$("miraChatInput").placeholder="Acknowledge the Gemini privacy notice to chat";
+ else $("miraChatInput").placeholder="Message Mira…";
+}
+function appendMiraChatLine(role,text){
+ const item=document.createElement("div");
+ item.className="mira-chat-line "+(role==="user"?"user":"assistant");
+ item.textContent=String(text);
+ $("miraChatLog").appendChild(item);
+ $("miraChatLog").scrollTop=$("miraChatLog").scrollHeight;
+}
 function miraSetState(state,label){
  const stage=$("miraStage");if(!stage)return;
  stage.setAttribute("data-state",state);
@@ -533,16 +553,56 @@ function renderMiraBriefing(){
 async function refreshMiraBriefing(){
  miraSetState("thinking","REFRESHING VERIFIED STUDIO DATA");
  try{
-  const results=await Promise.all([api("/status"),api("/studio/overview"),api("/studio/reports"),api("/generation-readiness")]);
+  const results=await Promise.all([api("/status"),api("/studio/overview"),api("/studio/reports"),api("/generation-readiness"),api("/mira/status")]);
   generationGate=results[3];
   miraSnapshot={status:results[0],overview:results[1],report:results[2]};
+  const geminiStatus=results[4]||{};
+  miraProviderReady=Boolean(geminiStatus.configured);
+  $("miraChatStatus").textContent=miraProviderReady
+    ?"Gemini connection configured · "+(geminiStatus.model||"model selected")+" · text-only · read-only"
+    :geminiStatus.key_present&&!geminiStatus.free_tier_acknowledged
+      ?"Gemini key detected · chat locked until the free-tier/no-billing check is confirmed in Render"
+      :"Gemini connection not configured · add a Free-tier GEMINI_API_KEY and complete the no-billing check in Render";
+  syncMiraChatControls();
   renderMiraBriefing();
  }catch(error){
+  miraProviderReady=false;
+  $("miraChatStatus").textContent="Mira could not check the Gemini connection: "+error.message;
+  syncMiraChatControls();
   $("miraBriefing").innerHTML='<p class="muted small">Mira could not refresh the studio briefing: '+esc(error.message)+'</p>';
   miraSetState("idle","BRIEFING REFRESH FAILED");
  }
 }
 $("miraRefresh").addEventListener("click",refreshMiraBriefing);
+$("miraDataConsent").addEventListener("change",function(){
+ miraDataUseAcknowledged=$("miraDataConsent").checked;
+ syncMiraChatControls();
+});
+async function sendMiraMessage(){
+ const message=$("miraChatInput").value.trim();
+ if(!message)return;
+ if(!miraProviderReady){note("Mira's Gemini key is not configured on Render yet.");return;}
+ if(!miraDataUseAcknowledged){note("Please acknowledge the Gemini privacy notice first.");return;}
+ miraSending=true;
+ syncMiraChatControls();
+ $("miraChatInput").value="";
+ appendMiraChatLine("user",message);
+ miraSetState("thinking","MIRA IS THINKING");
+ try{
+  const result=await api("/mira/chat",{method:"POST",body:body({message:message,data_use_acknowledged:true})});
+  appendMiraChatLine("assistant",result.answer||"I couldn't form a text response. Please try again.");
+  miraSetState("idle","STANDING BY · TEXT RESPONSE READY");
+ }catch(error){
+  appendMiraChatLine("assistant","I couldn't complete that request: "+error.message);
+  miraSetState("idle","STANDING BY · REQUEST NOT COMPLETED");
+ }finally{
+  miraSending=false;
+  syncMiraChatControls();
+  if(miraDataUseAcknowledged&&miraProviderReady)$("miraChatInput").focus();
+ }
+}
+$("miraSend").addEventListener("click",sendMiraMessage);
+$("miraChatInput").addEventListener("keydown",function(event){if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();sendMiraMessage();}});
 
 </script>
 </body>

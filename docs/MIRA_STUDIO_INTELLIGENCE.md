@@ -31,45 +31,50 @@ The briefing is generated from actual returned records. It must never infer a su
 
 GPU minutes and costs entered in the test log are **manual tracking values**, not live RunPod telemetry. Persistent storage is not reported as configured unless the existing storage status confirms it.
 
-## Conversational and voice integration design
+## Conversational AI — Gemini free-tier text assistant
 
-The next implementation must use a server-side provider adapter; the browser must never receive the permanent provider API key.
+The first conversational provider is Google Gemini, using the current stable low-cost model code **gemini-3.5-flash-lite**. The controller calls Google's recommended Interactions API from the server. Each request sets `store=false` and sends bounded client-side chat history, avoiding server-side Interaction record retention and retrieval. No browser-side SDK or permanent provider key is used.
 
-### Text conversation
-- Add an authenticated, same-origin Mira chat endpoint to the controller.
-- Read a bounded snapshot of the authenticated studio records on the server for each request. Do not trust client-supplied project counts, cost totals, readiness state or permissions.
-- Use the OpenAI Responses API through a server-side adapter, with a configurable model identifier and strict input/output limits.
-- Start with read-only functions only: studio overview, project list/detail, tests needing review, asset metadata, review notes, production reports and controller/generation readiness.
-- Validate every function argument server-side and cap returned records and text sizes.
-- Keep conversation history scoped to the authenticated studio session; do not persist sensitive prompts or API responses by default.
-- Never let model output execute arbitrary shell commands, SQL, filesystem operations, deployment, spending, GPU generation, deletion or public publishing.
+- Required server-side secret: **GEMINI_API_KEY**, stored only in Render environment settings. Never commit it or send it in chat.
+- Required separate operator acknowledgement: **MIRA_GEMINI_FREE_TIER_ACK=true**. Set it only after verifying that the Google AI Studio project is on the Free tier and has no Cloud Billing linked. The application cannot query or independently verify the project's billing tier.
+- The model is fixed to **gemini-3.5-flash-lite** in this milestone; there is no browser-side model override or paid-provider fallback.
+- No paid-tier upgrade, billing activation or automatic paid fallback is part of this implementation. A key tied to a paid Google Cloud billing project may incur charges; the acknowledgement flag is an operator guard, not a technical billing lock.
+- The service uses bounded messages, at most eight recent conversation turns, a short request timeout, a per-session rate limit and a capped answer length.
+- Up to eight recent turns are resent with the current message on each request. Google documents that its Unpaid Services may use submitted content and generated responses to improve products and may allow human reviewers to read, annotate or process inputs and outputs. `store=false` stops the API from retaining retrievable Interaction objects; it does not opt out of the Unpaid Services data-use terms.
+- Recent conversation steps are held only in controller process memory, keyed by a hash of the authenticated Director session token. They are cleared on logout and expire after one hour of inactivity; they are not written to the studio database.
+- Google requests use the Interactions API with `store=false`. This prevents Google from retaining a retrievable Interaction record, but does not opt out of Google's free-tier data-use terms or possible human review.
+- The server builds its own trusted, aggregate snapshot for each request. Client-supplied studio counts and permissions are ignored.
+- The aggregate snapshot includes only controller mode, total project/scene/shot/test/asset/review counts, status counts and whether a persistent data root is configured.
+- The snapshot excludes project titles, screenplay text, generation prompts, asset names or notes, review comments and cost entries. Mira must say when the information she is asked for is not in that snapshot.
+- Gemini is given no function tools. Model output cannot invoke SQL, shell commands, filesystem access, GPU jobs, spending, deployment, deletion, take approval or publishing.
+- The /api/mira/chat route requires the authenticated Director session, a same-origin browser request and explicit acknowledgement of the free-tier data-use notice.
 
-### Voice conversation
-- Preferred browser architecture: OpenAI Realtime API over WebRTC, using a short-lived client secret minted by the authenticated controller. The permanent API key remains server-side.
-- Evaluate available voices with the director before choosing Mira's final voice; do not assume a voice label guarantees a particular gender or accent.
-- Request microphone access only after the director explicitly presses the voice control. Show a persistent visible microphone/listening indicator and provide an immediate disconnect control.
-- Do not implement an always-listening wake word in the first release. Browser/mobile background microphone restrictions, battery use and privacy make that a separate opt-in feature requiring a dedicated assessment.
-- Text-only chat must remain usable when microphone permissions, audio devices or realtime connectivity are unavailable.
-- Disclose that Mira's spoken voice is AI-generated.
+### Gemini free-tier privacy notice
 
-### Configuration and cost controls
-- Required server-side secret: `OPENAI_API_KEY`, stored only in Render's environment settings, never committed to Git or sent to the browser.
-- Keep text and realtime model identifiers configurable. The proposed voice baseline is `gpt-realtime-2.1-mini`, subject to a live voice audition and cost approval.
-- Add per-session/request limits, short context windows, request timeouts and clear provider-error messages. Do not automatically retry paid voice sessions.
-- ChatGPT subscription access does not itself provide API credits; API usage is billed separately through the API platform.
-- Keep Mira's voice disconnected until the key is configured and a director explicitly enables the feature.
+Google's current pricing documentation identifies eligible free-tier model input and output as free of charge, and states that free-tier content may be used to improve Google's products. Google's Gemini API Additional Terms also say that human reviewers may read, annotate and process submitted inputs and generated outputs for Unpaid Services. The app displays this notice before enabling chat. The director's message and up to eight recent turns are sent to Google on each request, so do not type confidential scripts, unreleased prompts, credentials, personal details or sensitive production information into Mira. Limiting the automatic studio snapshot reduces exposure but does not change Google's free-tier data-use terms.
+
+The API key must belong to a Google AI Studio Free-tier project with no active Cloud Billing linked. A project with active Cloud Billing is treated as a Paid Service and may incur charges. The application cannot check this status. The separate `MIRA_GEMINI_FREE_TIER_ACK=true` environment setting is an operator acknowledgement, not an enforceable billing cap or proof that the project is free. Do not set it until the project has been checked in Google AI Studio.
+
+### Voice
+
+- Microphone capture, wake word, speech recognition and spoken replies remain disconnected in this milestone.
+- The voice control stays disabled and no microphone permission is requested.
+- A future voice phase must use a separate director-approved configuration, explicit connect/disconnect controls, an AI-voice disclosure and desktop/mobile voice audition. A female voice or accent must not be promised until it is tested on the director's devices.
+- The text assistant remains usable independently of voice.
 
 ### Release gates
-1. Secure authenticated read-only chat endpoint and automated tests.
-2. Browser text chat connected to the endpoint, with graceful no-key state.
-3. Realtime client-secret endpoint and explicit-connect/disconnect voice controls.
-4. Mobile browser test on the director's Android phone and desktop browser test.
-5. Security review, cost-limit review, package validation and Render staging verification.
-6. Director acceptance before production deployment.
+
+1. Authenticated, same-origin, read-only Gemini Interactions API endpoint with server-side key handling and `store=false`.
+2. Aggregate-only studio context, free-tier data-use disclosure and explicit in-session acknowledgement.
+3. Message/history length limits, per-session request limits and safe provider error handling.
+4. Automated service tests, controller route tests, JavaScript syntax checks and package integrity checks.
+5. Render environment configuration with `GEMINI_API_KEY` and `MIRA_GEMINI_FREE_TIER_ACK=true`, after verifying no Cloud Billing is linked.
+6. Live desktop and Android chat tests.
+7. Director acceptance before merging or deploying this development PR.
 
 ## Not connected in this milestone
 
-- Conversational LLM / tool-calling agent.
+- The live Gemini conversation remains unavailable until GEMINI_API_KEY is configured in Render and the deployed endpoint is tested.
 - Microphone capture, wake word, speech recognition or spoken replies.
 - Live RunPod usage, GPU spend, expiry or provider telemetry.
 - Arbitrary natural-language command execution.
@@ -79,8 +84,9 @@ The UI must label these capabilities as not connected instead of simulating succ
 
 ## Next engineering stages
 
-1. Connect a secured conversational service with read-only studio tools.
-2. Add approved voice input and female text-to-speech output.
-3. Add an event/activity ledger and daily briefing history.
-4. Connect provider telemetry after RunPod is provisioned.
-5. Add permission-gated actions with confirmation and audit records.
+1. Configure GEMINI_API_KEY securely in Render without exposing it in chat or Git.
+2. Test actual text conversations on the deployed desktop and Android studio sessions.
+3. Add approved voice input and female text-to-speech output after a separate privacy, compatibility and cost review.
+4. Add an event/activity ledger and daily briefing history.
+5. Connect provider telemetry after RunPod is provisioned.
+6. Add permission-gated actions with confirmation and audit records.
