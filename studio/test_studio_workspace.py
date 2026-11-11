@@ -204,10 +204,10 @@ class StudioControlRoomRouteWiringTests(unittest.TestCase):
             with self.subTest(marker=marker):
                 self.assertIn(marker, self.source)
         for marker in (
-            'id="miraPrivacyNotice"',
-            'id="miraDataConsent"',
-            'id="miraChatStatus"',
-            'id="miraChatInput"',
+            'id="miraprivacynotice"',
+            'id="miradataconsent"',
+            'id="mirachatstatus"',
+            'id="mirachatinput"',
             'not type confidential scripts',
             'human reviewers may read',
             'store=false',
