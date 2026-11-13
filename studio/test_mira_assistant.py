@@ -195,7 +195,7 @@ class MiraAssistantTests(unittest.TestCase):
         self.assertIn('$("miraVoiceButton").addEventListener("click",startMiraVoice)', html)
         self.assertIn("recognition.continuous=false", html)
         self.assertIn("recognition.start()", html)
-        self.assertIn("recognition.abort()", html)
+        self.assertIn("miraRecognition.abort()", html)
         self.assertNotIn("VOICE ENGINE NOT CONNECTED", html)
 
     def test_provider_failures_do_not_expose_raw_http_details(self):
