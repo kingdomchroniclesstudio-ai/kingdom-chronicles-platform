@@ -90,7 +90,7 @@ jobs:
           python - <<'PY'
           import os, pathlib, re
           html = pathlib.Path("app/studio_control_room.html").read_text(encoding="utf-8")
-          scripts = re.findall(r"<script>([\\s\\S]*?)</script>", html)
+          scripts = re.findall(r"<script>([\s\S]*?)</script>", html)
           if len(scripts) != 1:
               raise SystemExit(f"Expected one control-room script; found {len(scripts)}")
           pathlib.Path(os.environ["RUNNER_TEMP"], "mira-control-room.js").write_text(scripts[0], encoding="utf-8")
