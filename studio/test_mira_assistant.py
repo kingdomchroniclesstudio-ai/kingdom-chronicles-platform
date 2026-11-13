@@ -182,6 +182,22 @@ class MiraAssistantTests(unittest.TestCase):
             with self.assertRaisesRegex(MiraProviderError, "temporarily busy"):
                 self.mira.chat("Hello", self.context, "service-busy-session")
 
+    def test_browser_voice_requires_explicit_user_action_and_is_one_shot(self):
+        candidates = [
+            ROOT / "studio" / "studio_control_room.html",
+            ROOT / "studio_control_room.html",
+        ]
+        page = next((path for path in candidates if path.is_file()), None)
+        self.assertIsNotNone(page, "packaged Mira control-room HTML must be present")
+        html = page.read_text(encoding="utf-8")
+        self.assertIn('id="miraVoiceConsent"', html)
+        self.assertIn('id="miraVoiceButton"', html)
+        self.assertIn('$("miraVoiceButton").addEventListener("click",startMiraVoice)', html)
+        self.assertIn("recognition.continuous=false", html)
+        self.assertIn("recognition.start()", html)
+        self.assertIn("recognition.abort()", html)
+        self.assertNotIn("VOICE ENGINE NOT CONNECTED", html)
+
     def test_provider_failures_do_not_expose_raw_http_details(self):
         import urllib.error
         failure = urllib.error.HTTPError("url", 403, "forbidden", {}, None)
