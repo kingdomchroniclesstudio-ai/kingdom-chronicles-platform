@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import threading
 import time
@@ -14,7 +15,7 @@ DEFAULT_MODEL = "gemini-3.8-flash"
 MAX_MESSAGE_CHARS = 2000
 MAX_HISTORY_TURNS = 8
 MAX_REQUESTS_PER_MINUTE = 8
-REQUEST_TIMEOUT_SECONDS = 22
+REQUEST_TIMEOUT_SECONDS = 45
 CONVERSATION_TTL_SECONDS = 3600
 
 
@@ -220,7 +221,7 @@ class MiraAssistant:
                 "input": input_steps,
                 "system_instruction": self._system_instruction(self._safe_context(studio_context)),
                 "store": False,
-                "generation_config": {"max_output_tokens": 700},
+                "generation_config": {"max_output_tokens": 700, "thinking_level": "low"},
             }
             request = urllib.request.Request(
                 "https://generativelanguage.googleapis.com/v1beta/interactions",
@@ -232,13 +233,47 @@ class MiraAssistant:
                 with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
                     raw = response.read(1024 * 1024)
             except urllib.error.HTTPError as exc:
+                logging.getLogger("his_risen.mira").warning(
+                    "Mira Gemini request failed with HTTP %s", exc.code
+                )
                 if exc.code == 429:
                     raise MiraProviderError("Gemini's current request limit has been reached. Try again later; Mira will not switch models or providers.") from exc
                 if exc.code in {401, 403}:
                     raise MiraProviderError("Google rejected the server-side Gemini key. Check GEMINI_API_KEY and its API access in Google AI Studio.") from exc
+                if exc.code == 503:
+                    raise MiraProviderError("Gemini is temporarily busy. Please try again shortly.") from exc
                 raise MiraProviderError(f"Gemini returned HTTP {exc.code}. Please try again shortly.") from exc
-            except (urllib.error.URLError, TimeoutError, OSError) as exc:
-                raise MiraProviderError("Mira could not reach Gemini. Check the service connection and try again.") from exc
+            except urllib.error.URLError as exc:
+                reason = exc.reason
+                if isinstance(reason, TimeoutError):
+                    logging.getLogger("his_risen.mira").warning(
+                        "Mira Gemini request timed out after %s seconds",
+                        REQUEST_TIMEOUT_SECONDS,
+                    )
+                    raise MiraProviderError(
+                        f"Gemini did not respond within {REQUEST_TIMEOUT_SECONDS} seconds. Please try again."
+                    ) from exc
+                logging.getLogger("his_risen.mira").warning(
+                    "Mira Gemini connection failed (%s)", type(reason).__name__
+                )
+                raise MiraProviderError(
+                    "Mira could not establish a connection to Gemini. Check the service connection and try again."
+                ) from exc
+            except TimeoutError as exc:
+                logging.getLogger("his_risen.mira").warning(
+                    "Mira Gemini request timed out after %s seconds",
+                    REQUEST_TIMEOUT_SECONDS,
+                )
+                raise MiraProviderError(
+                    f"Gemini did not respond within {REQUEST_TIMEOUT_SECONDS} seconds. Please try again."
+                ) from exc
+            except OSError as exc:
+                logging.getLogger("his_risen.mira").warning(
+                    "Mira Gemini network I/O failed (%s)", type(exc).__name__
+                )
+                raise MiraProviderError(
+                    "Mira could not establish a connection to Gemini. Check the service connection and try again."
+                ) from exc
 
             try:
                 payload = json.loads(raw.decode("utf-8"))
