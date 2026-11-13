@@ -167,7 +167,7 @@ class StudioControlRoomRouteWiringTests(unittest.TestCase):
         for marker in (
             'data-room="mira"', 'id="room-mira"', 'id="miraOrb"',
             'id="miraBriefing"', 'id="miraWatchlist"', 'id="miraVoiceButton"',
-            'VOICE ENGINE NOT CONNECTED', 'Mira does not execute commands',
+            'VOICE READY · ON DEMAND', 'Mira does not execute commands',
             'prefers-reduced-motion:reduce', 'miraSetState', 'refreshMiraBriefing',
         ):
             with self.subTest(marker=marker):

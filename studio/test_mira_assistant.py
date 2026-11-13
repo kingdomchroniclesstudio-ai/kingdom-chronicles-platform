@@ -82,7 +82,8 @@ class MiraAssistantTests(unittest.TestCase):
         system_text = payload["system_instruction"]
         self.assertTrue(request.full_url.endswith("/v1beta/interactions"))
         self.assertEqual(request.get_header("X-goog-api-key"), "test-key")
-        self.assertEqual(captured["timeout"], 22)
+        self.assertEqual(captured["timeout"], 45)
+        self.assertEqual(payload["generation_config"]["thinking_level"], "low")
         self.assertFalse(payload["store"])
         self.assertEqual(payload["model"], "gemini-3.8-flash")
         self.assertEqual(payload["input"][-1], {"type": "user_input", "content": "How is the studio?"})
@@ -162,6 +163,40 @@ class MiraAssistantTests(unittest.TestCase):
                 self.mira.chat("Hello", self.context, "session")
             with self.assertRaises(MiraRateLimitError):
                 self.mira.chat("Hello", self.context, "session")
+
+    def test_gemini_timeout_returns_clear_retry_message_and_logs_no_secret(self):
+        import urllib.error
+        timeout = urllib.error.URLError(TimeoutError("timed out"))
+        with self.assertLogs("his_risen.mira", level="WARNING") as captured:
+            with patch("mira_assistant.urllib.request.urlopen", side_effect=timeout):
+                with self.assertRaisesRegex(MiraProviderError, "45 seconds"):
+                    self.mira.chat("Hello", self.context, "timeout-session")
+        joined = "\\n".join(captured.output)
+        self.assertIn("timed out", joined)
+        self.assertNotIn("test-key", joined)
+
+    def test_gemini_service_unavailable_has_a_specific_message(self):
+        import urllib.error
+        failure = urllib.error.HTTPError("url", 503, "busy", {}, None)
+        with patch("mira_assistant.urllib.request.urlopen", side_effect=failure):
+            with self.assertRaisesRegex(MiraProviderError, "temporarily busy"):
+                self.mira.chat("Hello", self.context, "service-busy-session")
+
+    def test_browser_voice_requires_explicit_user_action_and_is_one_shot(self):
+        candidates = [
+            ROOT / "studio" / "studio_control_room.html",
+            ROOT / "studio_control_room.html",
+        ]
+        page = next((path for path in candidates if path.is_file()), None)
+        self.assertIsNotNone(page, "packaged Mira control-room HTML must be present")
+        html = page.read_text(encoding="utf-8")
+        self.assertIn('id="miraVoiceConsent"', html)
+        self.assertIn('id="miraVoiceButton"', html)
+        self.assertIn('$("miraVoiceButton").addEventListener("click",startMiraVoice)', html)
+        self.assertIn("recognition.continuous=false", html)
+        self.assertIn("recognition.start()", html)
+        self.assertIn("miraRecognition.abort()", html)
+        self.assertNotIn("VOICE ENGINE NOT CONNECTED", html)
 
     def test_provider_failures_do_not_expose_raw_http_details(self):
         import urllib.error

@@ -38,6 +38,7 @@ The first conversational provider is Google Gemini, using the current stable low
 - Required server-side secret: **GEMINI_API_KEY**, stored only in Render environment settings. Never commit it or send it in chat.
 - Required separate operator acknowledgement: **MIRA_GEMINI_FREE_TIER_ACK=true**. Set it only after verifying that the Google AI Studio project is on the Free tier and has no Cloud Billing linked. The application cannot query or independently verify the project's billing tier.
 - The model is fixed to **gemini-3.8-flash** in this milestone; there is no browser-side model override or paid-provider fallback.
+- Short studio questions use the documented low thinking level to reduce latency; the server request timeout is 45 seconds and provider timeouts/HTTP failures are surfaced as distinct, actionable messages. No automatic paid-provider or model fallback is attempted.
 - No paid-tier upgrade, billing activation or automatic paid fallback is part of this implementation. A key tied to a paid Google Cloud billing project may incur charges; the acknowledgement flag is an operator guard, not a technical billing lock.
 - The service uses bounded messages, at most eight recent conversation turns, a short request timeout, a per-session rate limit and a capped answer length.
 - Up to eight recent turns are resent with the current message on each request. Google documents that its Unpaid Services may use submitted content and generated responses to improve products and may allow human reviewers to read, annotate or process inputs and outputs. `store=false` stops the API from retaining retrievable Interaction objects; it does not opt out of the Unpaid Services data-use terms.
@@ -57,10 +58,12 @@ The API key must belong to a Google AI Studio Free-tier project with no active C
 
 ### Voice
 
-- Microphone capture, wake word, speech recognition and spoken replies remain disconnected in this milestone.
-- The voice control stays disabled and no microphone permission is requested.
-- A future voice phase must use a separate director-approved configuration, explicit connect/disconnect controls, an AI-voice disclosure and desktop/mobile voice audition. A female voice or accent must not be promised until it is tested on the director's devices.
-- The text assistant remains usable independently of voice.
+- On-demand microphone input uses the browser's Web Speech API speech-recognition interface where available. The director must acknowledge a separate microphone-privacy notice and press **Talk to Mira** for each one-utterance session; a visible Stop Listening control ends capture. No wake word, continuous background listening or microphone permission request is used before the director activates voice.
+- The browser/platform recognition service may process microphone audio, often through an online service. Mira's Render server receives the recognized transcript, not a raw audio recording; the transcript is sent to Gemini with the same aggregate snapshot and free-tier data-use terms as typed text.
+- Spoken replies use the device's Web Speech API speech synthesis and locally available voices. The UI lets the director choose from available device voices and prefers a voice with a common feminine name when one is installed, but the platform does not expose reliable gender metadata and the actual sound varies by device. No external paid TTS service is connected.
+- Speech recognition support, language accuracy, microphone permission and available voices vary across browsers/devices. Text chat remains available as the fallback.
+- Logging out or withdrawing voice consent aborts any active recognition session and stops device speech output.
+- The assistant remains read-only and uses the same verified aggregate studio snapshot for typed and spoken questions. Voice changes how the director communicates; it does not grant Mira additional studio data access or command permissions.
 
 ### Release gates
 
@@ -75,7 +78,7 @@ The API key must belong to a Google AI Studio Free-tier project with no active C
 ## Not connected in this milestone
 
 - The live Gemini conversation remains unavailable until GEMINI_API_KEY is configured in Render and the deployed endpoint is tested.
-- Microphone capture, wake word, speech recognition or spoken replies.
+- Wake-word detection, always-on listening, continuous background microphone capture, or a hosted/paid neural voice service.
 - Live RunPod usage, GPU spend, expiry or provider telemetry.
 - Arbitrary natural-language command execution.
 - Paid GPU jobs, purchases, deletion or public publishing.
@@ -85,8 +88,9 @@ The UI must label these capabilities as not connected instead of simulating succ
 ## Next engineering stages
 
 1. Configure GEMINI_API_KEY securely in Render without exposing it in chat or Git.
-2. Test actual text conversations on the deployed desktop and Android studio sessions.
-3. Add approved voice input and female text-to-speech output after a separate privacy, compatibility and cost review.
-4. Add an event/activity ledger and daily briefing history.
-5. Connect provider telemetry after RunPod is provisioned.
-6. Add permission-gated actions with confirmation and audit records.
+2. Test real Gemini text conversations on the deployed desktop and Android studio sessions.
+3. Verify on-demand browser speech recognition and device speech synthesis on desktop Chrome and Android Chrome, including denied microphone permission, no-speech and offline/network failure states.
+4. Add a separately reviewed neural voice option only if an approved no-cost/free-tier option meets the studio's privacy and quality requirements.
+5. Add an event/activity ledger and daily briefing history.
+6. Connect provider telemetry after RunPod is provisioned.
+7. Add permission-gated actions with confirmation and audit records.
