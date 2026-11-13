@@ -84,6 +84,20 @@ jobs:
           test -f app/updates/check.py
           python -m compileall -q app
 
+      - name: Validate Mira browser voice JavaScript syntax
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os, pathlib, re
+          html = pathlib.Path("app/studio_control_room.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script>([\\s\\S]*?)</script>", html)
+          if len(scripts) != 1:
+              raise SystemExit(f"Expected one control-room script; found {len(scripts)}")
+          pathlib.Path(os.environ["RUNNER_TEMP"], "mira-control-room.js").write_text(scripts[0], encoding="utf-8")
+          print("Extracted the single control-room JavaScript bundle.")
+          PY
+          node --check "$RUNNER_TEMP/mira-control-room.js"
+
       - name: Install the same declared Python dependencies
         run: python -m pip install -r app/requirements.txt
 
