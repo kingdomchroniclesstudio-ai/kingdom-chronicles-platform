@@ -88,6 +88,11 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
 .mira-chat-line.user{justify-self:end;background:#174252;border:1px solid #286477}
 .mira-chat-controls{display:grid;grid-template-columns:1fr auto;gap:8px}
 .mira-chat-controls input{min-width:0}
+ .mira-voice-toolbar{align-items:center;gap:10px}
+ .mira-voice-toolbar .checkline{margin:0;min-width:190px}
+ .mira-voice-toolbar select{width:auto;min-width:180px;max-width:100%;padding:9px 10px;font-size:11px}
+ .mira-voice-status{margin:0}
+ @media(max-width:650px){.mira-voice-toolbar{display:grid;grid-template-columns:1fr}.mira-voice-toolbar select{width:100%}}
 .mira-disabled-note{font-size:11px;color:#a9b8d7;border:1px dashed #455578;border-radius:10px;padding:10px}
 .mira-source-note{font-size:10px;color:#91a4c6;line-height:1.55}
 .mira-activity{display:grid;gap:8px}
@@ -326,10 +331,11 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
             </div>
             <div class="panel mira-chat">
               <div><div class="eyebrow">Talk to Mira</div><h2 style="margin-top:6px">Conversation interface</h2><p class="muted small">Ask about the studio's recorded status and production totals. Mira's text assistant is read-only; voice remains disconnected.</p><p id="miraChatStatus" class="mira-source-note" role="status" aria-live="polite">Checking Gemini connection…</p></div>
-              <div class="mira-disabled-note" id="miraPrivacyNotice"><strong>Before you chat — Gemini free-tier privacy</strong><p>When you send a message, that message and a small aggregate studio snapshot (counts and status totals only) are sent to Google's Gemini API. Google says free-tier content may be used to improve its products. The automatic studio snapshot excludes project names, screenplay text, generation prompts, assets, continuity notes, review comments and manually entered costs. Your current message and up to eight recent chat turns may be resent to Google with each request. Google says its unpaid Gemini services may use submitted content and generated responses to improve products, and human reviewers may read, annotate or process them. Mira sends requests with store=false, which prevents the Interactions API from retaining a retrievable interaction record; it does not override Google's free-service data-use terms. Do not type confidential scripts, private prompts, credentials, personal details or other sensitive production information into Mira. Before enabling the server key and MIRA_GEMINI_FREE_TIER_ACK=true, verify in Google AI Studio that the key belongs to a Free-tier project with no active Cloud Billing linked. The app cannot independently verify Google's billing tier; a key on a paid project may incur charges.</p><label class="checkline"><input id="miraDataConsent" type="checkbox"> I understand Google's free-tier data-use terms, and I have checked that my Google AI Studio project is on the Free tier with no Cloud Billing linked.</label></div>
+              <div class="mira-disabled-note" id="miraPrivacyNotice"><strong>Before you chat — Gemini free-tier privacy</strong><p>When you send a message, that message and a small aggregate studio snapshot (counts and status totals only) are sent to Google's Gemini API. Google says free-tier content may be used to improve its products, and human reviewers may read, annotate or process it. The automatic studio snapshot excludes project names, screenplay text, generation prompts, assets, continuity notes, review comments and manually entered costs. Your current message and up to eight recent chat turns may be resent to Google with each request. Mira sends requests with store=false, which prevents the Interactions API from retaining a retrievable interaction record; it does not override Google's free-service data-use terms. Do not type confidential scripts, private prompts, credentials, personal details or other sensitive production information into Mira. Before enabling the server key and MIRA_GEMINI_FREE_TIER_ACK=true, verify in Google AI Studio that the key belongs to a Free-tier project with no Cloud Billing linked. The app cannot independently verify Google's billing tier; a key on a paid project may incur charges.</p><label class="checkline"><input id="miraDataConsent" type="checkbox"> I understand Google's free-tier data-use terms, and I have checked that my Google AI Studio project is on the Free tier with no Cloud Billing linked.</label><p class="mira-source-note" style="margin-top:13px"><strong>Voice privacy:</strong> Talk to Mira starts microphone recognition only after you press the button. The browser or device speech-recognition service may process microphone audio; Mira's server receives the recognized text, not a raw audio recording. That transcript and the aggregate studio snapshot are then sent to Gemini under the terms above. Recognition may require an internet connection. Spoken replies use voices installed on your device.</p><label class="checkline"><input id="miraVoiceConsent" type="checkbox"> I understand that my browser's speech-recognition service may process microphone audio while I actively use Talk to Mira.</label></div>
               <div id="miraChatLog" class="mira-chat-log" aria-live="polite"><div class="mira-chat-line assistant">Hello, boss. I'm Mira. My verified studio briefing is above. Check the privacy notice and connect the server-side Gemini key to start our text conversation.</div></div>
-              <div class="mira-chat-controls"><input id="miraChatInput" type="text" disabled placeholder="Add the Gemini key and acknowledge the privacy notice first"><button id="miraSend" class="violet" disabled>SEND</button></div>
-              <div class="form-actions"><button id="miraVoiceButton" class="quiet" disabled>VOICE ENGINE NOT CONNECTED</button><span class="muted tiny">Voice input and spoken replies will be enabled after the approved voice integration.</span></div>
+              <div class="mira-chat-controls"><input id="miraChatInput" type="text" disabled placeholder="Type a question or use Talk to Mira"><button id="miraSend" class="violet" disabled>SEND</button></div>
+              <div class="form-actions mira-voice-toolbar"><button id="miraVoiceButton" class="quiet" type="button" disabled>🎙 TALK TO MIRA</button><label class="checkline"><input id="miraSpeakReplies" type="checkbox" checked> Speak replies aloud</label><select id="miraVoiceSelect" aria-label="Mira speaking voice" disabled><option value="">Loading device voices…</option></select></div>
+              <p id="miraVoiceStatus" class="mira-source-note mira-voice-status" role="status" aria-live="polite">Voice is off. Press Talk to Mira to begin a one-utterance listening session after granting microphone permission.</p>
               <div class="mira-disabled-note">Mira does not execute commands, spend money, launch GPU jobs, delete assets or publish content in this foundation release.</div>
             </div>
           </div>
@@ -351,12 +357,12 @@ function esc(value){ return String(value == null ? "" : value).replace(/[&<>"']/
 function note(message){ $("notice").textContent=message; $("notice").style.display="block"; window.clearTimeout(note.handle); note.handle=window.setTimeout(function(){$("notice").style.display="none";},3600); }
 async function api(path, options){ options=options||{}; const response=await fetch("/api"+path,Object.assign({headers:{"Content-Type":"application/json"}},options)); if(response.status===401){showLogin();throw new Error("Your session expired. Please sign in again.");} const payload=await response.json(); if(!response.ok)throw new Error(payload.message||payload.error||"Request failed"); return payload.data; }
 function body(value){return JSON.stringify(value);}
-function showLogin(){ $("app").classList.add("hidden"); $("login").classList.remove("hidden"); if(typeof miraDataUseAcknowledged!=="undefined"){miraDataUseAcknowledged=false;if($("miraDataConsent"))$("miraDataConsent").checked=false;syncMiraChatControls();} }
+function showLogin(){ cancelMiraVoice(); $("app").classList.add("hidden"); $("login").classList.remove("hidden"); if(typeof miraDataUseAcknowledged!=="undefined"){miraDataUseAcknowledged=false;if($("miraDataConsent"))$("miraDataConsent").checked=false;if($("miraVoiceConsent"))$("miraVoiceConsent").checked=false;syncMiraChatControls();} }
 function showApp(){ $("login").classList.add("hidden"); $("app").classList.remove("hidden"); }
 async function signIn(){ $("loginMsg").textContent=""; try{await api("/login",{method:"POST",body:body({pin:$("pin").value})}); $("pin").value=""; showApp(); await refreshStudio();}catch(error){$("loginMsg").textContent="Access denied or temporarily locked.";}}
 $("loginButton").addEventListener("click",signIn);
 $("pin").addEventListener("keydown",function(event){if(event.key==="Enter")signIn();});
-$("logoutButton").addEventListener("click",async function(){await fetch("/api/logout",{method:"POST"});showLogin();});
+$("logoutButton").addEventListener("click",async function(){cancelMiraVoice();if(window.speechSynthesis)window.speechSynthesis.cancel();await fetch("/api/logout",{method:"POST"});showLogin();});
 $("refreshButton").addEventListener("click",refreshStudio);
 document.querySelectorAll("[data-room]").forEach(function(button){button.addEventListener("click",function(){openRoom(button.getAttribute("data-room"));});});
 document.querySelectorAll("[data-go]").forEach(function(button){button.addEventListener("click",function(){openRoom(button.getAttribute("data-go"));});});
@@ -482,6 +488,13 @@ let miraSnapshot = null;
 let miraProviderReady = false;
 let miraDataUseAcknowledged = false;
 let miraSending = false;
+let miraRecognition = null;
+let miraListening = false;
+let miraTranscript = "";
+let miraVoiceError = "";
+let miraSelectedVoiceURI = "";
+const MiraSpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const miraSpeechSynthesis = window.speechSynthesis;
 
 function syncMiraChatControls(){
  const enabled=miraProviderReady&&miraDataUseAcknowledged&&!miraSending;
@@ -489,7 +502,17 @@ function syncMiraChatControls(){
  $("miraSend").disabled=!enabled;
  if(!miraProviderReady)$("miraChatInput").placeholder="Gemini key not configured on Render";
  else if(!miraDataUseAcknowledged)$("miraChatInput").placeholder="Acknowledge the Gemini privacy notice to chat";
- else $("miraChatInput").placeholder="Message Mira…";
+ else $("miraChatInput").placeholder="Type a question or use Talk to Mira";
+ const voiceConsent=$("miraVoiceConsent")&&$("miraVoiceConsent").checked;
+ $("miraVoiceButton").disabled=!miraListening&&!(enabled&&voiceConsent&&Boolean(MiraSpeechRecognition)&&window.isSecureContext);
+ $("miraVoiceButton").textContent=miraListening?"STOP LISTENING":"🎙 TALK TO MIRA";
+ $("miraVoiceSelect").disabled=!Boolean(miraSpeechSynthesis);
+ $("miraSpeakReplies").disabled=!Boolean(miraSpeechSynthesis);
+ if(!MiraSpeechRecognition)$("miraVoiceStatus").textContent="Voice input is not supported in this browser. Text chat remains available; spoken replies may still work.";
+ else if(!window.isSecureContext)$("miraVoiceStatus").textContent="Microphone access requires a secure HTTPS connection.";
+ else if(!miraDataUseAcknowledged)$("miraVoiceStatus").textContent="Acknowledge the Gemini privacy notice before starting a voice conversation.";
+ else if(!voiceConsent)$("miraVoiceStatus").textContent="Read and acknowledge the separate microphone privacy note before using Talk to Mira.";
+ $("miraHomeVoiceState").textContent=MiraSpeechRecognition?"VOICE READY · ON DEMAND":"VOICE INPUT NOT SUPPORTED";
 }
 function appendMiraChatLine(role,text){
  const item=document.createElement("div");
@@ -503,6 +526,100 @@ function miraSetState(state,label){
  stage.setAttribute("data-state",state);
  $("miraState").textContent=label||({idle:"STANDING BY · PREVIEW MODE",listening:"LISTENING",thinking:"REVIEWING STUDIO RECORDS",speaking:"SPEAKING"}[state]||"STANDING BY");
 }
+function populateMiraVoices(){
+ if(!miraSpeechSynthesis)return;
+ const select=$("miraVoiceSelect");
+ const all=miraSpeechSynthesis.getVoices();
+ const voices=all.filter(function(voice){return /^en([_-]|$)/i.test(voice.lang);});
+ const available=voices.length?voices:all;
+ const previous=miraSelectedVoiceURI||select.value;
+ select.innerHTML="";
+ if(!available.length){
+  const option=document.createElement("option");option.value="";option.textContent="Device default voice";select.appendChild(option);
+  select.disabled=false;return;
+ }
+ available.forEach(function(voice){
+  const option=document.createElement("option");option.value=voice.voiceURI;
+  option.textContent=voice.name+" ("+voice.lang+")";select.appendChild(option);
+ });
+ const preferred=available.find(function(voice){return /(female|samantha|ava|serena|victoria|zira|susan|karen|moira|tessa|jenny|aria|jane)/i.test(voice.name);})
+  ||available.find(function(voice){return /^en[-_]NG$/i.test(voice.lang);})
+  ||available.find(function(voice){return voice.default;})||available[0];
+ miraSelectedVoiceURI=available.some(function(voice){return voice.voiceURI===previous;})?previous:preferred.voiceURI;
+ select.value=miraSelectedVoiceURI;select.disabled=false;
+}
+if(miraSpeechSynthesis){populateMiraVoices();miraSpeechSynthesis.addEventListener("voiceschanged",populateMiraVoices);}
+$("miraVoiceSelect").addEventListener("change",function(){miraSelectedVoiceURI=$("miraVoiceSelect").value;});
+function speakMiraReply(text){
+ if(!miraSpeechSynthesis||!$("miraSpeakReplies").checked)return;
+ const clean=String(text||"").replace(/https?:\/\/\S+/g,"link").replace(/[*_#>]/g," ").replace(/\s+/g," ").trim();
+ if(!clean)return;
+ const utterance=new SpeechSynthesisUtterance(clean.length>1600?clean.slice(0,1600)+"… More detail is available in the chat.":clean);
+ const voice=miraSpeechSynthesis.getVoices().find(function(item){return item.voiceURI===miraSelectedVoiceURI;});
+ if(voice){utterance.voice=voice;utterance.lang=voice.lang;}else{utterance.lang="en-NG";}
+ utterance.rate=0.96;utterance.pitch=1.04;utterance.volume=1;
+ utterance.onstart=function(){miraSetState("speaking","MIRA IS SPEAKING");$("miraVoiceStatus").textContent="Mira is speaking using the selected device voice.";};
+ utterance.onend=function(){if(!miraListening)miraSetState("idle","STANDING BY · TEXT RESPONSE READY");};
+ utterance.onerror=function(){$("miraVoiceStatus").textContent="The device could not play this spoken reply. The written response is still available above.";miraSetState("idle","STANDING BY");};
+ miraSpeechSynthesis.cancel();miraSpeechSynthesis.speak(utterance);
+}
+function cancelMiraVoice(){
+ miraTranscript="";miraVoiceError="";
+ if(miraRecognition){try{miraRecognition.abort();}catch(error){}}
+ miraRecognition=null;miraListening=false;
+ if(miraSpeechSynthesis)miraSpeechSynthesis.cancel();
+ if($("miraVoiceButton"))syncMiraChatControls();
+}
+function startMiraVoice(){
+ if(miraListening){
+  $("miraVoiceStatus").textContent="Finishing this listening session…";
+  try{miraRecognition.stop();}catch(error){cancelMiraVoice();}
+  return;
+ }
+ if(!MiraSpeechRecognition){$("miraVoiceStatus").textContent="This browser does not provide speech recognition. Please use text chat.";return;}
+ if(!miraDataUseAcknowledged||!$("miraVoiceConsent").checked){$("miraVoiceStatus").textContent="Please acknowledge both privacy notices before using the microphone.";return;}
+ if(!miraProviderReady){$("miraVoiceStatus").textContent="Mira's Gemini connection is not ready yet.";return;}
+ if(!window.isSecureContext){$("miraVoiceStatus").textContent="Microphone access requires HTTPS.";return;}
+ const recognition=new MiraSpeechRecognition();
+ miraRecognition=recognition;miraListening=true;miraTranscript="";miraVoiceError="";
+ recognition.continuous=false;recognition.interimResults=true;recognition.maxAlternatives=1;
+ recognition.lang=/^en([_-]|$)/i.test(navigator.language||"")?(navigator.language||"en-NG"):"en-NG";
+ recognition.onresult=function(event){
+  let interim="";
+  for(let index=event.resultIndex;index<event.results.length;index++){
+   const phrase=event.results[index][0].transcript||"";
+   if(event.results[index].isFinal)miraTranscript+=(miraTranscript?" ":"")+phrase.trim();
+   else interim+=(interim?" ":"")+phrase.trim();
+  }
+  $("miraVoiceStatus").textContent=interim?"Hearing: "+interim:"Speech captured. Finishing transcription…";
+ };
+ recognition.onerror=function(event){
+  miraVoiceError=event.error||"recognition-error";
+  $("miraVoiceStatus").textContent=miraVoiceError==="not-allowed"||miraVoiceError==="service-not-allowed"
+   ?"Microphone permission was denied. Allow microphone access for this site in your browser settings."
+   :miraVoiceError==="no-speech"?"No speech was detected. Tap Talk to Mira and try again."
+   :miraVoiceError==="network"?"The browser speech-recognition service could not connect. Check your internet connection."
+   :miraVoiceError==="audio-capture"?"No working microphone was found on this device."
+   :"Voice recognition stopped ("+miraVoiceError+"). You can still type your question.";
+ };
+ recognition.onend=function(){
+  const transcript=miraTranscript.trim();miraRecognition=null;miraListening=false;miraTranscript="";syncMiraChatControls();
+  if(transcript){$("miraChatInput").value=transcript;$("miraVoiceStatus").textContent="Heard you. Sending the recognized question to Mira…";sendMiraMessage();}
+  else{if(!miraVoiceError)$("miraVoiceStatus").textContent="No clear speech was captured. Tap Talk to Mira to try again.";miraSetState("idle","STANDING BY · VOICE SESSION ENDED");}
+ };
+ try{
+  miraSetState("listening","LISTENING · ONE UTTERANCE ONLY");
+  $("miraVoiceStatus").textContent="Listening now. Speak your question, or tap Stop Listening. The microphone is not left on.";
+  syncMiraChatControls();recognition.start();
+ }catch(error){
+  miraListening=false;miraRecognition=null;syncMiraChatControls();
+  $("miraVoiceStatus").textContent="Could not start microphone recognition. Check microphone permission and try again.";
+  miraSetState("idle","STANDING BY");
+ }
+}
+$("miraVoiceButton").addEventListener("click",startMiraVoice);
+$("miraVoiceConsent").addEventListener("change",function(){if(!$("miraVoiceConsent").checked&&miraListening)cancelMiraVoice();syncMiraChatControls();});
+$("miraSpeakReplies").addEventListener("change",function(){if(!$("miraSpeakReplies").checked&&miraSpeechSynthesis)miraSpeechSynthesis.cancel();});
 function miraRow(label,value){
  return '<div class="mira-activity-row"><span class="muted">'+esc(label)+'</span><strong>'+esc(value)+'</strong></div>';
 }
@@ -535,7 +652,7 @@ function renderMiraBriefing(){
  $("miraHomeGreeting").textContent=greeting+" I'm here.";
  const attention=needsReview+failed+completed;
  $("miraHomeSummary").textContent="Your verified briefing is ready: "+active+" active project(s), "+overview.scenes+" planned scene(s), "+overview.shots+" planned shot(s), and "+attention+" item(s) requiring attention. Ask me about the studio or open the full briefing.";
- $("miraHomeVoiceState").textContent="VOICE NOT CONNECTED";
+ $("miraHomeVoiceState").textContent=MiraSpeechRecognition?"VOICE READY · ON DEMAND":"VOICE INPUT NOT SUPPORTED";
 
  $("miraDataSourceNote").textContent="Source: live controller/status and generation-preflight responses plus saved studio records. Cost and GPU minutes are manually entered test-log values, not live RunPod billing or telemetry.";
  const watch=[];
@@ -559,7 +676,7 @@ async function refreshMiraBriefing(){
   const geminiStatus=results[4]||{};
   miraProviderReady=Boolean(geminiStatus.configured);
   $("miraChatStatus").textContent=miraProviderReady
-    ?"Gemini connection configured · "+(geminiStatus.model||"model selected")+" · text-only · read-only"
+    ?"Gemini connection configured · "+(geminiStatus.model||"model selected")+" · text + on-demand browser voice · read-only"
     :geminiStatus.key_present&&!geminiStatus.free_tier_acknowledged
       ?"Gemini key detected · chat locked until the free-tier/no-billing check is confirmed in Render"
       :"Gemini connection not configured · add a Free-tier GEMINI_API_KEY and complete the no-billing check in Render";
@@ -576,6 +693,7 @@ async function refreshMiraBriefing(){
 $("miraRefresh").addEventListener("click",refreshMiraBriefing);
 $("miraDataConsent").addEventListener("change",function(){
  miraDataUseAcknowledged=$("miraDataConsent").checked;
+ if(!miraDataUseAcknowledged&&miraListening)cancelMiraVoice();
  syncMiraChatControls();
 });
 async function sendMiraMessage(){
@@ -590,8 +708,10 @@ async function sendMiraMessage(){
  miraSetState("thinking","MIRA IS THINKING");
  try{
   const result=await api("/mira/chat",{method:"POST",body:body({message:message,data_use_acknowledged:true})});
-  appendMiraChatLine("assistant",result.answer||"I couldn't form a text response. Please try again.");
-  miraSetState("idle","STANDING BY · TEXT RESPONSE READY");
+  const answer=result.answer||"I couldn't form a text response. Please try again.";
+  appendMiraChatLine("assistant",answer);
+  if($("miraSpeakReplies").checked)speakMiraReply(answer);
+  else miraSetState("idle","STANDING BY · TEXT RESPONSE READY");
  }catch(error){
   appendMiraChatLine("assistant","I couldn't complete that request: "+error.message);
   miraSetState("idle","STANDING BY · REQUEST NOT COMPLETED");
