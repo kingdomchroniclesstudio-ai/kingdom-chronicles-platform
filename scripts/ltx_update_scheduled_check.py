@@ -232,6 +232,7 @@ def initial_state(interval: int) -> dict[str, Any]:
         "model_policy": {"primary_model": "LTX-2.5", "model_switching": False},
         "schedule": {"enabled": True, "interval_hours": interval, "scheduler": "GitHub Actions standard hosted runner", "timezone": "UTC"},
         "last_check_at": None, "last_successful_check_at": None, "next_check_due_at": None,
+        "source_total_count": len(SOURCES),
         "source_observations": baselines, "source_errors": {}, "candidates": [], "notifications": [], "activity": [],
         "environment": {"status": "NOT_CONNECTED", "comfyui_version": None, "installed_ltx_version": None, "gpu": None, "storage_root": None},
         "capabilities": {"detected": [], "registered": [], "installed": [], "verified": []},
@@ -314,6 +315,7 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
     current["candidates"] = candidates[-250:]
     current["last_check_at"] = stamp(now)
     current["successful_source_count"] = successful_sources
+    current["source_total_count"] = len(SOURCES)
     current["failed_source_count"] = len(errors)
     if current["successful_source_count"]:
         current["last_successful_check_at"] = stamp(now)
