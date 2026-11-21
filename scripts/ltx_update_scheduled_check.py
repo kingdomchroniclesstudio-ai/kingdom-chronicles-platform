@@ -165,6 +165,19 @@ def observe(source_id: str, cfg: dict[str, str], timeout: float) -> dict[str, An
         return {"source": source_id, "label": cfg["label"], "kind": cfg["kind"], "url": url, "components": cfg["components"], "status": "SOURCE_ERROR", "error": f"{type(exc).__name__}: {str(exc)[:400]}"}
 
 
+def classify_compatibility(candidate: dict[str, Any], inventory: dict[str, Any] | None) -> dict[str, Any]:
+    if inventory and isinstance(inventory, dict):
+        installed = inventory.get("installed_sources", {})
+        current = installed.get(candidate["source"]) if isinstance(installed, dict) else None
+        version = candidate.get("version")
+        if current and version and current == version:
+            return {"status": "ALREADY_INSTALLED", "reason": "The registered environment records this exact source version."}
+    return {
+        "status": "REQUIRES_MANUAL_APPROVAL",
+        "reason": "No verified production ComfyUI endpoint, installed-node inventory, model-file hashes, GPU/VRAM report or staging backup is registered. Upstream metadata alone cannot prove local compatibility.",
+    }
+
+
 def initial_state(interval: int) -> dict[str, Any]:
     # Existing observation baselines: LTX core v1.5.0, ComfyUI-LTXVideo v1.1.0,
     # and the previously recorded Hugging Face Diffusers revision.
@@ -240,9 +253,9 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
             continue
         text_to_scan = (seen.get("summary", "") + " " + json.dumps(seen.get("metadata", {}))).lower()
         feature_tags = [name for name, phrases in FEATURES.items() if any(phrase in text_to_scan for phrase in phrases)]
-        compatibility = {"status": "REQUIRES_MANUAL_APPROVAL", "reason": "No verified production ComfyUI endpoint, installed-node inventory, model-file hashes, GPU/VRAM report or staging backup is registered. Upstream metadata alone cannot prove local compatibility."}
+        compatibility = classify_compatibility({"source": source_id, "version": seen.get("version")}, inventory)
         if seen["kind"] in {"text", "html"}:
-            compatibility["reason"] = "Documentation/changelog content changed; confirm the feature exists in the local open-weight ComfyUI workflow rather than assuming hosted API parity."
+            compatibility = {"status": "REQUIRES_MANUAL_APPROVAL", "reason": "Documentation/changelog content changed; confirm the feature exists in the local open-weight ComfyUI workflow rather than assuming hosted API parity."}
         candidate = {
             "id": candidate_id, "source": source_id, "name": cfg["label"], "version": seen.get("version"),
             "release_date": seen.get("published_at"), "source_url": seen.get("canonical_url") or seen["url"],
