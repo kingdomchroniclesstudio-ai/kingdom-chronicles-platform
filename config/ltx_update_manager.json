@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "primary_model": "LTX-2.5",
+  "check_interval_hours": 6,
+  "maximum_supported_interval_hours": 24,
+  "schedule_backend": "GitHub Actions standard hosted runner",
+  "state_branch": "ltx-update-state",
+  "state_path": "state/ltx_update_manager.json",
+  "source_policy": "official_lightricks_and_official_ltx_documentation_only",
+  "automatic_install": false,
+  "automatic_model_download": false,
+  "automatic_workflow_activation": false,
+  "gpu_jobs": false,
+  "director_approval_required": true,
+  "note": "Discovery and metadata compatibility review only until a real ComfyUI inventory, persistent GPU storage, staging backup and approved installation adapter are configured."
+}
