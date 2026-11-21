@@ -32,6 +32,9 @@ jobs:
           path: state
           persist-credentials: true
 
+      - name: Run scheduled monitor mock regression tests
+        run: python -m unittest discover -s source/tests -p "test_ltx_update_scheduler.py" -v
+
       - name: Run official-source metadata discovery
         env:
           SCHEDULE_INTERVAL: ${{ vars.LTX_UPDATE_INTERVAL_HOURS || '6' }}
