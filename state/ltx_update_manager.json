@@ -1,0 +1,78 @@
+{
+  "activity": [],
+  "candidates": [],
+  "capabilities": {
+    "detected": [],
+    "installed": [],
+    "registered": [],
+    "verified": []
+  },
+  "environment": {
+    "comfyui_version": null,
+    "gpu": null,
+    "installed_ltx_version": null,
+    "status": "NOT_CONNECTED",
+    "storage_root": null
+  },
+  "last_check_at": null,
+  "last_successful_check_at": null,
+  "manager": "HIS RISEN LTX Update and Integration Manager",
+  "model_policy": {
+    "model_switching": false,
+    "primary_model": "LTX-2.5"
+  },
+  "next_check_due_at": null,
+  "notifications": [],
+  "safety": {
+    "automatic_install": false,
+    "director_approval_required": true,
+    "downloads_enabled": false,
+    "gpu_jobs_enabled": false,
+    "workflow_activation_enabled": false
+  },
+  "schedule": {
+    "enabled": true,
+    "interval_hours": 6,
+    "scheduler": "GitHub Actions standard hosted runner",
+    "timezone": "UTC"
+  },
+  "schema_version": 1,
+  "source_errors": {},
+  "source_observations": {
+    "comfyui_ltxvideo_release": {
+      "fingerprint": "1f734efa87a760e4daab0ee0cfb2cff4c278ed94908bb135bc173989df0d72c5",
+      "label": "Official ComfyUI-LTXVideo custom nodes",
+      "last_seen_at": "2026-10-27T17:35:37Z",
+      "metadata": {
+        "html_url": "https://github.com/Lightricks/ComfyUI-LTXVideo/releases/tag/v1.1.0",
+        "notes_sha256": "43aecb40536f12c20d07f4ab919bccbb8100e6d99a23acd1cd33e94be8798621",
+        "published_at": "2026-10-20T06:57:37Z",
+        "tag_name": "v1.1.0"
+      },
+      "url": "https://api.github.com/repos/Lightricks/ComfyUI-LTXVideo/releases/latest"
+    },
+    "hf_ltx25_diffusers": {
+      "fingerprint": "a5f2fd53ba864b66880f3d0cfa2f6870fcced3b79913047fed1526cf466a4504",
+      "label": "LTX-2.5 Diffusers model revision",
+      "last_seen_at": "2026-10-27T17:35:37Z",
+      "metadata": {
+        "id": "Lightricks/LTX-2.5-Diffusers",
+        "lastModified": "2026-10-22T08:58:38.000Z",
+        "sha": "4791a1100e0cf97f7ed5c55c12dd71dce13f9dd3"
+      },
+      "url": "https://huggingface.co/api/models/Lightricks/LTX-2.5-Diffusers"
+    },
+    "ltx_core_release": {
+      "fingerprint": "4d6150c2d9e39781fbba61ffbb1cb13768fcfc69c5d99ead352dfc5714015acc",
+      "label": "Lightricks LTX core release",
+      "last_seen_at": "2026-10-27T17:35:37Z",
+      "metadata": {
+        "html_url": "https://github.com/Lightricks/LTX-2/releases/tag/v1.5.0",
+        "notes_sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+        "published_at": "2026-10-18T17:41:36Z",
+        "tag_name": "v1.5.0"
+      },
+      "url": "https://api.github.com/repos/Lightricks/LTX-2/releases/latest"
+    }
+  }
+}
