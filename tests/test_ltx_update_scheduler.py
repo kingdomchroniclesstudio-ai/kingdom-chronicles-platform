@@ -87,8 +87,20 @@ class ScheduledMonitorTests(unittest.TestCase):
         with patch.object(manager.urllib.request, "urlopen", side_effect=opener):
             state = manager.monitor_once(interval_hours=6, timeout=1, force=True, now=self.now)
         self.assertEqual(state["failed_source_count"], 1)
+        self.assertEqual(state["successful_source_count"], len(manager.SOURCES) - 1)
         self.assertIn("ltx_core_release", state["source_errors"])
         self.assertTrue(any(row["type"] == "SOURCE_CHECK_FAILED" for row in state["notifications"]))
+
+    def test_cli_persists_outage_notifications_without_failing_the_workflow(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "state" / "manager.json"
+            with patch.object(manager.urllib.request, "urlopen", side_effect=TimeoutError("network unavailable")):
+                exit_code = manager.main(["--state-file", str(path), "--interval-hours", "6", "--force", "--timeout", "1"])
+            self.assertEqual(exit_code, 0)
+            saved = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(saved["successful_source_count"], 0)
+            self.assertEqual(saved["failed_source_count"], len(manager.SOURCES))
+            self.assertTrue(any(row["type"] == "SOURCE_CHECK_FAILED" for row in saved["notifications"]))
 
     def test_json_state_round_trip(self):
         with tempfile.TemporaryDirectory() as temp:
