@@ -32,7 +32,13 @@ def fake_upstream(release="v1.6.2", node_release="v1.1.1", revision="abc123", do
         if "example_workflows/2.5" in url:
             return FakeResponse(json.dumps([{"name": "LTX-2.5_T2V.json", "path": "example_workflows/2.5/LTX-2.5_T2V.json", "sha": "file-sha", "type": "file"}]).encode())
         if "LTX-2.5-Diffusers" in url:
-            return FakeResponse(json.dumps({"id": "Lightricks/LTX-2.5-Diffusers", "sha": revision, "lastModified": "2026-11-20T00:00:00Z"}).encode())
+            return FakeResponse(json.dumps({"id": "Lightricks/LTX-2.5-Diffusers", "sha": revision, "lastModified": "2026-11-20T00:00:00Z", "siblings": [{"rfilename": "model.safetensors", "size": 1024, "lfs": {"oid": "file-hash", "size": 1024}}]}).encode())
+        if "api/models/Lightricks/LTX-2.5?" in url:
+            return FakeResponse(json.dumps({"id": "Lightricks/LTX-2.5", "sha": "main-sha", "lastModified": "2026-11-20T00:00:00Z", "license": "ltx-2.x-community-license-agreement", "siblings": [{"rfilename": "diffusion_models/ltx-2.5-22b-distilled-transformer-bf16.safetensors", "size": 1000, "lfs": {"oid": "transformer-hash", "size": 1000}}, {"rfilename": "vae/ltx-2.5-video-vae-bf16.safetensors", "size": 200, "lfs": {"oid": "vae-hash", "size": 200}}]}).encode())
+        if "Pixel-Spatial-Upscaler" in url:
+            return FakeResponse(json.dumps({"id": "Lightricks/LTX-2.5-22b-IC-LoRA-Pixel-Spatial-Upscaler", "sha": "lora-sha", "lastModified": "2026-11-20T00:00:00Z", "siblings": [{"rfilename": "ltx-pixel-spatial-upscaler.safetensors", "size": 300, "lfs": {"oid": "lora-file-hash", "size": 300}}]}).encode())
+        if "Comfy-Org/gemma-4" in url:
+            return FakeResponse(json.dumps({"id": "Comfy-Org/gemma-4", "sha": "gemma-sha", "lastModified": "2026-11-20T00:00:00Z", "siblings": [{"rfilename": "gemma4_e2b_it_bf16.safetensors", "size": 400, "lfs": {"oid": "gemma-file-hash", "size": 400}}]}).encode())
         if "api/models?author=Lightricks" in url:
             return FakeResponse(json.dumps([{"id": "Lightricks/LTX-2.5-22b-IC-LoRA-Refine-Details", "sha": "lora-sha", "lastModified": "2026-11-20T00:00:00Z", "tags": ["safetensors"]}]).encode())
         return FakeResponse((docs + " LTX-2.5 Gemma 4 prompt enhancer tiled fusion HDR IC-LoRA").encode(), "text/html" if url.startswith("https://docs.") else "text/plain")
@@ -64,6 +70,16 @@ class ScheduledMonitorTests(unittest.TestCase):
         self.assertIn("ltx_open_source_comfyui_docs", sources)
         self.assertTrue(all(item["compatibility"]["status"] == "REQUIRES_MANUAL_APPROVAL" for item in changed["candidates"]))
         self.assertTrue(all(item["installation_status"] == "NOT_INSTALLED" for item in changed["candidates"]))
+
+    def test_huggingface_asset_manifest_tracks_names_sizes_and_lfs_hashes(self):
+        with patch.object(manager.urllib.request, "urlopen", side_effect=fake_upstream()):
+            observed = manager.observe("hf_ltx25_comfyui_stack", manager.SOURCES["hf_ltx25_comfyui_stack"], 1)
+        self.assertEqual(observed["status"], "OBSERVED")
+        files = observed["metadata"]["files"]
+        self.assertTrue(any(item["name"].endswith("distilled-transformer-bf16.safetensors") for item in files))
+        self.assertTrue(any(item["sha256_or_lfs_oid"] == "transformer-hash" for item in files))
+        self.assertIn("gemma4_text_encoder", observed["feature_tags"])
+        self.assertNotIn("model.safetensors", [item["name"] for item in files])
 
     def test_interval_skips_runs_until_due(self):
         initial = manager.initial_state(6)
