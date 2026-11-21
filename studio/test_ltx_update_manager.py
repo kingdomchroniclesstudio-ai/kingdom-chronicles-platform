@@ -78,6 +78,20 @@ class LTXUpdateManagerRuntimeTests(unittest.TestCase):
             self.assertEqual(data["state_source"], "UNAVAILABLE")
             self.assertTrue(data["stale"])
 
+    def test_director_console_route_and_dashboard_are_packaged(self):
+        root = Path(__file__).resolve().parents[1]
+        console = root / "director_console.py"
+        html = root / "studio_control_room.html"
+        if not console.exists() or not html.exists():
+            self.skipTest("source-only checkout; package integration assertions run inside the controller ZIP")
+        console_text = console.read_text(encoding="utf-8")
+        html_text = html.read_text(encoding="utf-8")
+        self.assertIn('if path == "/api/updates/manager":', console_text)
+        self.assertIn("self._console().update_manager_status()", console_text)
+        for marker in ("ltxManagerPanel", "ltxManagerCandidates", "ltxManagerNotifications", "ltxManagerActivity", "refreshLtxManager", "CHECK NOW"):
+            with self.subTest(marker=marker):
+                self.assertIn(marker, html_text)
+
     def test_rejects_wrong_model_family_from_remote_state(self):
         payload = example_state()
         payload["model_policy"]["primary_model"] = "another-model"
