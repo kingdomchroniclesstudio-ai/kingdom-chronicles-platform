@@ -23,8 +23,11 @@ SOURCES: dict[str, dict[str, str]] = {
     "ltx_core_release": {"kind": "release", "url": "https://api.github.com/repos/Lightricks/LTX-2/releases/latest", "label": "Lightricks LTX core release", "components": "LTX pipeline code, chunking and decoder"},
     "comfyui_ltxvideo_release": {"kind": "release", "url": "https://api.github.com/repos/Lightricks/ComfyUI-LTXVideo/releases/latest", "label": "Official ComfyUI-LTXVideo custom nodes", "components": "ComfyUI LTXVideo nodes and workflows"},
     "comfyui_ltx25_workflows": {"kind": "contents", "url": "https://api.github.com/repos/Lightricks/ComfyUI-LTXVideo/contents/example_workflows/2.5", "label": "Official LTX-2.5 ComfyUI workflow catalog", "components": "T2V, I2V, A2V, IC-LoRA, tiled fusion and HDR workflows"},
-    "hf_ltx25_diffusers": {"kind": "hf_model", "url": "https://huggingface.co/api/models/Lightricks/LTX-2.5-Diffusers", "label": "LTX-2.5 Diffusers model revision", "components": "Diffusers checkpoint metadata"},
-    "hf_lightricks_ltx25_catalog": {"kind": "hf_catalog", "url": "https://huggingface.co/api/models?author=Lightricks&search=LTX-2.5&limit=100", "label": "Official Lightricks LTX-2.5 model and adapter catalog", "components": "IC-LoRAs, adapters, VAEs, encoders and decoders"},
+    "hf_ltx25_diffusers": {"kind": "hf_model", "url": "https://huggingface.co/api/models/Lightricks/LTX-2.5-Diffusers?blobs=true", "label": "LTX-2.5 Diffusers model revision", "components": "Diffusers checkpoint metadata and file manifest"},
+    "hf_ltx25_comfyui_stack": {"kind": "hf_model", "url": "https://huggingface.co/api/models/Lightricks/LTX-2.5?blobs=true", "label": "Official LTX-2.5 ComfyUI split model pack", "components": "Distilled transformer, Gemma 4 12B encoder, video/audio VAEs, duration head, spatial and temporal upscalers"},
+    "hf_ltx25_pixel_spatial_iclora": {"kind": "hf_model", "url": "https://huggingface.co/api/models/Lightricks/LTX-2.5-22b-IC-LoRA-Pixel-Spatial-Upscaler?blobs=true", "label": "LTX-2.5 Pixel Spatial Upscaler IC-LoRA", "components": "Detailing/upscaling IC-LoRA adapter"},
+    "hf_gemma4_prompt_enhancer": {"kind": "hf_model", "url": "https://huggingface.co/api/models/Comfy-Org/gemma-4?blobs=true", "label": "Comfy-Org Gemma 4 prompt-enhancer model repository", "components": "Optional Gemma 4 E2B local prompt-enhancer asset"},
+    "hf_lightricks_ltx25_catalog": {"kind": "hf_catalog", "url": "https://huggingface.co/api/models?author=Lightricks&search=LTX-2.5&limit=100", "label": "Official Lightricks LTX-2.5 model and adapter catalog", "components": "IC-LoRAs, adapters, VAEs, encoders, decoders and workflow-specific assets"},
     "ltx_source_changelog": {"kind": "text", "url": "https://raw.githubusercontent.com/Lightricks/LTX-2/main/CHANGELOG.md", "label": "LTX source changelog", "components": "LTX pipeline APIs and release features"},
     "ltx_comfyui_workflow_guide": {"kind": "text", "url": "https://raw.githubusercontent.com/Lightricks/ComfyUI-LTXVideo/master/example_workflows/2.5/README.md", "label": "LTX-2.5 workflow guide", "components": "Local ComfyUI workflows and dependencies"},
     "ltx_open_source_comfyui_docs": {"kind": "html", "url": "https://docs.ltx.io/open-source-model/integration-tools/comfy-ui", "label": "LTX official open-source ComfyUI documentation", "components": "Local model files and ComfyUI usage"},
@@ -32,13 +35,19 @@ SOURCES: dict[str, dict[str, str]] = {
     "ltx_api_changelog_docs": {"kind": "html", "url": "https://docs.ltx.io/api-changelog", "label": "LTX hosted API changelog", "components": "Hosted API only; not assumed to be local ComfyUI"},
 }
 FEATURES = {
-    "prompt_enhancement": ("gemma 4", "prompt enhancer", "enhance-prompt"),
-    "multi_shot": ("multi-shot", "multishot", "multiple shots"),
-    "duration_prediction": ("auto-duration", "duration prediction"),
-    "diffusion_video_decoder": ("diffusion video decoder", "diffvae"),
-    "refine_details": ("refine details", "refine-details"),
+    "prompt_enhancement": ("gemma 4", "gemma4_e2b", "prompt enhancer", "enhance-prompt"),
+    "gemma4_text_encoder": ("gemma4-12b", "gemma 4 12b", "text encoder"),
+    "multi_shot": ("multi-shot", "multishot", "multiple shots", "connected scenes"),
+    "duration_prediction": ("auto-duration", "duration prediction", "duration-head"),
+    "diffusion_fidelity_rendering": ("diffusion fidelity rendering", "dynamic compute by scene"),
+    "diffusion_video_decoder": ("diffusion video decoder", "new video decoder", "diffvae"),
+    "video_vae": ("video-vae", "conv vae", "diffvae"),
+    "audio_vae": ("audio-vae", "audio vae", "vocoder"),
+    "refine_details": ("refine details", "refine-details", "pixel-spatial-upscaler"),
     "native_resolution": ("native 4k", "native 8k", "native resolution"),
     "tiled_fusion": ("tiled fusion", "tiledfusion"),
+    "spatial_upscaling": ("spatial upscaler", "spatial-upscaler"),
+    "temporal_upscaling": ("temporal upscaler", "temporal-upscaler"),
     "hdr": ("hdr", "acescct", "hlg", "exr"),
     "ic_lora": ("ic-lora", "ic lora", "ingredients", "motion control"),
     "consistency": ("character consistency", "identity consistency", "layout", "motion track"),
@@ -144,8 +153,35 @@ def observe(source_id: str, cfg: dict[str, str], timeout: float) -> dict[str, An
             return {"source": source_id, "label": cfg["label"], "kind": cfg["kind"], "url": url, "canonical_url": "https://github.com/Lightricks/ComfyUI-LTXVideo/tree/master/example_workflows/2.5", "metadata": metadata, "fingerprint": digest(metadata), "summary": f"Official LTX-2.5 workflow catalog contains {len(metadata)} entries; file names and Git object IDs tracked.", "components": cfg["components"], "status": "OBSERVED"}
         if cfg["kind"] == "hf_model":
             data = json.loads(body.decode("utf-8"))
-            metadata = {"id": data.get("id"), "sha": data.get("sha"), "lastModified": data.get("lastModified")}
-            return {"source": source_id, "label": cfg["label"], "kind": cfg["kind"], "url": url, "canonical_url": f"https://huggingface.co/{data.get('id') or 'Lightricks/LTX-2.5-Diffusers'}", "metadata": metadata, "fingerprint": digest(metadata), "version": data.get("sha"), "summary": f"Model repo revision {data.get('sha') or 'unknown'}; metadata only, no weights downloaded.", "components": cfg["components"], "status": "OBSERVED"}
+            siblings = data.get("siblings") or []
+            file_manifest = []
+            for item in siblings:
+                if not isinstance(item, dict) or not item.get("rfilename"):
+                    continue
+                lfs = item.get("lfs") if isinstance(item.get("lfs"), dict) else {}
+                file_manifest.append({
+                    "name": item.get("rfilename"),
+                    "size_bytes": item.get("size") or lfs.get("size"),
+                    "sha256_or_lfs_oid": lfs.get("oid"),
+                })
+            file_manifest.sort(key=lambda item: item["name"])
+            metadata = {
+                "id": data.get("id"), "sha": data.get("sha"),
+                "lastModified": data.get("lastModified"), "license": data.get("license"),
+                "gated": data.get("gated"), "files": file_manifest,
+            }
+            model_id = data.get("id") or "unknown model"
+            file_names = " ".join(str(item["name"]) for item in file_manifest)
+            combined = (cfg["label"] + " " + file_names).lower()
+            feature_tags = [name for name, phrases in FEATURES.items() if any(phrase in combined for phrase in phrases)]
+            return {
+                "source": source_id, "label": cfg["label"], "kind": cfg["kind"], "url": url,
+                "canonical_url": f"https://huggingface.co/{model_id}",
+                "metadata": metadata, "fingerprint": digest(metadata),
+                "version": data.get("sha"),
+                "summary": f"Model repo {model_id}, revision {data.get('sha') or 'unknown'}, {len(file_manifest)} file metadata entries; no weights downloaded.",
+                "feature_tags": feature_tags, "components": cfg["components"], "status": "OBSERVED",
+            }
         if cfg["kind"] == "hf_catalog":
             data = json.loads(body.decode("utf-8"))
             if not isinstance(data, list):
@@ -254,7 +290,7 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
         if candidate_id in candidate_ids:
             continue
         text_to_scan = (seen.get("summary", "") + " " + json.dumps(seen.get("metadata", {}))).lower()
-        feature_tags = [name for name, phrases in FEATURES.items() if any(phrase in text_to_scan for phrase in phrases)]
+        feature_tags = sorted(set(seen.get("feature_tags", [])) | {name for name, phrases in FEATURES.items() if any(phrase in text_to_scan for phrase in phrases)})
         compatibility = classify_compatibility({"source": source_id, "version": seen.get("version")}, inventory)
         if seen["kind"] in {"text", "html"}:
             compatibility = {"status": "REQUIRES_MANUAL_APPROVAL", "reason": "Documentation/changelog content changed; confirm the feature exists in the local open-weight ComfyUI workflow rather than assuming hosted API parity."}
