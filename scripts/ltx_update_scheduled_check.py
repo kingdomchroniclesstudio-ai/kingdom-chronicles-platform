@@ -232,6 +232,7 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
     candidates = list(current.get("candidates", []))
     candidate_ids = {row.get("id") for row in candidates}
 
+    successful_sources = 0
     for source_id, cfg in SOURCES.items():
         seen = observe(source_id, cfg, timeout)
         if seen["status"] == "SOURCE_ERROR":
@@ -239,6 +240,7 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
             if prior_errors.get(source_id) != seen["error"]:
                 add_event(current, "SOURCE_CHECK_FAILED", f"{cfg['label']} check failed: {seen['error']}", details={"source": source_id}, when=now)
             continue
+        successful_sources += 1
         if source_id in prior_errors:
             add_event(current, "SOURCE_RECOVERED", f"{cfg['label']} monitoring source recovered.", details={"source": source_id}, when=now)
         old = previous.get(source_id)
@@ -275,7 +277,7 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
     current["source_errors"] = errors
     current["candidates"] = candidates[-250:]
     current["last_check_at"] = stamp(now)
-    current["successful_source_count"] = sum(1 for key in observations if key in SOURCES)
+    current["successful_source_count"] = successful_sources
     current["failed_source_count"] = len(errors)
     if current["successful_source_count"]:
         current["last_successful_check_at"] = stamp(now)
@@ -318,7 +320,7 @@ def main(argv: list[str] | None = None) -> int:
     write_state(args.state_file, updated)
     print(json.dumps({key: updated.get(key) for key in ("last_check_at", "successful_source_count", "failed_source_count", "next_check_due_at")}, indent=2))
     print(f"Detected candidates: {sum(1 for row in updated.get('candidates', []) if row.get('status') == 'DETECTED')}")
-    return 0 if updated.get("successful_source_count", 0) else 1
+    return 0  # Persist source failures and their notifications; network errors are not a worker crash.
 
 
 if __name__ == "__main__":
