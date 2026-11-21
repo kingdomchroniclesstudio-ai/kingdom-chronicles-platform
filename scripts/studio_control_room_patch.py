@@ -38,6 +38,8 @@ def patch_archive(archive: Path) -> str:
     mira_guide = require_file(source_root / "docs" / "MIRA_STUDIO_INTELLIGENCE.md")
     mira_assistant = require_file(source_root / "studio" / "mira_assistant.py")
     mira_test_source = require_file(source_root / "studio" / "test_mira_assistant.py")
+    update_manager_source = require_file(source_root / "studio" / "ltx_update_manager.py")
+    update_manager_test_source = require_file(source_root / "studio" / "test_ltx_update_manager.py")
     html_text = html.decode("utf-8")
     if html_text.count("<script>") != 1 or html_text.count("</script>") != 1:
         raise RuntimeError("Control-room HTML must contain exactly one complete application script")
@@ -74,6 +76,8 @@ def patch_archive(archive: Path) -> str:
         console = console.replace(import_anchor, import_anchor + "from studio_workspace import StudioWorkspace\n", 1)
     if "from mira_assistant import MiraAssistant" not in console:
         console = console.replace(import_anchor, import_anchor + "from mira_assistant import MiraAssistant, MiraConfigurationError, MiraProviderError, MiraRateLimitError\n", 1)
+    if "from ltx_update_manager import LTXUpdateManager" not in console:
+        console = console.replace(import_anchor, import_anchor + "from ltx_update_manager import LTXUpdateManager\n", 1)
 
     init_anchor = "        self.root = root.resolve()\n"
     init_replacement = init_anchor + "        self.workspace = StudioWorkspace(resolve_data_root(self.root))\n"
@@ -86,8 +90,13 @@ def patch_archive(archive: Path) -> str:
         if console.count(workspace_init) != 1:
             raise RuntimeError("Could not safely locate the studio workspace initialization for Mira")
         console = console.replace(workspace_init, workspace_init + "        self.mira = MiraAssistant()\n", 1)
+    mira_init = "        self.mira = MiraAssistant()\n"
+    if "self.update_manager = LTXUpdateManager(" not in console:
+        if console.count(mira_init) != 1:
+            raise RuntimeError("Could not safely locate the DirectorConsole Mira initialization for the LTX manager")
+        console = console.replace(mira_init, mira_init + "        self.update_manager = LTXUpdateManager(resolve_data_root(self.root))\n", 1)
 
-    validate_console(console, "after Mira import and initialization")
+    validate_console(console, "after Mira and LTX manager initialization")
 
     marker = '            if path == "/api/shot-template":\n'
     get_routes = '''            if path == "/api/studio/overview":
@@ -134,6 +143,20 @@ def patch_archive(archive: Path) -> str:
     get_start = console.index("    def do_GET(self) -> None:")
     get_end = console.index("    def do_POST(self) -> None:", get_start)
     get_block = console[get_start:get_end]
+    manager_get_route = '''            if path == "/api/updates/manager":
+                self._json(200, {"ok": True, "data": self._console().update_manager_status()})
+                return
+'''
+    if "/api/updates/manager" not in get_block:
+        manager_marker = '            if path == "/api/mira/status":\n'
+        if manager_marker not in get_block:
+            manager_marker = '            if path == "/api/shot-template":\n'
+        if manager_marker not in get_block:
+            raise RuntimeError("Could not safely locate authenticated GET routes for the LTX update manager")
+        get_block = get_block.replace(manager_marker, manager_get_route + manager_marker, 1)
+        console = console[:get_start] + get_block + console[get_end:]
+        get_end = console.index("    def do_POST(self) -> None:", get_start)
+        get_block = console[get_start:get_end]
     if "/api/mira/status" not in get_block:
         marker_mira = '            if path == "/api/shot-template":\n'
         if marker_mira not in get_block:
@@ -283,6 +306,17 @@ def patch_archive(archive: Path) -> str:
             raise RuntimeError("Could not safely locate DirectorConsole methods for Mira context")
         console = console.replace(context_anchor, context_method + context_anchor, 1)
 
+    manager_method = '''    def update_manager_status(self) -> dict[str, Any]:
+        """Return the latest durable scheduled LTX monitor state."""
+        return self.update_manager.status()
+
+'''
+    if "def update_manager_status(self)" not in console:
+        manager_method_anchor = "    def check_for_updates(self) -> dict[str, Any]:\n"
+        if console.count(manager_method_anchor) != 1:
+            raise RuntimeError("Could not safely locate updater methods for LTX manager status")
+        console = console.replace(manager_method_anchor, manager_method + manager_method_anchor, 1)
+
     # The DirectorConsole helper is inserted before Handler, so recalculate the
     # POST slice boundary before splicing the already-patched handler block back.
     post_start = console.index("    def do_POST(self) -> None:")
@@ -330,6 +364,8 @@ def patch_archive(archive: Path) -> str:
     put(entries, "docs/MIRA_STUDIO_INTELLIGENCE.md", mira_guide)
     put(entries, "mira_assistant.py", mira_assistant)
     put(entries, "tests/test_mira_assistant.py", mira_test_source)
+    put(entries, "ltx_update_manager.py", update_manager_source)
+    put(entries, "tests/test_ltx_update_manager.py", update_manager_test_source)
 
     with tempfile.NamedTemporaryFile(prefix="hrf-studio-rooms-", suffix=".zip", dir=archive.parent, delete=False) as tmp:
         temp_path = Path(tmp.name)
