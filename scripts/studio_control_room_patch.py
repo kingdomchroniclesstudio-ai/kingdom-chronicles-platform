@@ -40,6 +40,9 @@ def patch_archive(archive: Path) -> str:
     mira_test_source = require_file(source_root / "studio" / "test_mira_assistant.py")
     update_manager_source = require_file(source_root / "studio" / "ltx_update_manager.py")
     update_manager_test_source = require_file(source_root / "studio" / "test_ltx_update_manager.py")
+    scheduled_worker_source = require_file(source_root / "scripts" / "ltx_update_scheduled_check.py")
+    scheduled_worker_test_source = require_file(source_root / "tests" / "test_ltx_update_scheduler.py")
+    update_manager_config = require_file(source_root / "config" / "ltx_update_manager.json")
     html_text = html.decode("utf-8")
     if html_text.count("<script>") != 1 or html_text.count("</script>") != 1:
         raise RuntimeError("Control-room HTML must contain exactly one complete application script")
@@ -366,6 +369,9 @@ def patch_archive(archive: Path) -> str:
     put(entries, "tests/test_mira_assistant.py", mira_test_source)
     put(entries, "ltx_update_manager.py", update_manager_source)
     put(entries, "tests/test_ltx_update_manager.py", update_manager_test_source)
+    put(entries, "scripts/ltx_update_scheduled_check.py", scheduled_worker_source)
+    put(entries, "tests/test_ltx_update_scheduler.py", scheduled_worker_test_source)
+    put(entries, "config/ltx_update_manager.json", update_manager_config)
 
     with tempfile.NamedTemporaryFile(prefix="hrf-studio-rooms-", suffix=".zip", dir=archive.parent, delete=False) as tmp:
         temp_path = Path(tmp.name)
@@ -378,8 +384,10 @@ def patch_archive(archive: Path) -> str:
             bad = validation.testzip()
             if bad:
                 raise RuntimeError(f"Output controller ZIP failed integrity check at {bad}")
-            required = {"director_console.py", "studio_workspace.py", "studio_control_room.html", "tests/test_studio_workspace.py", "tests/test_mira_assistant.py", "mira_assistant.py", "docs/STUDIO_CONTROL_ROOM.md", "docs/MIRA_STUDIO_INTELLIGENCE.md"}
+            required = {"director_console.py", "studio_workspace.py", "studio_control_room.html", "tests/test_studio_workspace.py", "tests/test_mira_assistant.py", "mira_assistant.py", "docs/STUDIO_CONTROL_ROOM.md", "docs/MIRA_STUDIO_INTELLIGENCE.md", "ltx_update_manager.py", "tests/test_ltx_update_manager.py", "scripts/ltx_update_scheduled_check.py", "tests/test_ltx_update_scheduler.py", "config/ltx_update_manager.json"}
             compile(validation.read("mira_assistant.py").decode("utf-8"), "mira_assistant.py", "exec")
+            compile(validation.read("ltx_update_manager.py").decode("utf-8"), "ltx_update_manager.py", "exec")
+            compile(validation.read("scripts/ltx_update_scheduled_check.py").decode("utf-8"), "scripts/ltx_update_scheduled_check.py", "exec")
             missing = required - set(validation.namelist())
             if missing:
                 raise RuntimeError(f"Output package is missing required studio room files: {sorted(missing)}")
