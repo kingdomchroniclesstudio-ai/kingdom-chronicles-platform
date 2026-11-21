@@ -506,7 +506,7 @@ function renderLtxManager(data){
  $("ltxVerifiedCount").textContent=summary.verified||0;
  $("ltxLastCheck").textContent=formatLtxDate(data.last_successful_check_at);
  $("ltxNextCheck").textContent=formatLtxDate(data.next_check_due_at);
- $("ltxSourceHealth").textContent=(data.successful_source_count||0)+" / 10 healthy · "+(data.failed_source_count||0)+" failed";
+ $("ltxSourceHealth").textContent=(data.successful_source_count||0)+" / "+(data.source_total_count||13)+" healthy · "+(data.failed_source_count||0)+" failed";
  $("ltxManagerFreshness").textContent=data.stale?(data.read_error||"Showing last cached scheduled state."):"Persistent scheduled state · "+(data.state_source||"unknown");
  $("ltxInstallPolicy").textContent=(data.safety&&data.safety.automatic_install)?"AUTOMATIC INSTALLATION ENABLED":"INSTALLATION LOCKED — DIRECTOR APPROVAL REQUIRED";
  const candidates=(data.candidates||[]).slice().reverse().slice(0,8);
