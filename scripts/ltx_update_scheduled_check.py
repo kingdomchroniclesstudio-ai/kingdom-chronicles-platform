@@ -296,9 +296,17 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
     current = json.loads(json.dumps(state or initial_state(interval_hours)))
     current.setdefault("schedule", {})["interval_hours"] = interval_hours
     last = parse_stamp(current.get("last_successful_check_at"))
-    if not force and last is not None and now < last + timedelta(hours=interval_hours):
+    stored_due = parse_stamp(current.get("next_check_due_at"))
+    previous_interval = current.get("schedule", {}).get("interval_hours")
+    if last is None:
+        due_at = stored_due
+    elif previous_interval != interval_hours:
+        due_at = last + timedelta(hours=interval_hours)
+    else:
+        due_at = stored_due or (last + timedelta(hours=interval_hours))
+    if not force and due_at is not None and now < due_at:
         current["skipped"] = True
-        current["next_check_due_at"] = stamp(last + timedelta(hours=interval_hours))
+        current["next_check_due_at"] = stamp(due_at)
         return current
 
     add_event(current, "COMPATIBILITY_CHECK_IN_PROGRESS", "Scheduled metadata discovery started; no production files or GPU environment are modified.", when=now)
