@@ -90,7 +90,7 @@ class LTXUpdateManager:
             "next_check_due_at": state.get("next_check_due_at"),
             "successful_source_count": state.get("successful_source_count", 0),
             "failed_source_count": state.get("failed_source_count", 0),
-            "source_total_count": state.get("source_total_count", 14),
+            "source_total_count": state.get("source_total_count", 15),
             "environment": state.get("environment", {"status": "NOT_CONNECTED", "comfyui_version": None, "installed_ltx_version": None}),
             "summary": summary, "candidates": candidates[-50:],
             "notifications": notifications[-50:], "activity": activity[-50:],
