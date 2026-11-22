@@ -207,6 +207,7 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
           <div class="form-actions"><span id="ltxInstallPolicy" class="pill warn">INSTALLATION LOCKED — MANUAL APPROVAL REQUIRED</span><span id="ltxManagerFreshness" class="muted small">Persistent state will appear after the first scheduled run.</span></div>
           <div class="form-actions"><a id="ltxScheduledCheckNow" class="pill ok" href="https://github.com/kingdomchroniclesstudio-ai/kingdom-chronicles-platform/actions/workflows/ltx-update-scheduler.yml" target="_blank" rel="noopener noreferrer">OPEN MANUAL SCHEDULED CHECK</a><span class="muted small">Use Run workflow in GitHub Actions to force a check and persist its activity.</span></div>
           <h3>Pending updates</h3><div id="ltxManagerCandidates" class="stack"><div class="empty">No scheduled update candidates have been recorded.</div></div>
+          <h3 style="margin-top:12px">Integration plan preview</h3><div id="ltxIntegrationPlanResult" class="record">Select a compatible candidate to preview a dry-run integration plan. No installation starts from this panel.</div>
           <div class="grid-2" style="margin-top:14px">
             <div><h3>Detected capabilities</h3><div id="ltxManagerCapabilities" class="stack"><div class="empty">Newly documented features are catalogued as detected, not installed.</div></div></div>
             <div><h3>Installed capabilities</h3><div id="ltxManagerInstalledCapabilities" class="stack"><div class="empty">No installed capability inventory has been registered.</div></div></div>
@@ -543,8 +544,9 @@ function renderLtxManager(data){
   const statusClass=status==="INCOMPATIBLE"?"bad":(status==="COMPATIBLE"?"ok":"warn");
   const requirements=item.installation_requirements||{};
   const sizeText=requirements.estimated_download_gib===null||requirements.estimated_download_gib===undefined?"size unknown":requirements.estimated_download_gib+" GiB listed files";
-  return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(item.name||item.source||"Upstream change")+'</div><div class="record-meta">'+esc(item.version||"Revision/content change")+' · '+esc(item.release_date||item.detected_at||"date unavailable")+'</div></div><span class="pill '+statusClass+'">'+esc(status)+'</span></div><p class="small">'+esc(item.summary||"Metadata changed.")+'</p><div class="record-meta">Risk: '+esc(item.risk_class||"REVIEW_REQUIRED")+' · Affects: '+esc(item.affected_components||"LTX ecosystem")+'</div><div class="record-meta">'+esc(sizeText)+' · storage: '+esc(requirements.storage_preflight||"UNKNOWN")+' · license: '+esc(requirements.license_review||"REVIEW REQUIRED")+'</div><div class="record-meta">Missing dependencies: '+esc(item.missing_dependencies||"none recorded")+'</div><div class="record-meta">Required nodes: '+esc((item.required_node_classes||[]).join(", ")||"not specified")+'</div><div class="record-meta">Referenced assets: '+esc((item.referenced_model_assets||[]).join(", ")||"not specified")+'</div><div class="record-meta">Installation: '+esc(item.installation_status||"NOT INSTALLED")+' · verification: '+esc(item.verification_status||"NOT TESTED")+'</div><a href="'+esc(item.source_url||"#")+'" target="_blank" rel="noopener">Open official source</a></div>';
+  return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(item.name||item.source||"Upstream change")+'</div><div class="record-meta">'+esc(item.version||"Revision/content change")+' · '+esc(item.release_date||item.detected_at||"date unavailable")+'</div></div><span class="pill '+statusClass+'">'+esc(status)+'</span></div><p class="small">'+esc(item.summary||"Metadata changed.")+'</p><div class="record-meta">Risk: '+esc(item.risk_class||"REVIEW_REQUIRED")+' · Affects: '+esc(item.affected_components||"LTX ecosystem")+'</div><div class="record-meta">'+esc(sizeText)+' · storage: '+esc(requirements.storage_preflight||"UNKNOWN")+' · license: '+esc(requirements.license_review||"REVIEW REQUIRED")+'</div><div class="record-meta">Missing dependencies: '+esc(item.missing_dependencies||"none recorded")+'</div><div class="record-meta">Required nodes: '+esc((item.required_node_classes||[]).join(", ")||"not specified")+'</div><div class="record-meta">Referenced assets: '+esc((item.referenced_model_assets||[]).join(", ")||"not specified")+'</div><div class="record-meta">Installation: '+esc(item.installation_status||"NOT INSTALLED")+' · verification: '+esc(item.verification_status||"NOT TESTED")+'</div><a href="'+esc(item.source_url||"#")+'" target="_blank" rel="noopener">Open official source</a><button type="button" class="quiet" data-ltx-plan="'+esc(item.id||"")+'">PREVIEW INTEGRATION PLAN (DRY RUN)</button></div>';
  }).join(""):'<div class="empty">No new upstream changes have been recorded after the stored baseline.</div>';
+ $("ltxManagerCandidates").querySelectorAll("[data-ltx-plan]").forEach(function(button){button.addEventListener("click",function(){previewLtxIntegrationPlan(button.getAttribute("data-ltx-plan")||"");});});
  const capabilities=((data.capabilities||{}).detected||[]).slice().reverse().slice(0,12);
  $("ltxManagerCapabilities").innerHTML=capabilities.length?capabilities.map(function(item){
   const scope=item.scope==="HOSTED_API_ONLY"?"HOSTED API ONLY":"LOCAL OPEN-WEIGHT / COMFYUI";
@@ -576,6 +578,25 @@ async function refreshLtxManager(){
  catch(error){$("ltxManagerStatus").textContent="MANAGER STATE UNAVAILABLE";$("ltxManagerStatus").className="pill warn";$("ltxManagerFreshness").textContent=error.message;}
 }
 
+async function previewLtxIntegrationPlan(candidateId){
+ const target=$("ltxIntegrationPlanResult");
+ target.textContent="Building a read-only integration plan…";
+ try{
+  const plan=await api("/updates/plan",{method:"POST",body:body({candidate_id:candidateId})});
+  const blockers=(plan.automatic_install_blockers||[]).map(esc).join(" · ")||"None recorded";
+  const stages=(plan.stages||[]).map(esc).join(" → ")||"No executable stages";
+  target.innerHTML='<div class="record-top"><strong>'+esc(plan.name||plan.candidate_id||"LTX update plan")+'</strong><span class="pill warn">'+esc(plan.status||"PLAN")+'</span></div>'+
+   '<p class="small">Operation: '+esc(plan.operation||"NONE")+' · Target: '+esc(plan.target_environment||"GPU_COMFYUI_ONLY")+'</p>'+
+   '<p class="small">Director approval required: '+(plan.approval_required?"YES":"NO")+' · Automatic eligible: '+(plan.automatic_eligible?"YES":"NO")+'</p>'+
+   '<p class="small">Stages: '+stages+'</p>'+
+   '<p class="small">Automatic blockers: '+blockers+'</p>'+
+   '<p class="small">'+esc(plan.reason||"")+'</p>'+
+   '<p class="small">Rollback: '+esc(plan.rollback||"No rollback details.")+'</p>'+
+   '<p class="muted small">DRY RUN ONLY · Production execution is disabled. This preview cannot download, install, register or activate anything.</p>';
+ }catch(error){
+  target.textContent="Could not build the integration plan: "+error.message;
+ }
+}
 async function runUpdateCheck(){
  const button=$("updateCheckButton");
  button.disabled=true;

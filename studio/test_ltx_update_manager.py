@@ -92,8 +92,10 @@ class LTXUpdateManagerRuntimeTests(unittest.TestCase):
         console_text = console.read_text(encoding="utf-8")
         html_text = html.read_text(encoding="utf-8")
         self.assertIn('if path == "/api/updates/manager":', console_text)
+        self.assertIn('if path == "/api/updates/plan":', console_text)
+        self.assertIn("build_update_integration_plan", console_text)
         self.assertIn("self._console().update_manager_status()", console_text)
-        for marker in ("ltxManagerPanel", "ltxManagerCandidates", "ltxManagerNotifications", "ltxManagerActivity", "refreshLtxManager", "OPEN MANUAL SCHEDULED CHECK", "ltxComfyVersion", "ltxInstalledRevision", "ltxGpuState", "ltxStorageState", "ltxManagerInstalledCapabilities", "ltxManagerVerifiedCapabilities", "ltxInstalledCount", "ltxIncompatibleCount", "ltxAlreadyInstalledCount", "ltxUnreadCount"):
+        for marker in ("ltxManagerPanel", "ltxManagerCandidates", "ltxManagerNotifications", "ltxManagerActivity", "refreshLtxManager", "OPEN MANUAL SCHEDULED CHECK", "ltxComfyVersion", "ltxInstalledRevision", "ltxGpuState", "ltxStorageState", "ltxManagerInstalledCapabilities", "ltxManagerVerifiedCapabilities", "ltxInstalledCount", "ltxIncompatibleCount", "ltxAlreadyInstalledCount", "ltxUnreadCount", "ltxIntegrationPlanResult", "PREVIEW INTEGRATION PLAN (DRY RUN)", "previewLtxIntegrationPlan"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, html_text)
 

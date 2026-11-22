@@ -55,3 +55,12 @@ The state document stores bounded activity and notification histories (up to 250
 ## Operational acceptance
 
 Mock tests cover scheduled interval enforcement, baseline creation, simulated release and model-revision changes, documentation change detection, per-source failures, persistent JSON round trips and conservative compatibility classification. This validates monitor control logic only. It does not claim a live scheduler run, real ComfyUI install, workflow registration or GPU output verification.
+
+
+## Guarded integration planning and rollback — mock harness only
+
+The authenticated Director Console provides a dry-run plan for a selected update candidate. It requires the candidate source/version to match a completed workflow test and requires the exact current ComfyUI/LTX/GPU environment fingerprint. It distinguishes compatible workflow registration from custom-node/software changes and model/adaptor asset downloads.
+
+The low-risk workflow-registration path is on an allowlist, but global automatic installation remains disabled and no production GPU/ComfyUI adapter exists. Model weights, IC-LoRAs, encoders, VAEs, software dependencies, node changes and licensing decisions remain Director-review items. Render is not an asset store or installer.
+
+An isolated in-memory mock adapter exercises approval binding, checksum-verified backup, staging, workflow registration, acceptance tests and rollback. Its success result is MOCK_INTEGRATION_TEST_PASSED and never VERIFIED. The production execution function deliberately refuses work until a separately audited GPU-host adapter is implemented and tested. No assets are downloaded, no ComfyUI files are changed, and no GPU jobs are launched by this planner.

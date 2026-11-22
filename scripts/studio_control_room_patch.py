@@ -40,6 +40,8 @@ def patch_archive(archive: Path) -> str:
     mira_test_source = require_file(source_root / "studio" / "test_mira_assistant.py")
     update_manager_source = require_file(source_root / "studio" / "ltx_update_manager.py")
     update_manager_test_source = require_file(source_root / "studio" / "test_ltx_update_manager.py")
+    update_installer_source = require_file(source_root / "studio" / "ltx_update_installer.py")
+    update_installer_test_source = require_file(source_root / "studio" / "test_ltx_update_installer.py")
     scheduled_worker_source = require_file(source_root / "scripts" / "ltx_update_scheduled_check.py")
     scheduled_worker_test_source = require_file(source_root / "tests" / "test_ltx_update_scheduler.py")
     update_manager_config = require_file(source_root / "config" / "ltx_update_manager.json")
@@ -82,6 +84,8 @@ def patch_archive(archive: Path) -> str:
         console = console.replace(import_anchor, import_anchor + "from mira_assistant import MiraAssistant, MiraConfigurationError, MiraProviderError, MiraRateLimitError\n", 1)
     if "from ltx_update_manager import LTXUpdateManager" not in console:
         console = console.replace(import_anchor, import_anchor + "from ltx_update_manager import LTXUpdateManager\n", 1)
+    if "from ltx_update_installer import build_integration_plan" not in console:
+        console = console.replace(import_anchor, import_anchor + "from ltx_update_installer import build_integration_plan\n", 1)
 
     init_anchor = "        self.root = root.resolve()\n"
     init_replacement = init_anchor + "        self.workspace = StudioWorkspace(resolve_data_root(self.root))\n"
@@ -253,6 +257,31 @@ def patch_archive(archive: Path) -> str:
                 self._json(200, {"ok": True, "data": result})
                 return
 '''
+    integration_plan_route = '''            if path == "/api/updates/plan":
+                if not self.headers.get("Origin"):
+                    self._json(HTTPStatus.FORBIDDEN, {"ok": False, "error": "origin_required"})
+                    return
+                if not isinstance(body, dict):
+                    raise ValueError("request body must be an object")
+                candidate_id = str(body.get("candidate_id", "")).strip()
+                if not candidate_id:
+                    raise ValueError("candidate_id is required")
+                try:
+                    plan = self._console().build_update_integration_plan(candidate_id)
+                except ValueError as exc:
+                    self._json(404, {"ok": False, "error": "update_candidate_not_found", "message": str(exc)})
+                    return
+                self._json(200, {"ok": True, "data": plan})
+                return
+'''
+    if "/api/updates/plan" not in post_block:
+        plan_marker = '            if path == "/api/mira/chat":\n'
+        if plan_marker not in post_block:
+            raise RuntimeError("Could not safely locate authenticated POST routes for the LTX integration planner")
+        post_block = post_block.replace(plan_marker, integration_plan_route + plan_marker, 1)
+        console = console[:post_start] + post_block
+        post_block = console[post_start:]
+
     if "/api/mira/chat" not in post_block:
         if post_marker not in post_block:
             raise RuntimeError("Could not safely locate authenticated Mira POST route")
@@ -315,6 +344,21 @@ def patch_archive(archive: Path) -> str:
         return self.update_manager.status()
 
 '''
+    planner_method = '''    def build_update_integration_plan(self, candidate_id: str) -> dict[str, Any]:
+        """Build a read-only integration plan for one scheduled candidate."""
+        status = self.update_manager.status()
+        candidate = next((row for row in status.get("candidates", []) if row.get("id") == candidate_id), None)
+        if candidate is None:
+            raise ValueError("Update candidate was not found in the latest scheduled state.")
+        policy_path = self.root / "config" / "ltx_update_manager.json"
+        try:
+            with policy_path.open("r", encoding="utf-8") as handle:
+                policy = json.load(handle)
+        except (OSError, json.JSONDecodeError):
+            policy = {}
+        return build_integration_plan(candidate, status.get("environment") or {}, policy)
+
+'''
     if "def update_manager_status(self)" not in console:
         manager_method_anchor = "    def check_for_updates(self) -> dict[str, Any]:\n"
         if console.count(manager_method_anchor) != 1:
@@ -370,6 +414,8 @@ def patch_archive(archive: Path) -> str:
     put(entries, "tests/test_mira_assistant.py", mira_test_source)
     put(entries, "ltx_update_manager.py", update_manager_source)
     put(entries, "tests/test_ltx_update_manager.py", update_manager_test_source)
+    put(entries, "ltx_update_installer.py", update_installer_source)
+    put(entries, "tests/test_ltx_update_installer.py", update_installer_test_source)
     put(entries, "scripts/ltx_update_scheduled_check.py", scheduled_worker_source)
     put(entries, "tests/test_ltx_update_scheduler.py", scheduled_worker_test_source)
     put(entries, "config/ltx_update_manager.json", update_manager_config)
@@ -386,9 +432,10 @@ def patch_archive(archive: Path) -> str:
             bad = validation.testzip()
             if bad:
                 raise RuntimeError(f"Output controller ZIP failed integrity check at {bad}")
-            required = {"director_console.py", "studio_workspace.py", "studio_control_room.html", "tests/test_studio_workspace.py", "tests/test_mira_assistant.py", "mira_assistant.py", "docs/STUDIO_CONTROL_ROOM.md", "docs/MIRA_STUDIO_INTELLIGENCE.md", "ltx_update_manager.py", "tests/test_ltx_update_manager.py", "scripts/ltx_update_scheduled_check.py", "tests/test_ltx_update_scheduler.py", "config/ltx_update_manager.json", "config/ltx_environment_inventory.schema.json"}
+            required = {"director_console.py", "studio_workspace.py", "studio_control_room.html", "tests/test_studio_workspace.py", "tests/test_mira_assistant.py", "mira_assistant.py", "docs/STUDIO_CONTROL_ROOM.md", "docs/MIRA_STUDIO_INTELLIGENCE.md", "ltx_update_manager.py", "tests/test_ltx_update_manager.py", "scripts/ltx_update_scheduled_check.py", "tests/test_ltx_update_scheduler.py", "config/ltx_update_manager.json", "config/ltx_environment_inventory.schema.json", "ltx_update_installer.py", "tests/test_ltx_update_installer.py"}
             compile(validation.read("mira_assistant.py").decode("utf-8"), "mira_assistant.py", "exec")
             compile(validation.read("ltx_update_manager.py").decode("utf-8"), "ltx_update_manager.py", "exec")
+            compile(validation.read("ltx_update_installer.py").decode("utf-8"), "ltx_update_installer.py", "exec")
             compile(validation.read("scripts/ltx_update_scheduled_check.py").decode("utf-8"), "scripts/ltx_update_scheduled_check.py", "exec")
             missing = required - set(validation.namelist())
             if missing:

@@ -12,5 +12,12 @@
   "automatic_workflow_activation": false,
   "gpu_jobs": false,
   "director_approval_required": true,
-  "note": "Discovery and metadata compatibility review only until a real ComfyUI inventory, persistent GPU storage, staging backup and approved installation adapter are configured."
+  "note": "Discovery and metadata compatibility review only until a real ComfyUI inventory, persistent GPU storage, staging backup and approved installation adapter are configured.",
+  "auto_register_compatible_workflows": true,
+  "production_adapter_configured": false,
+  "require_verified_backup": true,
+  "require_environment_fingerprint_match": true,
+  "require_workflow_test_evidence": true,
+  "model_asset_downloads_need_director_approval": true,
+  "license_changes_need_director_approval": true
 }
