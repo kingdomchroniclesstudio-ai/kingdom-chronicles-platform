@@ -32,11 +32,15 @@ def fake_upstream(release="v1.6.2", node_release="v1.1.1", revision="abc123", do
         if url.endswith("ComfyUI-LTXVideo/releases/latest"):
             return FakeResponse(json.dumps({"tag_name": node_release, "published_at": "2026-11-12T14:15:29Z", "html_url": f"https://github.com/Lightricks/ComfyUI-LTXVideo/releases/tag/{node_release}", "body": "nodes updated"}).encode())
         if "raw.githubusercontent.com/Lightricks/ComfyUI-LTXVideo/master/example_workflows/2.5/" in url:
-            graph = {"nodes": [
-                {"type": "LTXVBaseSampler", "widgets_values": ["ltx-2.5-video.safetensors"]},
-                {"class_type": "LTXVImgToVideo", "inputs": {"model": "ltx-2.5-distilled.safetensors"}},
-                {"type": "LTXVTemporalUpscale", "widgets_values": []}
-            ]}
+            graph = {
+                "nodes": [
+                    {"type": "LTXVBaseSampler", "widgets_values": ["ltx-2.5-video.safetensors"]},
+                    {"class_type": "LTXVImgToVideo", "inputs": {"model": "ltx-2.5-distilled.safetensors"}},
+                    {"type": "LTXVTemporalUpscale", "widgets_values": []}
+                ],
+                "input_schema": [{"type": "AUDIO"}, {"type": "COMBO"}],
+                "metadata": {"type": "workflow"}
+            }
             return FakeResponse(json.dumps(graph).encode(), "application/json")
         if "example_workflows/2.5" in url:
             return FakeResponse(json.dumps([{"name": "LTX-2.5_T2V.json", "path": "example_workflows/2.5/LTX-2.5_T2V.json", "sha": "file-sha", "type": "file"}]).encode())
@@ -132,6 +136,9 @@ class ScheduledMonitorTests(unittest.TestCase):
         self.assertIn("LTXVBaseSampler", observed["required_node_classes"])
         self.assertIn("LTXVImgToVideo", observed["required_node_classes"])
         self.assertIn("LTXVTemporalUpscale", observed["required_node_classes"])
+        self.assertEqual(set(observed["required_node_classes"]), {"LTXVBaseSampler", "LTXVImgToVideo", "LTXVTemporalUpscale"})
+        self.assertNotIn("AUDIO", observed["required_node_classes"])
+        self.assertNotIn("COMBO", observed["required_node_classes"])
         self.assertIn("ltx-2.5-video.safetensors", observed["referenced_model_assets"])
         self.assertTrue(observed["version"])
         self.assertTrue(observed["version"].startswith(observed["fingerprint"][:16]))
@@ -195,6 +202,19 @@ class ScheduledMonitorTests(unittest.TestCase):
         self.assertFalse(updated.get("skipped", False))
         self.assertEqual(updated["failed_source_count"], len(manager.SOURCES))
         self.assertEqual(updated["next_check_due_at"], manager.stamp(self.now + timedelta(hours=1)))
+
+    def test_missing_workflow_model_assets_are_incompatible_when_node_classes_exist(self):
+        inventory = manager.validate_environment_inventory(connected_inventory())
+        observed = manager.observe("comfyui_ltx25_workflows", manager.SOURCES["comfyui_ltx25_workflows"], 1)
+        result = manager.classify_compatibility({
+            "source": "comfyui_ltxvideo_release",
+            "version": "v1.1.2",
+            "required_node_classes": ["LTXVBaseSampler", "LTXVImgToVideo"],
+            "referenced_model_assets": observed["referenced_model_assets"],
+        }, inventory)
+        self.assertEqual(result["status"], "INCOMPATIBLE")
+        self.assertIn("missing model assets", result["reason"])
+        self.assertIn("ltx-2.5-distilled.safetensors", result["reason"])
 
     def test_inventory_only_marks_exact_revision_already_installed(self):
         candidate = {"source": "ltx_core_release", "version": "v1.6.2"}
