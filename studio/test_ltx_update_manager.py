@@ -93,7 +93,7 @@ class LTXUpdateManagerRuntimeTests(unittest.TestCase):
         html_text = html.read_text(encoding="utf-8")
         self.assertIn('if path == "/api/updates/manager":', console_text)
         self.assertIn("self._console().update_manager_status()", console_text)
-        for marker in ("ltxManagerPanel", "ltxManagerCandidates", "ltxManagerNotifications", "ltxManagerActivity", "refreshLtxManager", "OPEN MANUAL SCHEDULED CHECK", "ltxComfyVersion", "ltxInstalledRevision", "ltxGpuState", "ltxStorageState", "ltxManagerInstalledCapabilities", "ltxManagerVerifiedCapabilities", "ltxInstalledCount"):
+        for marker in ("ltxManagerPanel", "ltxManagerCandidates", "ltxManagerNotifications", "ltxManagerActivity", "refreshLtxManager", "OPEN MANUAL SCHEDULED CHECK", "ltxComfyVersion", "ltxInstalledRevision", "ltxGpuState", "ltxStorageState", "ltxManagerInstalledCapabilities", "ltxManagerVerifiedCapabilities", "ltxInstalledCount", "ltxIncompatibleCount", "ltxAlreadyInstalledCount", "ltxUnreadCount"):
             with self.subTest(marker=marker):
                 self.assertIn(marker, html_text)
 
