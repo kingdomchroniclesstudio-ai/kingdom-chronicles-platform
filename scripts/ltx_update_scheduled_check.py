@@ -204,15 +204,47 @@ def observe(source_id: str, cfg: dict[str, str], timeout: float) -> dict[str, An
 
 
 def classify_compatibility(candidate: dict[str, Any], inventory: dict[str, Any] | None) -> dict[str, Any]:
-    if inventory and isinstance(inventory, dict):
-        installed = inventory.get("installed_sources", {})
-        current = installed.get(candidate["source"]) if isinstance(installed, dict) else None
-        version = candidate.get("version")
-        if current and version and current == version:
-            return {"status": "ALREADY_INSTALLED", "reason": "The registered environment records this exact source version."}
+    """Classify only from explicit, version-matched local inventory/test evidence."""
+    if not isinstance(inventory, dict) or inventory.get("status") != "CONNECTED":
+        return {
+            "status": "REQUIRES_MANUAL_APPROVAL",
+            "reason": "No verified production ComfyUI endpoint, installed-node inventory, model-file hashes, GPU/VRAM report or staging backup is registered. Upstream metadata alone cannot prove local compatibility.",
+        }
+
+    source = candidate.get("source")
+    version = candidate.get("version")
+    installed = inventory.get("installed_sources", {})
+    current = installed.get(source) if isinstance(installed, dict) else None
+    if current and version and current == version:
+        return {
+            "status": "ALREADY_INSTALLED",
+            "reason": "The registered production inventory records this exact version. Installation is not repeated; it remains unverified until the relevant workflow test passes.",
+        }
+
+    environment_fingerprint = inventory.get("environment_fingerprint")
+    results = inventory.get("compatibility_results", [])
+    if isinstance(results, list):
+        matches = [
+            row for row in results
+            if isinstance(row, dict)
+            and row.get("source") == source
+            and row.get("version") == version
+            and row.get("environment_fingerprint") == environment_fingerprint
+        ]
+        for row in reversed(matches):
+            if row.get("result") == "INCOMPATIBLE":
+                return {
+                    "status": "INCOMPATIBLE",
+                    "reason": str(row.get("reason") or "A version- and environment-matched compatibility test recorded this update as incompatible."),
+                }
+            if row.get("result") == "COMPATIBLE" and row.get("workflow_test_passed") is True:
+                return {
+                    "status": "COMPATIBLE",
+                    "reason": "The exact version passed its recorded compatibility workflow against the currently fingerprinted ComfyUI/LTX environment. Director approval is still required before installation.",
+                }
     return {
         "status": "REQUIRES_MANUAL_APPROVAL",
-        "reason": "No verified production ComfyUI endpoint, installed-node inventory, model-file hashes, GPU/VRAM report or staging backup is registered. Upstream metadata alone cannot prove local compatibility.",
+        "reason": "The connected environment has no matching, version-pinned compatibility test for this update. Review dependencies, licensing, VRAM, storage and the target workflow before approval.",
     }
 
 
@@ -297,20 +329,26 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
         compatibility = classify_compatibility({"source": source_id, "version": seen.get("version")}, inventory)
         if seen["kind"] in {"text", "html"}:
             compatibility = {"status": "REQUIRES_MANUAL_APPROVAL", "reason": "Documentation/changelog content changed; confirm the feature exists in the local open-weight ComfyUI workflow rather than assuming hosted API parity."}
+        candidate_status = compatibility["status"] if compatibility["status"] in {"COMPATIBLE", "INCOMPATIBLE", "ALREADY_INSTALLED"} else "DETECTED"
         candidate = {
             "id": candidate_id, "source": source_id, "name": cfg["label"], "version": seen.get("version"),
             "release_date": seen.get("published_at"), "source_url": seen.get("canonical_url") or seen["url"],
             "summary": seen.get("summary", "Upstream metadata changed."), "affected_components": cfg["components"],
-            "feature_tags": feature_tags, "change_fingerprint": seen["fingerprint"], "status": "DETECTED",
-            "compatibility": compatibility, "installation_status": "NOT_INSTALLED",
-            "verification_status": "NOT_TESTED", "detected_at": stamp(now), "director_action_required": True,
+            "feature_tags": feature_tags, "change_fingerprint": seen["fingerprint"], "status": candidate_status,
+            "compatibility": compatibility,
+            "installation_status": "INSTALLED" if compatibility["status"] == "ALREADY_INSTALLED" else "NOT_INSTALLED",
+            "verification_status": "COMPATIBILITY_TEST_PASSED" if compatibility["status"] == "COMPATIBLE" else "NOT_TESTED",
+            "detected_at": stamp(now), "director_action_required": True,
         }
         candidate["change_type"] = "SOURCE_CONTENT_CHANGE" if seen["kind"] in {"text", "html"} else "VERSION_OR_CATALOG_CHANGE"
         candidates.append(candidate)
         candidate_ids.add(candidate_id)
         add_event(current, "NEW_UPDATE_DETECTED", f"New upstream change detected: {candidate['name']} {candidate.get('version') or ''}".strip(), candidate_id=candidate_id, details={"source": source_id, "source_url": candidate["source_url"]}, when=now)
         add_event(current, "COMPATIBILITY_CHECK_IN_PROGRESS", f"Compatibility review queued for {candidate['name']}; no environment changes made.", candidate_id=candidate_id, details={"compatibility": compatibility}, when=now)
-        add_event(current, "MANUAL_ACTION_REQUIRED", f"Director review required for {candidate['name']}; installation remains locked.", candidate_id=candidate_id, details={"reason": compatibility["reason"]}, when=now)
+        if compatibility["status"] == "ALREADY_INSTALLED":
+            add_event(current, "ALREADY_INSTALLED_PENDING_VERIFICATION", f"{candidate['name']} {candidate.get('version') or ''} is already recorded in the installed inventory, but the relevant workflow is not yet marked VERIFIED.", candidate_id=candidate_id, details={"verification_status": candidate["verification_status"]}, when=now)
+        else:
+            add_event(current, "MANUAL_ACTION_REQUIRED", f"Director approval or test evidence is required for {candidate['name']}; automatic installation remains locked.", candidate_id=candidate_id, details={"reason": compatibility["reason"]}, when=now)
 
     current["source_observations"] = observations
     current["source_errors"] = errors
