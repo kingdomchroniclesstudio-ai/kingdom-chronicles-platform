@@ -317,16 +317,33 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
             add_event(current, "SOURCE_RECOVERED", f"{cfg['label']} monitoring source recovered.", details={"source": source_id}, when=now)
         old = previous.get(source_id)
         observations[source_id] = {"fingerprint": seen["fingerprint"], "metadata": seen["metadata"], "last_seen_at": stamp(now), "label": seen["label"], "url": seen["url"]}
+        text_to_scan = (seen.get("summary", "") + " " + json.dumps(seen.get("metadata", {}))).lower()
+        feature_tags = sorted(set(seen.get("feature_tags", [])) | {name for name, phrases in FEATURES.items() if any(phrase in text_to_scan for phrase in phrases)})
+        capability_registry = current.setdefault("capabilities", {}).setdefault("detected", [])
+        known_capabilities = {item.get("id") for item in capability_registry if isinstance(item, dict)}
+        scope = "HOSTED_API_ONLY" if source_id == "ltx_api_changelog_docs" else "LOCAL_OPEN_WEIGHT_OR_COMFYUI"
+        for feature in feature_tags:
+            capability_id = digest([source_id, feature])[:20]
+            if capability_id in known_capabilities:
+                continue
+            capability_registry.append({
+                "id": capability_id, "name": feature, "source": source_id,
+                "scope": scope, "status": "DETECTED_NOT_VERIFIED",
+                "installation_status": "UNKNOWN",
+                "verification_status": "NOT_TESTED",
+                "detected_at": stamp(now),
+                "source_url": seen.get("canonical_url") or seen.get("url"),
+            })
+            known_capabilities.add(capability_id)
+        current["capabilities"]["detected"] = capability_registry[-250:]
         if old is None:
-            add_event(current, "SOURCE_BASELINED", f"Initial baseline recorded for {cfg['label']}; no update is inferred from a first observation.", details={"source": source_id}, when=now)
+            add_event(current, "SOURCE_BASELINED", f"Initial baseline recorded for {cfg['label']}; advertised capabilities are catalogued as detected, not installed or verified.", details={"source": source_id, "feature_tags": feature_tags}, now=now)
             continue
         if old.get("fingerprint") == seen["fingerprint"]:
             continue
         candidate_id = digest([source_id, seen["fingerprint"]])[:24]
         if candidate_id in candidate_ids:
             continue
-        text_to_scan = (seen.get("summary", "") + " " + json.dumps(seen.get("metadata", {}))).lower()
-        feature_tags = sorted(set(seen.get("feature_tags", [])) | {name for name, phrases in FEATURES.items() if any(phrase in text_to_scan for phrase in phrases)})
         compatibility = classify_compatibility({"source": source_id, "version": seen.get("version")}, inventory)
         if seen["kind"] in {"text", "html"}:
             compatibility = {"status": "REQUIRES_MANUAL_APPROVAL", "reason": "Documentation/changelog content changed; confirm the feature exists in the local open-weight ComfyUI workflow rather than assuming hosted API parity."}
