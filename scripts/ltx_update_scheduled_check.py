@@ -342,7 +342,7 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
             known_capabilities.add(capability_id)
         current["capabilities"]["detected"] = capability_registry[-250:]
         if old is None:
-            add_event(current, "SOURCE_BASELINED", f"Initial baseline recorded for {cfg['label']}; advertised capabilities are catalogued as detected, not installed or verified.", details={"source": source_id, "feature_tags": feature_tags}, now=now)
+            add_event(current, "SOURCE_BASELINED", f"Initial baseline recorded for {cfg['label']}; advertised capabilities are catalogued as detected, not installed or verified.", details={"source": source_id, "feature_tags": feature_tags}, when=now)
             continue
         if old.get("fingerprint") == seen["fingerprint"]:
             continue
