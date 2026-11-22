@@ -210,9 +210,9 @@ def observe(source_id: str, cfg: dict[str, str], timeout: float) -> dict[str, An
 
 
 INVENTORY_TOP_LEVEL = {
-    "schema_version", "status", "observed_at", "comfyui", "runtime", "gpu",
-    "storage", "ltx", "custom_nodes", "installed_sources", "installed_assets",
-    "compatibility_results", "note",
+    "schema_version", "status", "observed_at", "environment_fingerprint",
+    "comfyui", "runtime", "gpu", "storage", "ltx", "custom_nodes",
+    "installed_sources", "installed_assets", "compatibility_results", "note",
 }
 INVENTORY_NESTED_KEYS = {
     "comfyui": {"version", "commit"},
@@ -383,7 +383,11 @@ def validate_environment_inventory(value: dict[str, Any] | None) -> dict[str, An
         })
     normalized["compatibility_results"] = normalized_results
     normalized["observed_at"] = str(value.get("observed_at") or "")
-    normalized["environment_fingerprint"] = environment_fingerprint(normalized)
+    computed_fingerprint = environment_fingerprint(normalized)
+    supplied_fingerprint = value.get("environment_fingerprint")
+    if supplied_fingerprint and supplied_fingerprint != computed_fingerprint:
+        raise ValueError("environment_fingerprint does not match the installed ComfyUI/LTX/GPU/storage inventory")
+    normalized["environment_fingerprint"] = computed_fingerprint
     return normalized
 
 
