@@ -191,6 +191,7 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
             <div class="record"><div class="muted tiny">SOURCE HEALTH</div><div id="ltxSourceHealth" class="small">0 / 10 sources checked</div></div>
           </div>
           <div class="form-actions"><span id="ltxInstallPolicy" class="pill warn">INSTALLATION LOCKED — MANUAL APPROVAL REQUIRED</span><span id="ltxManagerFreshness" class="muted small">Persistent state will appear after the first scheduled run.</span></div>
+          <div class="form-actions"><a id="ltxScheduledCheckNow" class="pill ok" href="https://github.com/kingdomchroniclesstudio-ai/kingdom-chronicles-platform/actions/workflows/ltx-update-scheduler.yml" target="_blank" rel="noopener noreferrer">OPEN MANUAL SCHEDULED CHECK</a><span class="muted small">Use Run workflow in GitHub Actions to force a check and persist its activity.</span></div>
           <h3>Pending updates</h3><div id="ltxManagerCandidates" class="stack"><div class="empty">No scheduled update candidates have been recorded.</div></div>
           <h3 style="margin-top:14px">Notification centre</h3><div id="ltxManagerNotifications" class="stack"><div class="empty">Notifications will remain available here after each scheduled run.</div></div>
           <h3 style="margin-top:14px">Integration activity</h3><div id="ltxManagerActivity" class="stack"><div class="empty">No manager activity recorded yet.</div></div>
