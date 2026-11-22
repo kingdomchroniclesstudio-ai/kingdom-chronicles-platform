@@ -186,6 +186,8 @@ def observe(source_id: str, cfg: dict[str, str], timeout: float) -> dict[str, An
                         elif isinstance(value, list):
                             for child in value:
                                 inspect_graph(child)
+                        elif isinstance(value, str) and re.search(r"\.(safetensors|ckpt|pt|pth|gguf|model)$", value, re.IGNORECASE):
+                            assets.add(value)
 
                     inspect_graph(graph)
                     classes_sorted = sorted(classes)
