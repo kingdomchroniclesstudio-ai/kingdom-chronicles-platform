@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 STATE_SCHEMA = 1
 MAX_BYTES = 2_000_000
@@ -22,7 +23,7 @@ USER_AGENT = "HIS-RISEN-LTX-Update-Manager/1.0"
 SOURCES: dict[str, dict[str, str]] = {
     "ltx_core_release": {"kind": "release", "url": "https://api.github.com/repos/Lightricks/LTX-2/releases/latest", "label": "Lightricks LTX core release", "components": "LTX pipeline code, chunking and decoder"},
     "comfyui_ltxvideo_release": {"kind": "release", "url": "https://api.github.com/repos/Lightricks/ComfyUI-LTXVideo/releases/latest", "label": "Official ComfyUI-LTXVideo custom nodes", "components": "ComfyUI LTXVideo nodes and workflows"},
-    "comfyui_ltx25_workflows": {"kind": "contents", "url": "https://api.github.com/repos/Lightricks/ComfyUI-LTXVideo/contents/example_workflows/2.5", "label": "Official LTX-2.5 ComfyUI workflow catalog", "components": "T2V, I2V, A2V, IC-LoRA, tiled fusion and HDR workflows"},
+    "comfyui_ltx25_workflows": {"kind": "workflow_graphs", "url": "https://api.github.com/repos/Lightricks/ComfyUI-LTXVideo/contents/example_workflows/2.5", "label": "Official LTX-2.5 ComfyUI workflow graphs", "components": "T2V, I2V, A2V, IC-LoRA, tiled fusion and HDR workflows"},
     "hf_ltx25_diffusers": {"kind": "hf_model", "url": "https://huggingface.co/api/models/Lightricks/LTX-2.5-Diffusers?blobs=true", "label": "LTX-2.5 Diffusers model revision", "components": "Diffusers checkpoint metadata and file manifest"},
     "hf_ltx25_comfyui_stack": {"kind": "hf_model", "url": "https://huggingface.co/api/models/Lightricks/LTX-2.5?blobs=true", "label": "Official LTX-2.5 ComfyUI split model pack", "components": "Distilled transformer, Gemma 4 12B encoder, video/audio VAEs, duration head, spatial and temporal upscalers"},
     "hf_ltx25_pixel_spatial_iclora": {"kind": "hf_model", "url": "https://huggingface.co/api/models/Lightricks/LTX-2.5-22b-IC-LoRA-Pixel-Spatial-Upscaler?blobs=true", "label": "LTX-2.5 Pixel Spatial Upscaler IC-LoRA", "components": "Detailing/upscaling IC-LoRA adapter"},
@@ -151,12 +152,62 @@ def observe(source_id: str, cfg: dict[str, str], timeout: float) -> dict[str, An
             notes_lower = release_notes.lower()
             feature_tags = [name for name, phrases in FEATURES.items() if any(phrase in notes_lower for phrase in phrases)]
             return {"source": source_id, "label": cfg["label"], "kind": cfg["kind"], "url": url, "canonical_url": data.get("html_url") or url, "metadata": metadata, "fingerprint": digest(metadata), "version": data.get("tag_name"), "published_at": data.get("published_at"), "summary": summary, "feature_tags": feature_tags, "components": cfg["components"], "status": "OBSERVED"}
-        if cfg["kind"] == "contents":
+        if cfg["kind"] == "workflow_graphs":
             data = json.loads(body.decode("utf-8"))
             if not isinstance(data, list):
-                raise ValueError("GitHub contents response was not a list")
-            metadata = sorted([{"name": row.get("name"), "path": row.get("path"), "sha": row.get("sha"), "type": row.get("type")} for row in data if isinstance(row, dict)], key=lambda item: str(item.get("path")))
-            return {"source": source_id, "label": cfg["label"], "kind": cfg["kind"], "url": url, "canonical_url": "https://github.com/Lightricks/ComfyUI-LTXVideo/tree/master/example_workflows/2.5", "metadata": metadata, "fingerprint": digest(metadata), "summary": f"Official LTX-2.5 workflow catalog contains {len(metadata)} entries; file names and Git object IDs tracked.", "components": cfg["components"], "status": "OBSERVED"}
+                raise ValueError("GitHub workflow directory response was not a list")
+            workflow_manifest = []
+            node_classes: set[str] = set()
+            model_refs: set[str] = set()
+            feature_texts: list[str] = []
+            for row in data:
+                if not isinstance(row, dict):
+                    continue
+                path = row.get("path")
+                if not isinstance(path, str) or not path.startswith("example_workflows/2.5/") or ".." in Path(path).parts:
+                    continue
+                entry = {"name": row.get("name"), "path": path, "sha": row.get("sha"), "type": row.get("type")}
+                if row.get("type") == "file" and path.lower().endswith(".json"):
+                    raw_url = "https://raw.githubusercontent.com/Lightricks/ComfyUI-LTXVideo/master/" + quote(path, safe="/")
+                    graph_body, _ = fetch(raw_url, timeout)
+                    graph = json.loads(graph_body.decode("utf-8"))
+                    classes: set[str] = set()
+                    assets: set[str] = set()
+
+                    def inspect_graph(value: Any) -> None:
+                        if isinstance(value, dict):
+                            for key, child in value.items():
+                                if key in {"type", "class_type"} and isinstance(child, str):
+                                    classes.add(child)
+                                if isinstance(child, str) and re.search(r"\.(safetensors|ckpt|pt|pth|gguf|model)$", child, re.IGNORECASE):
+                                    assets.add(child)
+                                else:
+                                    inspect_graph(child)
+                        elif isinstance(value, list):
+                            for child in value:
+                                inspect_graph(child)
+
+                    inspect_graph(graph)
+                    classes_sorted = sorted(classes)
+                    assets_sorted = sorted(assets)
+                    node_classes.update(classes)
+                    model_refs.update(assets)
+                    feature_texts.append(" ".join(classes_sorted + assets_sorted))
+                    entry["node_classes"] = classes_sorted
+                    entry["model_refs"] = assets_sorted
+                workflow_manifest.append(entry)
+            metadata = sorted(workflow_manifest, key=lambda item: str(item.get("path")))
+            feature_text = " ".join(feature_texts).lower()
+            feature_tags = [name for name, phrases in FEATURES.items() if any(phrase in feature_text for phrase in phrases)]
+            return {
+                "source": source_id, "label": cfg["label"], "kind": cfg["kind"], "url": url,
+                "canonical_url": "https://github.com/Lightricks/ComfyUI-LTXVideo/tree/master/example_workflows/2.5",
+                "metadata": metadata, "fingerprint": digest(metadata),
+                "summary": f"Official LTX-2.5 workflow catalogue: {len(metadata)} entries, {len(node_classes)} distinct node classes and {len(model_refs)} referenced asset names. Graph JSON metadata only; no model assets downloaded.",
+                "feature_tags": feature_tags,
+                "required_node_classes": sorted(node_classes), "referenced_model_assets": sorted(model_refs),
+                "components": cfg["components"], "status": "OBSERVED",
+            }
         if cfg["kind"] == "hf_model":
             data = json.loads(body.decode("utf-8"))
             siblings = data.get("siblings") or []
