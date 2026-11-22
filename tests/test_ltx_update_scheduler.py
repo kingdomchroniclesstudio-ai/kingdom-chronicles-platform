@@ -90,9 +90,30 @@ class ScheduledMonitorTests(unittest.TestCase):
         self.assertEqual(skipped["next_check_due_at"], manager.stamp(self.now + timedelta(hours=6)))
 
     def test_inventory_only_marks_exact_revision_already_installed(self):
-        self.assertEqual(manager.classify_compatibility({"source": "ltx_core_release", "version": "v1.6.2"}, None)["status"], "REQUIRES_MANUAL_APPROVAL")
-        inventory = {"installed_sources": {"ltx_core_release": "v1.6.2"}}
-        self.assertEqual(manager.classify_compatibility({"source": "ltx_core_release", "version": "v1.6.2"}, inventory)["status"], "ALREADY_INSTALLED")
+        candidate = {"source": "ltx_core_release", "version": "v1.6.2"}
+        self.assertEqual(manager.classify_compatibility(candidate, None)["status"], "REQUIRES_MANUAL_APPROVAL")
+        inventory = {"status": "CONNECTED", "installed_sources": {"ltx_core_release": "v1.6.2"}}
+        self.assertEqual(manager.classify_compatibility(candidate, inventory)["status"], "ALREADY_INSTALLED")
+
+    def test_compatibility_and_incompatibility_require_matching_test_and_environment_fingerprint(self):
+        candidate = {"source": "comfyui_ltxvideo_release", "version": "v1.1.2"}
+        inventory = {
+            "status": "CONNECTED",
+            "environment_fingerprint": "comfyui-0.44-ltx25-stack-A",
+            "compatibility_results": [
+                {"source": candidate["source"], "version": candidate["version"],
+                 "environment_fingerprint": "different-stack", "result": "COMPATIBLE", "workflow_test_passed": True}
+            ],
+        }
+        self.assertEqual(manager.classify_compatibility(candidate, inventory)["status"], "REQUIRES_MANUAL_APPROVAL")
+        inventory["compatibility_results"] = [
+            {"source": candidate["source"], "version": candidate["version"],
+             "environment_fingerprint": "comfyui-0.44-ltx25-stack-A", "result": "COMPATIBLE", "workflow_test_passed": True}
+        ]
+        self.assertEqual(manager.classify_compatibility(candidate, inventory)["status"], "COMPATIBLE")
+        inventory["compatibility_results"][0]["result"] = "INCOMPATIBLE"
+        inventory["compatibility_results"][0]["reason"] = "Required node missing."
+        self.assertEqual(manager.classify_compatibility(candidate, inventory)["status"], "INCOMPATIBLE")
 
     def test_failed_source_does_not_suppress_other_sources(self):
         def opener(request, timeout=10):
