@@ -212,7 +212,7 @@ def observe(source_id: str, cfg: dict[str, str], timeout: float) -> dict[str, An
 INVENTORY_TOP_LEVEL = {
     "schema_version", "status", "observed_at", "environment_fingerprint",
     "comfyui", "runtime", "gpu", "storage", "ltx", "custom_nodes",
-    "installed_sources", "installed_assets", "compatibility_results", "note",
+    "installed_sources", "installed_assets", "compatibility_results",
 }
 INVENTORY_NESTED_KEYS = {
     "comfyui": {"version", "commit"},
@@ -259,10 +259,13 @@ def validate_environment_inventory(value: dict[str, Any] | None) -> dict[str, An
 
     status = value.get("status")
     if status == "NOT_CONNECTED":
+        connected_fields = set(value) - {"schema_version", "status", "observed_at"}
+        if connected_fields:
+            raise ValueError("a NOT_CONNECTED inventory must not contain environment, asset or compatibility details")
         return {
             "schema_version": 1, "status": "NOT_CONNECTED",
             "observed_at": value.get("observed_at"),
-            "note": str(value.get("note") or "No production ComfyUI/GPU inventory has been registered."),
+            "note": "No production ComfyUI/GPU inventory is registered.",
         }
     if status != "CONNECTED":
         raise ValueError("environment inventory status must be NOT_CONNECTED or CONNECTED")
