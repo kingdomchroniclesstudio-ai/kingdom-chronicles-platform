@@ -146,9 +146,23 @@ class ScheduledMonitorTests(unittest.TestCase):
             "source": "comfyui_ltxvideo_release",
             "version": "v1.1.2",
             "required_node_classes": ["LTXVBaseSampler", "LTXVTemporalUpscale"],
+            "referenced_model_assets": ["ltx-2.5-distilled.safetensors"],
         }, inventory)
         self.assertEqual(result["status"], "INCOMPATIBLE")
         self.assertIn("LTXVTemporalUpscale", result["reason"])
+        self.assertIn("ltx-2.5-distilled.safetensors", result["reason"])
+
+    def test_missing_workflow_model_asset_is_incompatible_even_when_nodes_are_present(self):
+        inventory = manager.validate_environment_inventory(connected_inventory())
+        result = manager.classify_compatibility({
+            "source": "comfyui_ltxvideo_release",
+            "version": "v1.1.2",
+            "required_node_classes": ["LTXVBaseSampler", "LTXVImgToVideo"],
+            "referenced_model_assets": ["ltx-2.5-distilled.safetensors"],
+        }, inventory)
+        self.assertEqual(result["status"], "INCOMPATIBLE")
+        self.assertIn("missing model assets", result["reason"])
+        self.assertIn("ltx-2.5-distilled.safetensors", result["reason"])
 
     def test_missing_official_workflow_node_class_is_incompatible(self):
         inventory = manager.validate_environment_inventory(connected_inventory())
