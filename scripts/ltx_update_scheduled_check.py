@@ -397,8 +397,41 @@ def read_inventory(path: Path) -> dict[str, Any] | None:
     return validate_environment_inventory(raw)
 
 
+def build_installation_requirements(observation: dict[str, Any], inventory: dict[str, Any] | None) -> dict[str, Any]:
+    metadata = observation.get("metadata", {}) if isinstance(observation.get("metadata"), dict) else {}
+    files = metadata.get("files", []) if isinstance(metadata.get("files"), list) else []
+    sized_files = [row for row in files if isinstance(row, dict) and isinstance(row.get("size_bytes"), int) and row["size_bytes"] > 0]
+    estimated_bytes = sum(row["size_bytes"] for row in sized_files)
+    available_bytes = None
+    if isinstance(inventory, dict) and inventory.get("status") == "CONNECTED":
+        available_bytes = inventory.get("storage", {}).get("available_bytes")
+    if not sized_files:
+        storage_result = "NOT_APPLICABLE_OR_SIZE_UNKNOWN"
+    elif available_bytes is None:
+        storage_result = "UNKNOWN_NO_CONNECTED_STORAGE_INVENTORY"
+    elif available_bytes >= estimated_bytes:
+        storage_result = "SUFFICIENT_FOR_DOWNLOAD_ONLY"
+    else:
+        storage_result = "INSUFFICIENT_FOR_DOWNLOAD"
+    return {
+        "asset_file_count_with_size": len(sized_files),
+        "estimated_download_bytes": estimated_bytes if sized_files else None,
+        "estimated_download_gib": round(estimated_bytes / (1024 ** 3), 3) if sized_files else None,
+        "available_storage_bytes": available_bytes,
+        "storage_preflight": storage_result,
+        "license": metadata.get("license"),
+        "gated_asset": metadata.get("gated"),
+        "requires_director_approval": True,
+        "note": "Estimate covers listed files only; it excludes backups, temporary extraction space, dependencies and ComfyUI node storage. No download was started.",
+    }
+
+
 def classify_compatibility(candidate: dict[str, Any], inventory: dict[str, Any] | None) -> dict[str, Any]:
     """Classify only from explicit, version-matched local inventory/test evidence."""
+    try:
+        inventory = validate_environment_inventory(inventory)
+    except (TypeError, ValueError):
+        inventory = None
     if not isinstance(inventory, dict) or inventory.get("status") != "CONNECTED":
         return {
             "status": "REQUIRES_MANUAL_APPROVAL",
@@ -481,6 +514,12 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
     if not 1 <= int(interval_hours) <= 24:
         raise ValueError("interval_hours must be between 1 and 24")
     now = (now or now_utc()).astimezone(timezone.utc).replace(microsecond=0)
+    inventory_error = None
+    try:
+        inventory = validate_environment_inventory(inventory)
+    except (TypeError, ValueError) as exc:
+        inventory_error = str(exc)[:500]
+        inventory = None
     current = json.loads(json.dumps(state or initial_state(interval_hours)))
     previous_interval = current.get("schedule", {}).get("interval_hours")
     current.setdefault("schedule", {})["interval_hours"] = interval_hours
@@ -497,6 +536,8 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
         current["next_check_due_at"] = stamp(due_at)
         return current
 
+    if inventory_error:
+        add_event(current, "MANUAL_ACTION_REQUIRED", "The saved ComfyUI/GPU inventory failed validation. Updates remain approval-required until the inventory is corrected.", details={"reason": inventory_error}, when=now)
     add_event(current, "COMPATIBILITY_CHECK_IN_PROGRESS", "Scheduled metadata discovery started; no production files or GPU environment are modified.", when=now)
     previous = current.get("source_observations", {})
     prior_errors = current.get("source_errors", {})
@@ -555,6 +596,7 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
             "summary": seen.get("summary", "Upstream metadata changed."), "affected_components": cfg["components"],
             "feature_tags": feature_tags, "change_fingerprint": seen["fingerprint"], "status": candidate_status,
             "compatibility": compatibility,
+            "installation_requirements": build_installation_requirements(seen, inventory),
             "installation_status": "INSTALLED" if compatibility["status"] == "ALREADY_INSTALLED" else "NOT_INSTALLED",
             "verification_status": "COMPATIBILITY_TEST_PASSED" if compatibility["status"] == "COMPATIBLE" else "NOT_TESTED",
             "detected_at": stamp(now), "director_action_required": True,
@@ -585,8 +627,29 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
         current["next_check_due_at"] = stamp(now + timedelta(hours=1))
     current["schedule"]["interval_hours"] = interval_hours
     current["schedule"]["scheduler"] = "GitHub Actions scheduled workflow"
-    current["environment"].setdefault("status", "NOT_CONNECTED")
-    current["safety"] = {"automatic_install": False, "downloads_enabled": False, "workflow_activation_enabled": False, "gpu_jobs_enabled": False, "director_approval_required": True, "reason": "Real ComfyUI, persistent GPU storage, staging backup and compatibility tests remain unconfigured."}
+    if inventory_error:
+        current["environment"] = {"status": "INVALID_INVENTORY", "inventory_error": inventory_error, "comfyui_version": None, "installed_ltx_version": None}
+    elif isinstance(inventory, dict) and inventory.get("status") == "CONNECTED":
+        current["environment"] = {
+            "status": "CONNECTED",
+            "comfyui_version": inventory["comfyui"]["version"],
+            "comfyui_commit": inventory["comfyui"]["commit"],
+            "python_version": inventory["runtime"]["python_version"],
+            "pytorch_version": inventory["runtime"]["pytorch_version"],
+            "cuda_version": inventory["runtime"]["cuda_version"],
+            "installed_ltx_version": inventory["ltx"]["primary_model"],
+            "installed_ltx_revision": inventory["ltx"]["model_revision"],
+            "gpu_model": inventory["gpu"]["model"],
+            "gpu_vram_gib": inventory["gpu"]["vram_total_gib"],
+            "storage_mount_label": inventory["storage"]["mount_label"],
+            "storage_available_bytes": inventory["storage"]["available_bytes"],
+            "environment_fingerprint": inventory["environment_fingerprint"],
+            "custom_node_count": len(inventory["custom_nodes"]),
+            "installed_asset_count": len(inventory["installed_assets"]),
+        }
+    else:
+        current["environment"] = {"status": "NOT_CONNECTED", "comfyui_version": None, "installed_ltx_version": None}
+    current["safety"] = {"automatic_install": False, "downloads_enabled": False, "workflow_activation_enabled": False, "gpu_jobs_enabled": False, "director_approval_required": True, "reason": "No installer has been authorised. ComfyUI node inventory, immutable backups, licensing review and workflow acceptance are required before any install."}
     current.pop("skipped", None)
     return current
 
