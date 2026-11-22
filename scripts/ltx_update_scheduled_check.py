@@ -206,6 +206,7 @@ def observe(source_id: str, cfg: dict[str, str], timeout: float) -> dict[str, An
                 "canonical_url": "https://github.com/Lightricks/ComfyUI-LTXVideo/tree/master/example_workflows/2.5",
                 "metadata": metadata, "fingerprint": digest(metadata),
                 "summary": f"Official LTX-2.5 workflow catalogue: {len(metadata)} entries, {len(node_classes)} distinct node classes and {len(model_refs)} referenced asset names. Graph JSON metadata only; no model assets downloaded.",
+                "version": digest(metadata)[:16],
                 "feature_tags": feature_tags,
                 "required_node_classes": sorted(node_classes), "referenced_model_assets": sorted(model_refs),
                 "components": cfg["components"], "status": "OBSERVED",
@@ -521,10 +522,25 @@ def classify_compatibility(candidate: dict[str, Any], inventory: dict[str, Any] 
     required_node_classes = candidate.get("required_node_classes", [])
     installed_node_classes = set(inventory.get("installed_node_classes", []))
     missing_node_classes = sorted(set(required_node_classes) - installed_node_classes)
-    if missing_node_classes:
+    installed_asset_names = {
+        Path(str(asset.get("filename", ""))).name.casefold()
+        for asset in inventory.get("installed_assets", [])
+        if isinstance(asset, dict) and asset.get("filename")
+    }
+    required_assets = candidate.get("referenced_model_assets", [])
+    missing_assets = sorted({
+        Path(str(name)).name for name in required_assets
+        if Path(str(name)).name.casefold() not in installed_asset_names
+    })
+    if missing_node_classes or missing_assets:
+        reasons = []
+        if missing_node_classes:
+            reasons.append("missing node classes: " + ", ".join(missing_node_classes[:30]))
+        if missing_assets:
+            reasons.append("missing model assets: " + ", ".join(missing_assets[:30]))
         return {
             "status": "INCOMPATIBLE",
-            "reason": "The workflow references node classes missing from the registered ComfyUI environment: " + ", ".join(missing_node_classes[:30]),
+            "reason": "The workflow is not ready in the registered ComfyUI environment (" + "; ".join(reasons) + ").",
         }
     source = candidate.get("source")
     version = candidate.get("version")
