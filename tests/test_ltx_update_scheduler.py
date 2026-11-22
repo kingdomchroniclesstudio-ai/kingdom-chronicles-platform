@@ -45,6 +45,24 @@ def fake_upstream(release="v1.6.2", node_release="v1.1.1", revision="abc123", do
     return opener
 
 
+def connected_inventory(installed_sources=None, compatibility_results=None):
+    raw = {
+        "schema_version": 1,
+        "status": "CONNECTED",
+        "observed_at": "2026-11-22T12:00:00Z",
+        "comfyui": {"version": "0.44.0", "commit": "comfy-commit"},
+        "runtime": {"python_version": "3.11.9", "pytorch_version": "2.7.1", "cuda_version": "12.8"},
+        "gpu": {"model": "NVIDIA RTX 5090", "vram_total_gib": 32},
+        "storage": {"persistent_mount_configured": True, "available_bytes": 100_000_000_000, "mount_label": "GPU_DATA"},
+        "ltx": {"primary_model": "LTX-2.5", "model_revision": "ltx25-abc"},
+        "custom_nodes": [{"name": "ComfyUI-LTXVideo", "repository": "https://github.com/Lightricks/ComfyUI-LTXVideo", "version": "v1.1.1", "commit": "nodes-abc", "license": "Other"}],
+        "installed_sources": installed_sources or {},
+        "installed_assets": [{"repo_id": "Lightricks/LTX-2.5", "revision": "ltx25-abc", "filename": "transformer.safetensors", "size_bytes": 1000, "sha256_or_lfs_oid": "asset-hash", "license": "ltx-2.x-community-license-agreement", "gated": False}],
+        "compatibility_results": compatibility_results or [],
+    }
+    return raw
+
+
 class ScheduledMonitorTests(unittest.TestCase):
     def setUp(self):
         self.now = datetime(2026, 11, 21, 10, 0, tzinfo=timezone.utc)
@@ -119,28 +137,60 @@ class ScheduledMonitorTests(unittest.TestCase):
     def test_inventory_only_marks_exact_revision_already_installed(self):
         candidate = {"source": "ltx_core_release", "version": "v1.6.2"}
         self.assertEqual(manager.classify_compatibility(candidate, None)["status"], "REQUIRES_MANUAL_APPROVAL")
-        inventory = {"status": "CONNECTED", "installed_sources": {"ltx_core_release": "v1.6.2"}}
+        inventory = connected_inventory(installed_sources={"ltx_core_release": "v1.6.2"})
         self.assertEqual(manager.classify_compatibility(candidate, inventory)["status"], "ALREADY_INSTALLED")
 
     def test_compatibility_and_incompatibility_require_matching_test_and_environment_fingerprint(self):
         candidate = {"source": "comfyui_ltxvideo_release", "version": "v1.1.2"}
-        inventory = {
-            "status": "CONNECTED",
-            "environment_fingerprint": "comfyui-0.44-ltx25-stack-A",
-            "compatibility_results": [
-                {"source": candidate["source"], "version": candidate["version"],
-                 "environment_fingerprint": "different-stack", "result": "COMPATIBLE", "workflow_test_passed": True}
-            ],
-        }
-        self.assertEqual(manager.classify_compatibility(candidate, inventory)["status"], "REQUIRES_MANUAL_APPROVAL")
+        inventory = connected_inventory()
+        fingerprint = manager.environment_fingerprint(inventory)
         inventory["compatibility_results"] = [
-            {"source": candidate["source"], "version": candidate["version"],
-             "environment_fingerprint": "comfyui-0.44-ltx25-stack-A", "result": "COMPATIBLE", "workflow_test_passed": True}
+            {"source": candidate["source"], "version": candidate["version"], "environment_fingerprint": "different-stack",
+             "result": "COMPATIBLE", "workflow_test_passed": True, "reason": "Prior stack passed.",
+             "workflow_id": "L25-T2V", "tested_at": "2026-11-22T12:00:00Z"}
         ]
+        self.assertEqual(manager.classify_compatibility(candidate, inventory)["status"], "REQUIRES_MANUAL_APPROVAL")
+        inventory["compatibility_results"][0]["environment_fingerprint"] = fingerprint
         self.assertEqual(manager.classify_compatibility(candidate, inventory)["status"], "COMPATIBLE")
         inventory["compatibility_results"][0]["result"] = "INCOMPATIBLE"
         inventory["compatibility_results"][0]["reason"] = "Required node missing."
         self.assertEqual(manager.classify_compatibility(candidate, inventory)["status"], "INCOMPATIBLE")
+
+    def test_connected_inventory_requires_ltx25_gpu_comfyui_and_persistent_storage(self):
+        raw = connected_inventory()
+        normalized = manager.validate_environment_inventory(raw)
+        self.assertEqual(normalized["status"], "CONNECTED")
+        self.assertEqual(normalized["environment_fingerprint"], manager.environment_fingerprint(raw))
+        invalid = connected_inventory()
+        invalid["ltx"]["primary_model"] = "LTX-2.3"
+        with self.assertRaises(ValueError):
+            manager.validate_environment_inventory(invalid)
+        invalid = connected_inventory()
+        invalid["storage"]["persistent_mount_configured"] = False
+        with self.assertRaises(ValueError):
+            manager.validate_environment_inventory(invalid)
+        invalid = connected_inventory()
+        invalid["api_key"] = "should-never-be-accepted"
+        with self.assertRaises(ValueError):
+            manager.validate_environment_inventory(invalid)
+
+    def test_inventory_reader_accepts_not_connected_state_and_rejects_invalid_json(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "inventory.json"
+            path.write_text(json.dumps({"schema_version": 1, "status": "NOT_CONNECTED"}), encoding="utf-8")
+            self.assertEqual(manager.read_inventory(path)["status"], "NOT_CONNECTED")
+            path.write_text("{bad", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                manager.read_inventory(path)
+
+    def test_model_manifest_yields_storage_estimate_without_starting_download(self):
+        observation = {"metadata": {"license": "ltx-2.x-community-license-agreement", "gated": False,
+            "files": [{"name": "transformer.safetensors", "size_bytes": 8_000_000_000},
+                      {"name": "gemma.safetensors", "size_bytes": 2_000_000_000}]}}
+        result = manager.build_installation_requirements(observation, connected_inventory())
+        self.assertEqual(result["estimated_download_bytes"], 10_000_000_000)
+        self.assertEqual(result["storage_preflight"], "SUFFICIENT_FOR_DOWNLOAD_ONLY")
+        self.assertTrue(result["requires_director_approval"])
 
     def test_failed_source_does_not_suppress_other_sources(self):
         def opener(request, timeout=10):
