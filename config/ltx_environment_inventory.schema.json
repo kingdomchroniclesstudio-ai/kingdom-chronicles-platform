@@ -1,0 +1,386 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kingdomchroniclesstudio-ai/kingdom-chronicles-platform/blob/main/config/ltx_environment_inventory.schema.json",
+  "title": "HIS RISEN LTX-2.5 Production Environment Inventory",
+  "description": "Secret-free, version-pinned evidence used by the LTX update manager to evaluate local ComfyUI compatibility. This is inventory metadata, not a command or installer request.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "NOT_CONNECTED",
+        "CONNECTED"
+      ]
+    },
+    "observed_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "environment_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Computed by the manager from the installed ComfyUI/LTX/GPU/storage inventory. Obtain the current value with --print-inventory-fingerprint after validating the inventory."
+    },
+    "comfyui": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "commit"
+      ],
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commit": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "python_version",
+        "pytorch_version",
+        "cuda_version"
+      ],
+      "properties": {
+        "python_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pytorch_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cuda_version": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "gpu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "vram_total_gib"
+      ],
+      "properties": {
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vram_total_gib": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "driver_version": {
+          "type": "string"
+        }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "persistent_mount_configured",
+        "available_bytes",
+        "mount_label"
+      ],
+      "properties": {
+        "persistent_mount_configured": {
+          "const": true
+        },
+        "available_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "mount_label": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ltx": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary_model",
+        "model_revision"
+      ],
+      "properties": {
+        "primary_model": {
+          "const": "LTX-2.5"
+        },
+        "model_revision": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "custom_nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "repository",
+          "version",
+          "commit",
+          "node_classes"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "repository": {
+            "type": "string",
+            "format": "uri"
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commit": {
+            "type": "string",
+            "minLength": 1
+          },
+          "license": {
+            "type": "string"
+          },
+          "node_classes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "installed_sources": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "installed_assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "repo_id",
+          "revision",
+          "filename",
+          "size_bytes",
+          "sha256_or_lfs_oid"
+        ],
+        "properties": {
+          "repo_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "filename": {
+            "type": "string",
+            "minLength": 1
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "sha256_or_lfs_oid": {
+            "type": "string",
+            "minLength": 1
+          },
+          "license": {
+            "type": "string"
+          },
+          "gated": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "compatibility_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "source",
+          "version",
+          "result",
+          "workflow_test_passed",
+          "reason",
+          "workflow_id",
+          "tested_at",
+          "environment_fingerprint"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "result": {
+            "enum": [
+              "COMPATIBLE",
+              "INCOMPATIBLE"
+            ]
+          },
+          "workflow_test_passed": {
+            "const": true
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "workflow_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "tested_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "environment_fingerprint": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "installed_node_classes": {
+      "type": "array",
+      "description": "Complete node-class list exposed by the running ComfyUI registry, including core and all custom-node classes.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "CONNECTED"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "observed_at",
+          "comfyui",
+          "runtime",
+          "gpu",
+          "storage",
+          "ltx",
+          "custom_nodes",
+          "installed_sources",
+          "installed_assets",
+          "compatibility_results",
+          "installed_node_classes"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "NOT_CONNECTED"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "environment_fingerprint"
+              ]
+            },
+            {
+              "required": [
+                "comfyui"
+              ]
+            },
+            {
+              "required": [
+                "runtime"
+              ]
+            },
+            {
+              "required": [
+                "gpu"
+              ]
+            },
+            {
+              "required": [
+                "storage"
+              ]
+            },
+            {
+              "required": [
+                "ltx"
+              ]
+            },
+            {
+              "required": [
+                "custom_nodes"
+              ]
+            },
+            {
+              "required": [
+                "installed_sources"
+              ]
+            },
+            {
+              "required": [
+                "installed_assets"
+              ]
+            },
+            {
+              "required": [
+                "compatibility_results"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

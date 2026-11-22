@@ -173,6 +173,50 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
           <div class="panel"><div class="section-head"><div><div class="eyebrow">Studio activity</div><h2>Testing snapshot</h2></div><button class="quiet" data-go="testing">OPEN LAB</button></div><div class="grid-2"><div class="record"><div class="muted tiny">PASSED TESTS</div><div id="metricPassed" style="font-size:25px;font-weight:900;color:var(--green)">0</div></div><div class="record"><div class="muted tiny">NEEDS ATTENTION</div><div id="metricFailed" style="font-size:25px;font-weight:900;color:var(--coral)">0</div></div></div><p class="muted small" style="margin:12px 0 0">Only test results and costs entered in the studio test log are included. Live GPU telemetry arrives after the GPU connection stage.</p></div>
         </div>
         <div class="panel" style="margin-top:14px"><div class="section-head"><div><div class="eyebrow">Production monitor</div><h2>LTX Update Monitor</h2></div><span id="backendDetail" class="pill ok">CONNECTED</span></div><div class="grid-3"><div><div class="muted tiny">ENGINE MODE</div><strong id="engineMode">Mock Mode</strong></div><div><div class="muted tiny">REAL GENERATION</div><strong id="realMode">LOCKED</strong></div><div><div class="muted tiny">WORKSPACE STORAGE</div><strong id="storageDetail">Checking…</strong></div></div><div class="form-actions"><button id="updateCheckButton" class="amber">CHECK FOR UPDATES</button><span id="updateCheckStatus" class="muted small" role="status" aria-live="polite">Update checks are read-only.</span></div><div id="updateCheckResults" class="stack"></div></div>
+        <div class="panel" id="ltxManagerPanel" style="margin-top:14px">
+          <div class="section-head"><div><div class="eyebrow">Automated ecosystem monitoring</div><h2>HIS RISEN LTX Update &amp; Integration Manager</h2><p class="muted small">LTX-2.5 is locked as the primary production model. Scheduled checks run independently of the Render dashboard.</p></div><span id="ltxManagerStatus" class="pill warn">WAITING FOR FIRST SCHEDULED CHECK</span></div>
+          <div class="grid-3">
+            <div class="record"><div class="muted tiny">PRIMARY MODEL</div><strong id="ltxPrimaryModel">LTX-2.5</strong></div>
+            <div class="record"><div class="muted tiny">COMFYUI ENVIRONMENT</div><strong id="ltxComfyState">NOT CONNECTED</strong></div>
+            <div class="record"><div class="muted tiny">CHECK INTERVAL</div><strong id="ltxCheckInterval">Every 6 hours</strong></div>
+          </div>
+          <div class="grid-3">
+            <div class="record"><div class="muted tiny">INSTALLED COMFYUI VERSION</div><strong id="ltxComfyVersion">Not registered</strong></div>
+            <div class="record"><div class="muted tiny">INSTALLED LTX-2.5 REVISION</div><strong id="ltxInstalledRevision">Not registered</strong></div>
+            <div class="record"><div class="muted tiny">GPU / VRAM</div><strong id="ltxGpuState">Not reported</strong></div>
+          </div>
+          <div class="grid-3">
+            <div class="record"><div class="muted tiny">PERSISTENT STORAGE</div><strong id="ltxStorageState">Not configured</strong></div>
+            <div class="record"><div class="muted tiny">DETECTED CHANGES</div><strong id="ltxDetectedCount">0</strong></div>
+            <div class="record"><div class="muted tiny">PENDING DIRECTOR REVIEW</div><strong id="ltxPendingCount">0</strong></div>
+            <div class="record"><div class="muted tiny">INCOMPATIBLE UPDATES</div><strong id="ltxIncompatibleCount">0</strong></div>
+          </div>
+          <div class="grid-2">
+            <div class="record"><div class="muted tiny">ALREADY INSTALLED UPDATES</div><strong id="ltxAlreadyInstalledCount">0</strong></div>
+            <div class="record"><div class="muted tiny">INSTALLED CAPABILITIES</div><strong id="ltxInstalledCount">0</strong></div>
+          </div>
+          <div class="grid-2">
+            <div class="record"><div class="muted tiny">VERIFIED CAPABILITIES</div><strong id="ltxVerifiedCount">0</strong></div>
+            <div class="record"><div class="muted tiny">UNREAD NOTIFICATIONS</div><strong id="ltxUnreadCount">0</strong></div>
+          </div>
+          <div class="grid-3">
+            <div class="record"><div class="muted tiny">LAST SUCCESSFUL CHECK</div><div id="ltxLastCheck" class="small">Not checked yet</div></div>
+            <div class="record"><div class="muted tiny">NEXT CHECK DUE</div><div id="ltxNextCheck" class="small">Awaiting scheduler activation</div></div>
+            <div class="record"><div class="muted tiny">SOURCE HEALTH</div><div id="ltxSourceHealth" class="small">0 / 10 sources checked</div></div>
+          </div>
+          <div class="form-actions"><span id="ltxInstallPolicy" class="pill warn">INSTALLATION LOCKED — MANUAL APPROVAL REQUIRED</span><span id="ltxManagerFreshness" class="muted small">Persistent state will appear after the first scheduled run.</span></div>
+          <div class="form-actions"><a id="ltxScheduledCheckNow" class="pill ok" href="https://github.com/kingdomchroniclesstudio-ai/kingdom-chronicles-platform/actions/workflows/ltx-update-scheduler.yml" target="_blank" rel="noopener noreferrer">OPEN MANUAL SCHEDULED CHECK</a><span class="muted small">Use Run workflow in GitHub Actions to force a check and persist its activity.</span></div>
+          <h3>Pending updates</h3><div id="ltxManagerCandidates" class="stack"><div class="empty">No scheduled update candidates have been recorded.</div></div>
+          <h3 style="margin-top:12px">Integration plan preview</h3><div id="ltxIntegrationPlanResult" class="record">Select a compatible candidate to preview a dry-run integration plan. No installation starts from this panel.</div>
+          <div class="grid-2" style="margin-top:14px">
+            <div><h3>Detected capabilities</h3><div id="ltxManagerCapabilities" class="stack"><div class="empty">Newly documented features are catalogued as detected, not installed.</div></div></div>
+            <div><h3>Installed capabilities</h3><div id="ltxManagerInstalledCapabilities" class="stack"><div class="empty">No installed capability inventory has been registered.</div></div></div>
+          </div>
+          <h3 style="margin-top:14px">Verified capabilities</h3><div id="ltxManagerVerifiedCapabilities" class="stack"><div class="empty">A capability appears here only after its relevant workflow test passes.</div></div>
+          <h3 style="margin-top:14px">Notification centre</h3><div id="ltxManagerNotifications" class="stack"><div class="empty">Notifications will remain available here after each scheduled run.</div></div>
+          <h3 style="margin-top:14px">Integration activity</h3><div id="ltxManagerActivity" class="stack"><div class="empty">No manager activity recorded yet.</div></div>
+          <p class="muted small">The scheduled worker observes official metadata only. It does not download model weights, alter ComfyUI, activate workflows or start GPU jobs. Downloaded files will not count as installed or verified.</p>
+        </div>
         <div class="panel" style="margin-top:14px"><div class="eyebrow">Director Command</div><h2 style="margin-top:6px">Command bridge</h2><p class="muted small">The natural-language command bridge is not connected yet. This panel is reserved for a future secure director-agent integration; it does not execute commands today.</p><textarea disabled placeholder="Command bridge will be enabled after its secure agent integration is implemented."></textarea><div class="form-actions"><button class="quiet" disabled>COMMAND BRIDGE NOT CONNECTED</button></div></div>
       </section>
 
@@ -382,7 +426,7 @@ async function refreshStudio(){
   $("metricPassed").textContent=overview.tests_passed; $("metricFailed").textContent=overview.tests_failed;
   renderProjects(); renderScenes(); renderShots(); renderTests(); renderAssets(); renderReviews(); renderTakes();
   if(selectedProjectId) await loadScenes();
-  renderReports(report); await loadShotTemplate(); await loadGenerationGate(); await refreshMiraBriefing();
+  renderReports(report); await loadShotTemplate(); await loadGenerationGate(); await refreshLtxManager(); await refreshMiraBriefing();
  }catch(error){if(error.message.indexOf("session expired")<0)note(error.message);}
 }
 function renderProjects(){
@@ -464,6 +508,95 @@ function buildShotSpecification(){
 function newShotRequestId(){if(window.crypto&&typeof window.crypto.randomUUID==="function")return window.crypto.randomUUID();throw new Error("Secure UUID generation is not supported by this browser.");}
 $("realShotForm").addEventListener("submit",async function(event){event.preventDefault();if(!generationGate||!generationGate.enabled){note("Real shot submission remains locked by production preflight.");return;}if(!$("confirmRealCost").checked){note("Confirm the generation cost acknowledgement first.");return;}let spec,payload;try{spec=buildShotSpecification();payload=JSON.stringify(spec);}catch(error){note(error.message);return;}if(!pendingShotRequestId||pendingShotPayload!==payload){pendingShotRequestId=newShotRequestId();pendingShotPayload=payload;}const button=$("submitRealShotButton");button.disabled=true;button.textContent="SUBMITTING…";try{const result=await api("/shots/generate",{method:"POST",body:body({request_id:pendingShotRequestId,specification:spec,cost_acknowledged:$("confirmRealCost").checked})});const take=result.take||{};$("realShotResult").textContent=(result.reused?"Existing submission: ":"Shot submitted: ")+(take.take_id||"take ID unavailable");pendingShotRequestId=null;pendingShotPayload=null;$("confirmRealCost").checked=false;note("Submission accepted by controller.");await refreshStudio();}catch(error){$("realShotResult").textContent="Submission not confirmed: "+error.message+". Reusing this request ID is designed to avoid duplicate submission.";note(error.message);}finally{button.textContent="SUBMIT REAL T2V SHOT";button.disabled=!(generationGate&&generationGate.enabled);}});
 $("mockTestButton").addEventListener("click",async function(){try{const result=await api("/mock-test",{method:"POST",body:body({})});$("mockTestResult").textContent="Mock take: "+result.take.take_id+" · "+(result.reused?"existing safe test reused":"submitted in Mock Mode");note("Mock test submitted; no GPU was used.");await refreshStudio();}catch(error){note(error.message);}});
+function formatLtxDate(value){
+ if(!value)return "Not available";
+ const date=new Date(value);
+ if(Number.isNaN(date.getTime()))return String(value);
+ return date.toLocaleString();
+}
+function renderLtxManager(data){
+ const summary=data.summary||{};
+ $("ltxManagerStatus").textContent=data.stale?(data.state_source==="LOCAL_CACHE"?"CACHED STATE — CHECK CONNECTION":"SCHEDULED STATE UNAVAILABLE"):(data.ok?"SCHEDULED MONITOR ONLINE":"WAITING FOR FIRST SCHEDULED CHECK");
+ $("ltxManagerStatus").className="pill "+(data.stale?"warn":(data.ok?"ok":"warn"));
+ $("ltxPrimaryModel").textContent=data.primary_model||"LTX-2.5";
+ const env=data.environment||{};
+ $("ltxComfyState").textContent=env.status||"NOT CONNECTED";
+ $("ltxComfyVersion").textContent=env.comfyui_version||"Not registered";
+ $("ltxInstalledRevision").textContent=env.installed_ltx_revision||"Not registered";
+ $("ltxGpuState").textContent=env.gpu_model?(env.gpu_model+" · "+(env.gpu_vram_gib||"?")+" GiB · Driver "+(env.gpu_driver_version||"not recorded")):"Not reported";
+ $("ltxStorageState").textContent=env.storage_available_bytes?Math.round(env.storage_available_bytes/1073741824)+" GiB available · "+(env.storage_mount_label||"persistent mount"):"Not configured";
+ $("ltxCheckInterval").textContent="Every "+((data.schedule||{}).interval_hours||6)+" hours";
+ $("ltxDetectedCount").textContent=summary.detected||0;
+ $("ltxPendingCount").textContent=summary.pending_approval||0;
+ $("ltxIncompatibleCount").textContent=summary.incompatible||0;
+ $("ltxAlreadyInstalledCount").textContent=summary.already_installed||0;
+ $("ltxInstalledCount").textContent=summary.installed||0;
+ $("ltxVerifiedCount").textContent=summary.verified||0;
+ $("ltxUnreadCount").textContent=summary.unread_notifications||0;
+ $("ltxLastCheck").textContent=formatLtxDate(data.last_successful_check_at);
+ $("ltxNextCheck").textContent=formatLtxDate(data.next_check_due_at);
+ $("ltxSourceHealth").textContent=(data.successful_source_count||0)+" / "+(data.source_total_count||15)+" healthy · "+(data.failed_source_count||0)+" failed";
+ $("ltxManagerFreshness").textContent=data.stale?(data.read_error||"Showing last cached scheduled state."):"Persistent scheduled state · "+(data.state_source||"unknown");
+ $("ltxInstallPolicy").textContent=(data.safety&&data.safety.automatic_install)?"AUTOMATIC INSTALLATION ENABLED":"INSTALLATION LOCKED — DIRECTOR APPROVAL REQUIRED";
+ const candidates=(data.candidates||[]).slice().reverse().slice(0,8);
+ $("ltxManagerCandidates").innerHTML=candidates.length?candidates.map(function(item){
+  const status=item.compatibility&&item.compatibility.status||"REVIEW REQUIRED";
+  const statusClass=status==="INCOMPATIBLE"?"bad":(status==="COMPATIBLE"?"ok":"warn");
+  const requirements=item.installation_requirements||{};
+  const sizeText=requirements.estimated_download_gib===null||requirements.estimated_download_gib===undefined?"size unknown":requirements.estimated_download_gib+" GiB listed files";
+  return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(item.name||item.source||"Upstream change")+'</div><div class="record-meta">'+esc(item.version||"Revision/content change")+' · '+esc(item.release_date||item.detected_at||"date unavailable")+'</div></div><span class="pill '+statusClass+'">'+esc(status)+'</span></div><p class="small">'+esc(item.summary||"Metadata changed.")+'</p><div class="record-meta">Risk: '+esc(item.risk_class||"REVIEW_REQUIRED")+' · Affects: '+esc(item.affected_components||"LTX ecosystem")+'</div><div class="record-meta">'+esc(sizeText)+' · storage: '+esc(requirements.storage_preflight||"UNKNOWN")+' · license: '+esc(requirements.license_review||"REVIEW REQUIRED")+'</div><div class="record-meta">Missing dependencies: '+esc(item.missing_dependencies||"none recorded")+'</div><div class="record-meta">Required nodes: '+esc((item.required_node_classes||[]).join(", ")||"not specified")+'</div><div class="record-meta">Referenced assets: '+esc((item.referenced_model_assets||[]).join(", ")||"not specified")+'</div><div class="record-meta">Installation: '+esc(item.installation_status||"NOT INSTALLED")+' · verification: '+esc(item.verification_status||"NOT TESTED")+'</div><a href="'+esc(item.source_url||"#")+'" target="_blank" rel="noopener">Open official source</a><button type="button" class="quiet" data-ltx-plan="'+esc(item.id||"")+'">PREVIEW INTEGRATION PLAN (DRY RUN)</button></div>';
+ }).join(""):'<div class="empty">No new upstream changes have been recorded after the stored baseline.</div>';
+ $("ltxManagerCandidates").querySelectorAll("[data-ltx-plan]").forEach(function(button){button.addEventListener("click",function(){previewLtxIntegrationPlan(button.getAttribute("data-ltx-plan")||"");});});
+ const capabilities=((data.capabilities||{}).detected||[]).slice().reverse().slice(0,12);
+ $("ltxManagerCapabilities").innerHTML=capabilities.length?capabilities.map(function(item){
+  const scope=item.scope==="HOSTED_API_ONLY"?"HOSTED API ONLY":"LOCAL OPEN-WEIGHT / COMFYUI";
+  return '<div class="record"><div class="record-top"><strong>'+esc(String(item.name||"Capability").replaceAll("_"," ").toUpperCase())+'</strong><span class="pill warn">'+esc(item.status||"DETECTED")+'</span></div><div class="record-meta">'+esc(scope)+' · installation '+esc(item.installation_status||"UNKNOWN")+' · verification '+esc(item.verification_status||"NOT_TESTED")+'</div><div class="record-meta">Source: '+esc(item.source||"LTX ecosystem")+'</div></div>';
+ }).join(""):'<div class="empty">No capability notes have been detected yet.</div>';
+ function capabilityRows(items,emptyText){
+  if(!items||!items.length)return '<div class="empty">'+esc(emptyText)+'</div>';
+  return items.slice().reverse().slice(0,10).map(function(item){
+   const name=typeof item==="string"?item:(item.name||item.id||"Capability");
+   const status=typeof item==="string"?"RECORDED":(item.status||"RECORDED");
+   const details=typeof item==="string"?"":(item.source||item.workflow_id||"");
+   return '<div class="record"><div class="record-top"><strong>'+esc(String(name).replaceAll("_"," ").toUpperCase())+'</strong><span class="pill ok">'+esc(status)+'</span></div><div class="record-meta">'+esc(details)+'</div></div>';
+  }).join("");
+ }
+ const capabilityData=data.capabilities||{};
+ $("ltxManagerInstalledCapabilities").innerHTML=capabilityRows(capabilityData.installed,"No installed capability inventory has been registered.");
+ $("ltxManagerVerifiedCapabilities").innerHTML=capabilityRows(capabilityData.verified,"No capability has passed a relevant workflow test yet.");
+ const notifications=(data.notifications||[]).slice().reverse().slice(0,8);
+ $("ltxManagerNotifications").innerHTML=notifications.length?notifications.map(function(item){
+  return '<div class="record"><div class="record-top"><strong>'+esc(item.type||"UPDATE NOTICE")+'</strong><span class="muted tiny">'+esc(formatLtxDate(item.timestamp))+'</span></div><div class="small">'+esc(item.message||"Manager event")+'</div></div>';
+ }).join(""):'<div class="empty">No notifications recorded yet.</div>';
+ const activity=(data.activity||[]).slice().reverse().slice(0,8);
+ $("ltxManagerActivity").innerHTML=activity.length?activity.map(function(item){
+  return '<div class="record"><div class="record-top"><strong>'+esc(item.type||"ACTIVITY")+'</strong><span class="muted tiny">'+esc(formatLtxDate(item.timestamp))+'</span></div><div class="small">'+esc(item.message||"Manager activity")+'</div></div>';
+ }).join(""):'<div class="empty">No integration activity recorded yet.</div>';
+}
+async function refreshLtxManager(){
+ try{const data=await api("/updates/manager");renderLtxManager(data);}
+ catch(error){$("ltxManagerStatus").textContent="MANAGER STATE UNAVAILABLE";$("ltxManagerStatus").className="pill warn";$("ltxManagerFreshness").textContent=error.message;}
+}
+
+async function previewLtxIntegrationPlan(candidateId){
+ const target=$("ltxIntegrationPlanResult");
+ target.textContent="Building a read-only integration plan…";
+ try{
+  const plan=await api("/updates/plan",{method:"POST",body:body({candidate_id:candidateId})});
+  const blockers=(plan.automatic_install_blockers||[]).map(esc).join(" · ")||"None recorded";
+  const stages=(plan.stages||[]).map(esc).join(" → ")||"No executable stages";
+  target.innerHTML='<div class="record-top"><strong>'+esc(plan.name||plan.candidate_id||"LTX update plan")+'</strong><span class="pill warn">'+esc(plan.status||"PLAN")+'</span></div>'+
+   '<p class="small">Operation: '+esc(plan.operation||"NONE")+' · Target: '+esc(plan.target_environment||"GPU_COMFYUI_ONLY")+'</p>'+
+   '<p class="small">Director approval required: '+(plan.approval_required?"YES":"NO")+' · Automatic eligible: '+(plan.automatic_eligible?"YES":"NO")+'</p>'+
+   '<p class="small">Stages: '+stages+'</p>'+
+   '<p class="small">Automatic blockers: '+blockers+'</p>'+
+   '<p class="small">'+esc(plan.reason||"")+'</p>'+
+   '<p class="small">Rollback: '+esc(plan.rollback||"No rollback details.")+'</p>'+
+   '<p class="muted small">DRY RUN ONLY · Production execution is disabled. This preview cannot download, install, register or activate anything.</p>';
+ }catch(error){
+  target.textContent="Could not build the integration plan: "+error.message;
+ }
+}
 async function runUpdateCheck(){
  const button=$("updateCheckButton");
  button.disabled=true;
