@@ -16,7 +16,7 @@ This repository is public and the workflow uses standard GitHub-hosted Ubuntu ru
 - Lightricks/ComfyUI-LTXVideo GitHub latest release metadata.
 - Official example_workflows/2.5 repository directory contents and Git object IDs.
 - Lightricks/LTX-2.5-Diffusers Hugging Face model metadata.
-- Hugging Face catalogue of Lightricks repositories matching LTX-2.5 (metadata only).
+- Hugging Face catalogue of Lightricks repositories matching LTX-2.5 (metadata only), plus the exact ComfyUI model stack, pixel spatial upscaler, Gemma 4 enhancer repository and public model card.
 - LTX source changelog, official ComfyUI workflow README, and official LTX ComfyUI, prompt-enhancement and hosted API documentation.
 
 Documentation pages are fingerprinted from extracted content, not merely treated as reachable. Workflow catalog entries track file names and source object IDs. Hugging Face catalog checks fetch metadata only; model weights are never downloaded by this worker.
