@@ -27,6 +27,21 @@ The shipped baseline carries forward the prior official-source observations: LTX
 
 Each candidate records its upstream source, source URL, version/revision where available, summary, release date where available, affected component class and detected feature tags. A metadata change is not a compatibility result. A source is only marked ALREADY_INSTALLED when a Director-registered inventory records the exact source version. Until a production ComfyUI endpoint, installed nodes and versions, pinned model files/hashes, VRAM and persistent storage are inspected, other candidates remain REQUIRES_MANUAL_APPROVAL.
 
+## Production inventory contract
+
+The state branch also contains `state/ltx_environment_inventory.json`, initially marked `NOT_CONNECTED`. It is deliberately separate from the update history. Once the GPU/ComfyUI environment is funded and configured, a trusted inventory exporter may populate it with:
+
+- ComfyUI version and commit, Python/PyTorch/CUDA versions, and installed custom-node repository versions/commits.
+- The fixed LTX-2.5 model revision and installed model/adapter file names, sizes and cryptographic/LFS hashes.
+- GPU model and total VRAM, plus confirmation of an attached persistent storage mount and available bytes.
+- Explicit, version-pinned workflow compatibility test results.
+
+The inventory schema is `config/ltx_environment_inventory.schema.json`. It rejects unknown fields and has no place for endpoints, access tokens, passwords or API keys. The connected status is accepted only when ComfyUI/runtime/GPU/storage/LTX-2.5 details and explicit node/model arrays are present. Run `python scripts/ltx_update_scheduled_check.py --inventory-file state/ltx_environment_inventory.json --print-inventory-fingerprint` to validate it and obtain the environment fingerprint.
+
+A compatibility result is used only when its source/version and environment fingerprint exactly match the current inventory and a workflow test has completed. If the ComfyUI commit, node versions, model hashes, GPU or storage changes, the fingerprint changes and old test results no longer qualify. This is a metadata gate, not a claim that a production installation has been tested.
+
+The manager estimates the sum of known file sizes from upstream manifests and compares it with recorded free storage. The result is labelled `SUFFICIENT_FOR_DOWNLOAD_ONLY`, `INSUFFICIENT_FOR_DOWNLOAD` or `UNKNOWN`; it excludes backups, temporary extraction space and dependencies. VRAM requirement is never inferred from file size alone.
+
 ## Current safety boundary
 
 Automatic installation, model downloads, ComfyUI mutation, workflow activation and GPU jobs remain disabled. The Render console serves as the read-only dashboard and state viewer; it is not a model asset store. All large model files and real workloads must stay in the separately configured GPU/ComfyUI environment.
