@@ -47,9 +47,9 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "$FORCE_CHECK" == "true" ]]; then
-            python source/scripts/ltx_update_scheduled_check.py --state-file state/state/ltx_update_manager.json --interval-hours "$SCHEDULE_INTERVAL" --force
+            python source/scripts/ltx_update_scheduled_check.py --state-file state/state/ltx_update_manager.json --inventory-file state/state/ltx_environment_inventory.json --interval-hours "$SCHEDULE_INTERVAL" --force
           else
-            python source/scripts/ltx_update_scheduled_check.py --state-file state/state/ltx_update_manager.json --interval-hours "$SCHEDULE_INTERVAL"
+            python source/scripts/ltx_update_scheduled_check.py --state-file state/state/ltx_update_manager.json --inventory-file state/state/ltx_environment_inventory.json --interval-hours "$SCHEDULE_INTERVAL"
           fi
 
       - name: Persist update history and notifications
