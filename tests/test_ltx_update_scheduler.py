@@ -31,6 +31,13 @@ def fake_upstream(release="v1.6.2", node_release="v1.1.1", revision="abc123", do
             return FakeResponse(json.dumps({"tag_name": release, "published_at": "2026-11-12T14:28:42Z", "html_url": f"https://github.com/Lightricks/LTX-2/releases/tag/{release}", "body": "test release notes"}).encode())
         if url.endswith("ComfyUI-LTXVideo/releases/latest"):
             return FakeResponse(json.dumps({"tag_name": node_release, "published_at": "2026-11-12T14:15:29Z", "html_url": f"https://github.com/Lightricks/ComfyUI-LTXVideo/releases/tag/{node_release}", "body": "nodes updated"}).encode())
+        if "raw.githubusercontent.com/Lightricks/ComfyUI-LTXVideo/master/example_workflows/2.5/" in url:
+            graph = {"nodes": [
+                {"type": "LTXVBaseSampler", "widgets_values": ["ltx-2.5-video.safetensors"]},
+                {"class_type": "LTXVImgToVideo", "inputs": {"model": "ltx-2.5-distilled.safetensors"}},
+                {"type": "LTXVTemporalUpscale", "widgets_values": []}
+            ]}
+            return FakeResponse(json.dumps(graph).encode(), "application/json")
         if "example_workflows/2.5" in url:
             return FakeResponse(json.dumps([{"name": "LTX-2.5_T2V.json", "path": "example_workflows/2.5/LTX-2.5_T2V.json", "sha": "file-sha", "type": "file"}]).encode())
         if "LTX-2.5-Diffusers" in url:
@@ -58,6 +65,7 @@ def connected_inventory(installed_sources=None, compatibility_results=None):
         "storage": {"persistent_mount_configured": True, "available_bytes": 100_000_000_000, "mount_label": "GPU_DATA"},
         "ltx": {"primary_model": "LTX-2.5", "model_revision": "ltx25-abc"},
         "custom_nodes": [{"name": "ComfyUI-LTXVideo", "repository": "https://github.com/Lightricks/ComfyUI-LTXVideo", "version": "v1.1.1", "commit": "nodes-abc", "license": "Other", "node_classes": ["LTXVBaseSampler", "LTXVImgToVideo"]}],
+        "installed_node_classes": ["LTXVBaseSampler", "LTXVImgToVideo"],
         "installed_sources": installed_sources or {},
         "installed_assets": [{"repo_id": "Lightricks/LTX-2.5", "revision": "ltx25-abc", "filename": "transformer.safetensors", "size_bytes": 1000, "sha256_or_lfs_oid": "asset-hash", "license": "ltx-2.x-community-license-agreement", "gated": False}],
         "compatibility_results": compatibility_results or [],
@@ -116,6 +124,29 @@ class ScheduledMonitorTests(unittest.TestCase):
         self.assertIn("tiled_fusion", observed["feature_tags"])
         self.assertIn("hdr", observed["feature_tags"])
         self.assertIn("consistency", observed["feature_tags"])
+
+    def test_official_workflow_graph_parser_extracts_nodes_and_model_refs(self):
+        with patch.object(manager.urllib.request, "urlopen", side_effect=fake_upstream()):
+            observed = manager.observe("comfyui_ltx25_workflows", manager.SOURCES["comfyui_ltx25_workflows"], 1)
+        self.assertEqual(observed["status"], "OBSERVED")
+        self.assertIn("LTXVBaseSampler", observed["required_node_classes"])
+        self.assertIn("LTXVImgToVideo", observed["required_node_classes"])
+        self.assertIn("LTXVTemporalUpscale", observed["required_node_classes"])
+        self.assertIn("ltx-2.5-video.safetensors", observed["referenced_model_assets"])
+        self.assertIn("ltx-2.5-distilled.safetensors", observed["referenced_model_assets"])
+        graph_entry = observed["metadata"][0]
+        self.assertIn("node_classes", graph_entry)
+        self.assertIn("model_refs", graph_entry)
+
+    def test_missing_required_workflow_node_is_incompatible(self):
+        inventory = manager.validate_environment_inventory(connected_inventory())
+        result = manager.classify_compatibility({
+            "source": "comfyui_ltxvideo_release",
+            "version": "v1.1.2",
+            "required_node_classes": ["LTXVBaseSampler", "LTXVTemporalUpscale"],
+        }, inventory)
+        self.assertEqual(result["status"], "INCOMPATIBLE")
+        self.assertIn("LTXVTemporalUpscale", result["reason"])
 
     def test_interval_skips_runs_until_due(self):
         initial = manager.initial_state(6)
