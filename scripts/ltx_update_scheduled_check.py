@@ -27,6 +27,7 @@ SOURCES: dict[str, dict[str, str]] = {
     "hf_ltx25_comfyui_stack": {"kind": "hf_model", "url": "https://huggingface.co/api/models/Lightricks/LTX-2.5?blobs=true", "label": "Official LTX-2.5 ComfyUI split model pack", "components": "Distilled transformer, Gemma 4 12B encoder, video/audio VAEs, duration head, spatial and temporal upscalers"},
     "hf_ltx25_pixel_spatial_iclora": {"kind": "hf_model", "url": "https://huggingface.co/api/models/Lightricks/LTX-2.5-22b-IC-LoRA-Pixel-Spatial-Upscaler?blobs=true", "label": "LTX-2.5 Pixel Spatial Upscaler IC-LoRA", "components": "Detailing/upscaling IC-LoRA adapter"},
     "hf_gemma4_prompt_enhancer": {"kind": "hf_model", "url": "https://huggingface.co/api/models/Comfy-Org/gemma-4?blobs=true", "label": "Comfy-Org Gemma 4 prompt-enhancer model repository", "components": "Optional Gemma 4 E2B local prompt-enhancer asset"},
+    "ltx25_model_card": {"kind": "html", "url": "https://huggingface.co/Lightricks/LTX-2.5", "label": "Official LTX-2.5 model card and capability notes", "components": "Native multi-shot generation, diffusion fidelity rendering, decoder and text encoder updates"},
     "hf_lightricks_ltx25_catalog": {"kind": "hf_catalog", "url": "https://huggingface.co/api/models?author=Lightricks&search=LTX-2.5&limit=100", "label": "Official Lightricks LTX-2.5 model and adapter catalog", "components": "IC-LoRAs, adapters, VAEs, encoders, decoders and workflow-specific assets"},
     "ltx_source_changelog": {"kind": "text", "url": "https://raw.githubusercontent.com/Lightricks/LTX-2/main/CHANGELOG.md", "label": "LTX source changelog", "components": "LTX pipeline APIs and release features"},
     "ltx_comfyui_workflow_guide": {"kind": "text", "url": "https://raw.githubusercontent.com/Lightricks/ComfyUI-LTXVideo/master/example_workflows/2.5/README.md", "label": "LTX-2.5 workflow guide", "components": "Local ComfyUI workflows and dependencies"},
@@ -46,13 +47,13 @@ FEATURES = {
     "video_vae": ("video-vae", "conv vae", "diffvae"),
     "audio_vae": ("audio-vae", "audio vae", "audiovaedecode"),
     "refine_details": ("refine details", "refine-details", "pixel-spatial-upscaler"),
-    "native_resolution": ("native 4k", "native 8k", "native resolution"),
+    "native_resolution": ("native 4k", "native 8k", "native_4k", "native_8k", "native resolution"),
     "tiled_fusion": ("tiled fusion", "tiledfusion"),
     "spatial_upscaling": ("spatial upscaler", "spatial-upscaler", "latent spatial"),
     "temporal_upscaling": ("temporal upscaler", "temporal-upscaler"),
     "hdr": ("hdr", "acescct", "hlg", "exr"),
     "ic_lora": ("ic-lora", "ic lora", "ingredients", "motion control"),
-    "consistency": ("character consistency", "identity consistency", "layout", "motion track"),
+    "consistency": ("character consistency", "identity consistency", "environment consistency", "layout", "motion track", "motion_track"),
 }
 
 
