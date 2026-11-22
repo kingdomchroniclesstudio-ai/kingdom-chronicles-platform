@@ -294,10 +294,10 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
         raise ValueError("interval_hours must be between 1 and 24")
     now = (now or now_utc()).astimezone(timezone.utc).replace(microsecond=0)
     current = json.loads(json.dumps(state or initial_state(interval_hours)))
+    previous_interval = current.get("schedule", {}).get("interval_hours")
     current.setdefault("schedule", {})["interval_hours"] = interval_hours
     last = parse_stamp(current.get("last_successful_check_at"))
     stored_due = parse_stamp(current.get("next_check_due_at"))
-    previous_interval = current.get("schedule", {}).get("interval_hours")
     if last is None:
         due_at = stored_due
     elif previous_interval != interval_hours:
