@@ -436,6 +436,9 @@ def build_installation_requirements(observation: dict[str, Any], inventory: dict
         "storage_preflight": storage_result,
         "license": metadata.get("license"),
         "gated_asset": metadata.get("gated"),
+        "license_review": "DIRECTOR_REVIEW_REQUIRED" if metadata.get("license") or metadata.get("gated") else "NOT_CAPTURED",
+        "gpu_vram_requirement_gib": None,
+        "gpu_preflight": "UNKNOWN_REQUIRES_WORKFLOW_SPECIFIC_PROFILE",
         "requires_director_approval": True,
         "note": "Estimate covers listed files only; it excludes backups, temporary extraction space, dependencies and ComfyUI node storage. No download was started.",
     }
@@ -617,6 +620,16 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
             "detected_at": stamp(now), "director_action_required": True,
         }
         candidate["change_type"] = "SOURCE_CONTENT_CHANGE" if seen["kind"] in {"text", "html"} else "VERSION_OR_CATALOG_CHANGE"
+        if candidate["installation_requirements"]["asset_file_count_with_size"]:
+            candidate["risk_class"] = "MODEL_ASSET_AND_LICENSE_REVIEW"
+        elif seen["kind"] in {"text", "html"}:
+            candidate["risk_class"] = "DOCUMENTATION_ONLY"
+        elif seen["kind"] == "contents":
+            candidate["risk_class"] = "WORKFLOW_GRAPH_REVIEW"
+        elif seen["kind"] == "release":
+            candidate["risk_class"] = "SOFTWARE_DEPENDENCY_REVIEW"
+        else:
+            candidate["risk_class"] = "MODEL_CATALOG_REVIEW"
         candidates.append(candidate)
         candidate_ids.add(candidate_id)
         add_event(current, "NEW_UPDATE_DETECTED", f"New upstream change detected: {candidate['name']} {candidate.get('version') or ''}".strip(), candidate_id=candidate_id, details={"source": source_id, "source_url": candidate["source_url"]}, when=now)
@@ -656,6 +669,7 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
             "installed_ltx_revision": inventory["ltx"]["model_revision"],
             "gpu_model": inventory["gpu"]["model"],
             "gpu_vram_gib": inventory["gpu"]["vram_total_gib"],
+            "gpu_driver_version": inventory["gpu"]["driver_version"],
             "storage_mount_label": inventory["storage"]["mount_label"],
             "storage_available_bytes": inventory["storage"]["available_bytes"],
             "environment_fingerprint": inventory["environment_fingerprint"],
