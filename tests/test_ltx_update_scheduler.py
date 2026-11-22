@@ -173,7 +173,8 @@ class ScheduledMonitorTests(unittest.TestCase):
 
     def test_missing_official_workflow_node_class_is_incompatible(self):
         inventory = manager.validate_environment_inventory(connected_inventory())
-        observed = manager.observe("comfyui_ltx25_workflows", manager.SOURCES["comfyui_ltx25_workflows"], 1)
+        with patch.object(manager.urllib.request, "urlopen", side_effect=fake_upstream()):
+            observed = manager.observe("comfyui_ltx25_workflows", manager.SOURCES["comfyui_ltx25_workflows"], 1)
         candidate = {
             "source": "comfyui_ltxvideo_release",
             "version": "v1.1.2",
@@ -205,7 +206,8 @@ class ScheduledMonitorTests(unittest.TestCase):
 
     def test_missing_workflow_model_assets_are_incompatible_when_node_classes_exist(self):
         inventory = manager.validate_environment_inventory(connected_inventory())
-        observed = manager.observe("comfyui_ltx25_workflows", manager.SOURCES["comfyui_ltx25_workflows"], 1)
+        with patch.object(manager.urllib.request, "urlopen", side_effect=fake_upstream()):
+            observed = manager.observe("comfyui_ltx25_workflows", manager.SOURCES["comfyui_ltx25_workflows"], 1)
         result = manager.classify_compatibility({
             "source": "comfyui_ltxvideo_release",
             "version": "v1.1.2",
