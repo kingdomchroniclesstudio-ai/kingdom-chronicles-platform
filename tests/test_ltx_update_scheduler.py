@@ -58,6 +58,12 @@ class ScheduledMonitorTests(unittest.TestCase):
         self.assertEqual(len(state["notifications"]), 6)
         self.assertEqual(len(state["source_observations"]), len(manager.SOURCES))
         self.assertFalse(state["safety"]["automatic_install"])
+        detected = state["capabilities"]["detected"]
+        self.assertTrue(any(item["name"] == "prompt_enhancement" for item in detected))
+        self.assertTrue(any(item["name"] == "tiled_fusion" for item in detected))
+        self.assertTrue(all(item["installation_status"] == "UNKNOWN" for item in detected))
+        hosted = [item for item in detected if item["source"] == "ltx_api_changelog_docs"]
+        self.assertTrue(all(item["scope"] == "HOSTED_API_ONLY" for item in hosted))
 
     def test_simulated_release_revision_and_docs_changes_create_candidates(self):
         with patch.object(manager.urllib.request, "urlopen", side_effect=fake_upstream()):
