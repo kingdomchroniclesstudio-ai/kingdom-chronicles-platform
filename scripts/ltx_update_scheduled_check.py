@@ -357,9 +357,13 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
     current["successful_source_count"] = successful_sources
     current["source_total_count"] = len(SOURCES)
     current["failed_source_count"] = len(errors)
-    if current["successful_source_count"]:
+    if current["successful_source_count"] == len(SOURCES) and not errors:
         current["last_successful_check_at"] = stamp(now)
         current["next_check_due_at"] = stamp(now + timedelta(hours=interval_hours))
+    else:
+        # The Actions workflow wakes hourly. Retry a partial or failed source scan
+        # after one hour instead of waiting six hours for the next full interval.
+        current["next_check_due_at"] = stamp(now + timedelta(hours=1))
     current["schedule"]["interval_hours"] = interval_hours
     current["schedule"]["scheduler"] = "GitHub Actions scheduled workflow"
     current["environment"].setdefault("status", "NOT_CONNECTED")
