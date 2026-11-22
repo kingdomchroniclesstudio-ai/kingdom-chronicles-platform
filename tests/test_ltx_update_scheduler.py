@@ -52,7 +52,7 @@ def connected_inventory(installed_sources=None, compatibility_results=None):
         "observed_at": "2026-11-22T12:00:00Z",
         "comfyui": {"version": "0.44.0", "commit": "comfy-commit"},
         "runtime": {"python_version": "3.11.9", "pytorch_version": "2.7.1", "cuda_version": "12.8"},
-        "gpu": {"model": "NVIDIA RTX 5090", "vram_total_gib": 32},
+        "gpu": {"model": "NVIDIA RTX 5090", "vram_total_gib": 32.0, "driver_version": "NOT_RECORDED"},
         "storage": {"persistent_mount_configured": True, "available_bytes": 100_000_000_000, "mount_label": "GPU_DATA"},
         "ltx": {"primary_model": "LTX-2.5", "model_revision": "ltx25-abc"},
         "custom_nodes": [{"name": "ComfyUI-LTXVideo", "repository": "https://github.com/Lightricks/ComfyUI-LTXVideo", "version": "v1.1.1", "commit": "nodes-abc", "license": "Other", "node_classes": ["LTXVBaseSampler", "LTXVImgToVideo"]}],
