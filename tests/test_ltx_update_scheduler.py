@@ -142,8 +142,8 @@ class ScheduledMonitorTests(unittest.TestCase):
 
     def test_compatibility_and_incompatibility_require_matching_test_and_environment_fingerprint(self):
         candidate = {"source": "comfyui_ltxvideo_release", "version": "v1.1.2"}
-        inventory = connected_inventory()
-        fingerprint = manager.environment_fingerprint(inventory)
+        inventory = manager.validate_environment_inventory(connected_inventory())
+        fingerprint = inventory["environment_fingerprint"]
         inventory["compatibility_results"] = [
             {"source": candidate["source"], "version": candidate["version"], "environment_fingerprint": "different-stack",
              "result": "COMPATIBLE", "workflow_test_passed": True, "reason": "Prior stack passed.",
@@ -160,7 +160,7 @@ class ScheduledMonitorTests(unittest.TestCase):
         raw = connected_inventory()
         normalized = manager.validate_environment_inventory(raw)
         self.assertEqual(normalized["status"], "CONNECTED")
-        self.assertEqual(normalized["environment_fingerprint"], manager.environment_fingerprint(raw))
+        self.assertEqual(normalized["environment_fingerprint"], manager.environment_fingerprint(normalized))
         invalid = connected_inventory()
         invalid["ltx"]["primary_model"] = "LTX-2.3"
         with self.assertRaises(ValueError):
