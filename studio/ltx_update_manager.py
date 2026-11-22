@@ -77,6 +77,7 @@ class LTXUpdateManager:
             "pending_approval": sum(1 for item in candidates if item.get("compatibility", {}).get("status") in {"REQUIRES_MANUAL_APPROVAL", "COMPATIBLE"}),
             "already_installed": sum(1 for item in candidates if item.get("compatibility", {}).get("status") == "ALREADY_INSTALLED"),
             "incompatible": sum(1 for item in candidates if item.get("compatibility", {}).get("status") == "INCOMPATIBLE"),
+            "installed": len(state.get("capabilities", {}).get("installed", [])),
             "verified": len(state.get("capabilities", {}).get("verified", [])),
             "unread_notifications": sum(1 for item in notifications if not item.get("read", False)),
         }
