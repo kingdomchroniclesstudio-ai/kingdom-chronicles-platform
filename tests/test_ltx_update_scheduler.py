@@ -228,6 +228,7 @@ class ScheduledMonitorTests(unittest.TestCase):
         self.assertEqual(baseline, manager.environment_fingerprint(manager.validate_environment_inventory(changed_space)))
         changed_nodes = connected_inventory()
         changed_nodes["custom_nodes"][0]["node_classes"].append("LTXVTemporalUpscale")
+        changed_nodes["installed_node_classes"].append("LTXVTemporalUpscale")
         self.assertNotEqual(baseline, manager.environment_fingerprint(manager.validate_environment_inventory(changed_nodes)))
         changed_gpu = connected_inventory()
         changed_gpu["gpu"]["driver_version"] = "new-driver"
