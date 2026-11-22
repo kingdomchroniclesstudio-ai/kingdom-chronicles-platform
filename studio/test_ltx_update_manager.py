@@ -39,7 +39,10 @@ def example_state() -> dict:
         "notifications": [{"id": "n1", "read": False}, {"id": "n2", "read": True}],
         "activity": [{"id": "e1", "type": "NEW_UPDATE_DETECTED"}],
         "environment": {"status": "NOT_CONNECTED", "comfyui_version": None, "installed_ltx_version": None},
-        "capabilities": {"verified": ["metadata_monitoring"]},
+        "capabilities": {
+            "detected": [{"id": "cap1", "name": "prompt_enhancement", "scope": "LOCAL_OPEN_WEIGHT_OR_COMFYUI", "status": "DETECTED_NOT_VERIFIED", "installation_status": "UNKNOWN", "verification_status": "NOT_TESTED"}],
+            "registered": [], "installed": [], "verified": ["metadata_monitoring"]
+        },
         "safety": {"automatic_install": False, "downloads_enabled": False, "gpu_jobs_enabled": False, "director_approval_required": True},
     }
 
@@ -56,6 +59,8 @@ class LTXUpdateManagerRuntimeTests(unittest.TestCase):
             self.assertEqual(data["summary"]["detected"], 1)
             self.assertEqual(data["summary"]["pending_approval"], 1)
             self.assertEqual(data["summary"]["unread_notifications"], 1)
+            self.assertEqual(data["capabilities"]["detected"][0]["status"], "DETECTED_NOT_VERIFIED")
+            self.assertEqual(data["capabilities"]["verified"], ["metadata_monitoring"])
             self.assertTrue((Path(temp) / "storage" / "ltx_update_manager_state.json").is_file())
 
     def test_remote_failure_falls_back_to_cached_state(self):
