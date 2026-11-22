@@ -517,7 +517,7 @@ function renderLtxManager(data){
  $("ltxComfyState").textContent=env.status||"NOT CONNECTED";
  $("ltxComfyVersion").textContent=env.comfyui_version||"Not registered";
  $("ltxInstalledRevision").textContent=env.installed_ltx_revision||"Not registered";
- $("ltxGpuState").textContent=env.gpu_model?(env.gpu_model+" · "+(env.gpu_vram_gib||"?")+" GiB"):"Not reported";
+ $("ltxGpuState").textContent=env.gpu_model?(env.gpu_model+" · "+(env.gpu_vram_gib||"?")+" GiB · Driver "+(env.gpu_driver_version||"not recorded")):"Not reported";
  $("ltxStorageState").textContent=env.storage_available_bytes?Math.round(env.storage_available_bytes/1073741824)+" GiB available · "+(env.storage_mount_label||"persistent mount"):"Not configured";
  $("ltxCheckInterval").textContent="Every "+((data.schedule||{}).interval_hours||6)+" hours";
  $("ltxDetectedCount").textContent=summary.detected||0;
@@ -531,7 +531,11 @@ function renderLtxManager(data){
  $("ltxInstallPolicy").textContent=(data.safety&&data.safety.automatic_install)?"AUTOMATIC INSTALLATION ENABLED":"INSTALLATION LOCKED — DIRECTOR APPROVAL REQUIRED";
  const candidates=(data.candidates||[]).slice().reverse().slice(0,8);
  $("ltxManagerCandidates").innerHTML=candidates.length?candidates.map(function(item){
-  return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(item.name||item.source||"Upstream change")+'</div><div class="record-meta">'+esc(item.version||"Revision/content change")+' · '+esc(item.release_date||item.detected_at||"date unavailable")+'</div></div><span class="pill warn">'+esc(item.compatibility&&item.compatibility.status||"REVIEW REQUIRED")+'</span></div><p class="small">'+esc(item.summary||"Metadata changed.")+'</p><div class="record-meta">Affects: '+esc(item.affected_components||"LTX ecosystem")+' · '+esc(item.installation_status||"NOT INSTALLED")+' · '+esc(item.verification_status||"NOT TESTED")+'</div><a href="'+esc(item.source_url||"#")+'" target="_blank" rel="noopener">Open official source</a></div>';
+  const status=item.compatibility&&item.compatibility.status||"REVIEW REQUIRED";
+  const statusClass=status==="INCOMPATIBLE"?"bad":(status==="COMPATIBLE"?"ok":"warn");
+  const requirements=item.installation_requirements||{};
+  const sizeText=requirements.estimated_download_gib===null||requirements.estimated_download_gib===undefined?"size unknown":requirements.estimated_download_gib+" GiB listed files";
+  return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(item.name||item.source||"Upstream change")+'</div><div class="record-meta">'+esc(item.version||"Revision/content change")+' · '+esc(item.release_date||item.detected_at||"date unavailable")+'</div></div><span class="pill '+statusClass+'">'+esc(status)+'</span></div><p class="small">'+esc(item.summary||"Metadata changed.")+'</p><div class="record-meta">Risk: '+esc(item.risk_class||"REVIEW_REQUIRED")+' · Affects: '+esc(item.affected_components||"LTX ecosystem")+'</div><div class="record-meta">'+esc(sizeText)+' · storage: '+esc(requirements.storage_preflight||"UNKNOWN")+' · license: '+esc(requirements.license_review||"REVIEW REQUIRED")+'</div><div class="record-meta">Installation: '+esc(item.installation_status||"NOT INSTALLED")+' · verification: '+esc(item.verification_status||"NOT TESTED")+'</div><a href="'+esc(item.source_url||"#")+'" target="_blank" rel="noopener">Open official source</a></div>';
  }).join(""):'<div class="empty">No new upstream changes have been recorded after the stored baseline.</div>';
  const capabilities=((data.capabilities||{}).detected||[]).slice().reverse().slice(0,12);
  $("ltxManagerCapabilities").innerHTML=capabilities.length?capabilities.map(function(item){
