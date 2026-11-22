@@ -172,7 +172,7 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
           <div class="panel"><div class="section-head"><div><div class="eyebrow">Your slate</div><h2>Active film projects</h2></div><button class="quiet" data-go="projects">VIEW ALL</button></div><div id="overviewProjects" class="stack"><div class="empty">Your film projects will appear here.</div></div></div>
           <div class="panel"><div class="section-head"><div><div class="eyebrow">Studio activity</div><h2>Testing snapshot</h2></div><button class="quiet" data-go="testing">OPEN LAB</button></div><div class="grid-2"><div class="record"><div class="muted tiny">PASSED TESTS</div><div id="metricPassed" style="font-size:25px;font-weight:900;color:var(--green)">0</div></div><div class="record"><div class="muted tiny">NEEDS ATTENTION</div><div id="metricFailed" style="font-size:25px;font-weight:900;color:var(--coral)">0</div></div></div><p class="muted small" style="margin:12px 0 0">Only test results and costs entered in the studio test log are included. Live GPU telemetry arrives after the GPU connection stage.</p></div>
         </div>
-        <div class="panel" style="margin-top:14px"><div class="section-head"><div><div class="eyebrow">Production monitor</div><h2>LTX Update Monitor</h2></div><span id="backendDetail" class="pill ok">CONNECTED</span></div><div class="grid-3"><div><div class="muted tiny">ENGINE MODE</div><strong id="engineMode">Mock Mode</strong></div><div><div class="muted tiny">REAL GENERATION</div><strong id="realMode">LOCKED</strong></div><div><div class="muted tiny">WORKSPACE STORAGE</div><strong id="storageDetail">Checking…</strong></div></div><div class="form-actions"><button id="updateCheckButton" class="amber">CHECK NOW</button><span id="updateCheckStatus" class="muted small" role="status" aria-live="polite">Update checks are read-only.</span></div><div id="updateCheckResults" class="stack"></div></div>
+        <div class="panel" style="margin-top:14px"><div class="section-head"><div><div class="eyebrow">Production monitor</div><h2>LTX Update Monitor</h2></div><span id="backendDetail" class="pill ok">CONNECTED</span></div><div class="grid-3"><div><div class="muted tiny">ENGINE MODE</div><strong id="engineMode">Mock Mode</strong></div><div><div class="muted tiny">REAL GENERATION</div><strong id="realMode">LOCKED</strong></div><div><div class="muted tiny">WORKSPACE STORAGE</div><strong id="storageDetail">Checking…</strong></div></div><div class="form-actions"><button id="updateCheckButton" class="amber">CHECK FOR UPDATES</button><span id="updateCheckStatus" class="muted small" role="status" aria-live="polite">Update checks are read-only.</span></div><div id="updateCheckResults" class="stack"></div></div>
         <div class="panel" id="ltxManagerPanel" style="margin-top:14px">
           <div class="section-head"><div><div class="eyebrow">Automated ecosystem monitoring</div><h2>HIS RISEN LTX Update &amp; Integration Manager</h2><p class="muted small">LTX-2.5 is locked as the primary production model. Scheduled checks run independently of the Render dashboard.</p></div><span id="ltxManagerStatus" class="pill warn">WAITING FOR FIRST SCHEDULED CHECK</span></div>
           <div class="grid-3">
@@ -542,7 +542,7 @@ async function runUpdateCheck(){
   $("updateCheckStatus").textContent="Update check failed: "+error.message;
  }finally{
   button.disabled=false;
-  button.textContent="CHECK NOW";
+  button.textContent="CHECK FOR UPDATES";
  }
 }
 $("updateCheckButton").addEventListener("click",runUpdateCheck);
