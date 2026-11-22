@@ -707,18 +707,28 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--print-inventory-fingerprint", action="store_true", help="validate a connected inventory and print the environment fingerprint without running a metadata scan")
     args = parser.parse_args(argv)
+    inventory_error = None
     try:
         inventory = read_inventory(args.inventory_file)
     except ValueError as exc:
-        inventory = {"schema_version": 0, "status": "INVALID", "note": str(exc)}
+        inventory = None
+        inventory_error = str(exc)[:500]
     if args.print_inventory_fingerprint:
+        if inventory_error:
+            print("INVALID: " + inventory_error)
+            return 2
         if isinstance(inventory, dict) and inventory.get("status") == "CONNECTED":
             print(inventory["environment_fingerprint"])
-        else:
+        elif isinstance(inventory, dict) and inventory.get("status") == "NOT_CONNECTED":
             print("NOT_CONNECTED")
-        return 0
+        else:
+            print("INVALID: no recognized inventory state")
+            return 2
     state = read_state(args.state_file)
     updated = monitor_once(state, interval_hours=args.interval_hours, timeout=args.timeout, force=args.force, inventory=inventory)
+    if inventory_error:
+        add_event(updated, "MANUAL_ACTION_REQUIRED", "The saved ComfyUI/GPU inventory is invalid. Compatibility checks remain approval-required until it is corrected.", details={"reason": inventory_error}, now=now_utc())
+        updated["environment"] = {"status": "INVALID_INVENTORY", "inventory_error": inventory_error, "comfyui_version": None, "installed_ltx_version": None}
     if updated.get("skipped"):
         print(f"Skipped until {updated.get('next_check_due_at')}")
         return 0
