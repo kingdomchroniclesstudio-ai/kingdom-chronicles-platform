@@ -727,7 +727,7 @@ def main(argv: list[str] | None = None) -> int:
     state = read_state(args.state_file)
     updated = monitor_once(state, interval_hours=args.interval_hours, timeout=args.timeout, force=args.force, inventory=inventory)
     if inventory_error:
-        add_event(updated, "MANUAL_ACTION_REQUIRED", "The saved ComfyUI/GPU inventory is invalid. Compatibility checks remain approval-required until it is corrected.", details={"reason": inventory_error}, now=now_utc())
+        add_event(updated, "MANUAL_ACTION_REQUIRED", "The saved ComfyUI/GPU inventory is invalid. Compatibility checks remain approval-required until it is corrected.", details={"reason": inventory_error}, when=now_utc())
         updated["environment"] = {"status": "INVALID_INVENTORY", "inventory_error": inventory_error, "comfyui_version": None, "installed_ltx_version": None}
     if updated.get("skipped"):
         print(f"Skipped until {updated.get('next_check_due_at')}")
