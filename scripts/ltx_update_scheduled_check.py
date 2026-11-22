@@ -753,7 +753,7 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
             candidate["risk_class"] = "MODEL_ASSET_AND_LICENSE_REVIEW"
         elif seen["kind"] in {"text", "html"}:
             candidate["risk_class"] = "DOCUMENTATION_ONLY"
-        elif seen["kind"] == "contents":
+        elif seen["kind"] == "workflow_graphs":
             candidate["risk_class"] = "WORKFLOW_GRAPH_REVIEW"
         elif seen["kind"] == "release":
             candidate["risk_class"] = "SOFTWARE_DEPENDENCY_REVIEW"
