@@ -23,6 +23,11 @@
       "type": "string",
       "format": "date-time"
     },
+    "environment_fingerprint": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Computed by the manager from the installed ComfyUI/LTX/GPU/storage inventory. Obtain the current value with --print-inventory-fingerprint after validating the inventory."
+    },
     "note": {
       "type": "string",
       "maxLength": 500
