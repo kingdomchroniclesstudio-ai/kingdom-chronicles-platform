@@ -32,6 +32,11 @@ jobs:
           path: state
           persist-credentials: true
 
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
       - name: Run scheduled monitor mock regression tests
         run: python -m unittest discover -s source/tests -p "test_ltx_update_scheduler.py" -v
 
