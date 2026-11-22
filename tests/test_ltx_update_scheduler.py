@@ -183,6 +183,27 @@ class ScheduledMonitorTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 manager.read_inventory(path)
 
+    def test_inventory_fingerprint_mismatch_invalidates_environment_evidence(self):
+        raw = connected_inventory()
+        raw["environment_fingerprint"] = "stale-or-tampered-fingerprint"
+        with self.assertRaises(ValueError):
+            manager.validate_environment_inventory(raw)
+
+    def test_validated_inventory_can_be_loaded_and_used_for_environment_summary(self):
+        raw = connected_inventory(installed_sources={"ltx_core_release": "v1.6.2"})
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "inventory.json"
+            path.write_text(json.dumps(raw), encoding="utf-8")
+            inventory = manager.read_inventory(path)
+        self.assertEqual(inventory["status"], "CONNECTED")
+        self.assertEqual(inventory["ltx"]["primary_model"], "LTX-2.5")
+        self.assertTrue(inventory["environment_fingerprint"])
+        current = manager.initial_state(6)
+        with patch.object(manager.urllib.request, "urlopen", side_effect=fake_upstream()):
+            updated = manager.monitor_once(current, interval_hours=6, force=True, inventory=inventory, now=self.now)
+        self.assertEqual(updated["environment"]["status"], "CONNECTED")
+        self.assertEqual(updated["environment"]["gpu_vram_gib"], 32)
+
     def test_model_manifest_yields_storage_estimate_without_starting_download(self):
         observation = {"metadata": {"license": "ltx-2.x-community-license-agreement", "gated": False,
             "files": [{"name": "transformer.safetensors", "size_bytes": 8_000_000_000},
