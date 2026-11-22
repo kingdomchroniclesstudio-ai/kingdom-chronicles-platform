@@ -87,6 +87,9 @@
         "vram_total_gib": {
           "type": "number",
           "exclusiveMinimum": 0
+        },
+        "driver_version": {
+          "type": "string"
         }
       }
     },
@@ -138,7 +141,8 @@
           "name",
           "repository",
           "version",
-          "commit"
+          "commit",
+          "node_classes"
         ],
         "properties": {
           "name": {
@@ -159,6 +163,14 @@
           },
           "license": {
             "type": "string"
+          },
+          "node_classes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
           }
         }
       }
