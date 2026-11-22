@@ -548,6 +548,9 @@ def classify_compatibility(candidate: dict[str, Any], inventory: dict[str, Any] 
         Path(str(name)).name for name in required_assets
         if Path(str(name)).name.casefold() not in installed_asset_names
     })
+    source = candidate.get("source")
+    version = candidate.get("version")
+    environment_fingerprint_value = inventory.get("environment_fingerprint")
     if missing_node_classes or missing_assets:
         reasons = []
         if missing_node_classes:
@@ -557,15 +560,25 @@ def classify_compatibility(candidate: dict[str, Any], inventory: dict[str, Any] 
         return {
             "status": "INCOMPATIBLE",
             "reason": "The workflow is not ready in the registered ComfyUI environment (" + "; ".join(reasons) + ").",
+            "evidence": {
+                "type": "INVENTORY_PREFLIGHT",
+                "source": source, "version": version,
+                "environment_fingerprint": environment_fingerprint_value,
+                "workflow_test_passed": False,
+            },
         }
-    source = candidate.get("source")
-    version = candidate.get("version")
     installed = inventory.get("installed_sources", {})
     current = installed.get(source) if isinstance(installed, dict) else None
     if current and version and current == version:
         return {
             "status": "ALREADY_INSTALLED",
             "reason": "The registered production inventory records this exact version. Installation is not repeated; it remains unverified until the relevant workflow test passes.",
+            "evidence": {
+                "type": "INSTALLED_INVENTORY",
+                "source": source, "version": version,
+                "environment_fingerprint": environment_fingerprint_value,
+                "workflow_test_passed": False,
+            },
         }
 
     environment_fingerprint = inventory.get("environment_fingerprint")
@@ -579,15 +592,25 @@ def classify_compatibility(candidate: dict[str, Any], inventory: dict[str, Any] 
             and row.get("environment_fingerprint") == environment_fingerprint
         ]
         for row in reversed(matches):
+            evidence = {
+                "type": "WORKFLOW_TEST",
+                "source": source, "version": version,
+                "workflow_id": row.get("workflow_id"),
+                "tested_at": row.get("tested_at"),
+                "environment_fingerprint": environment_fingerprint_value,
+                "workflow_test_passed": row.get("workflow_test_passed") is True,
+            }
             if row.get("result") == "INCOMPATIBLE":
                 return {
                     "status": "INCOMPATIBLE",
                     "reason": str(row.get("reason") or "A version- and environment-matched compatibility test recorded this update as incompatible."),
+                    "evidence": evidence,
                 }
             if row.get("result") == "COMPATIBLE" and row.get("workflow_test_passed") is True:
                 return {
                     "status": "COMPATIBLE",
                     "reason": "The exact version passed its recorded compatibility workflow against the currently fingerprinted ComfyUI/LTX environment. Director approval is still required before installation.",
+                    "evidence": evidence,
                 }
     return {
         "status": "REQUIRES_MANUAL_APPROVAL",
