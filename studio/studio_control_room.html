@@ -181,8 +181,17 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
             <div class="record"><div class="muted tiny">CHECK INTERVAL</div><strong id="ltxCheckInterval">Every 6 hours</strong></div>
           </div>
           <div class="grid-3">
+            <div class="record"><div class="muted tiny">INSTALLED COMFYUI VERSION</div><strong id="ltxComfyVersion">Not registered</strong></div>
+            <div class="record"><div class="muted tiny">INSTALLED LTX-2.5 REVISION</div><strong id="ltxInstalledRevision">Not registered</strong></div>
+            <div class="record"><div class="muted tiny">GPU / VRAM</div><strong id="ltxGpuState">Not reported</strong></div>
+          </div>
+          <div class="grid-3">
+            <div class="record"><div class="muted tiny">PERSISTENT STORAGE</div><strong id="ltxStorageState">Not configured</strong></div>
             <div class="record"><div class="muted tiny">DETECTED CHANGES</div><strong id="ltxDetectedCount">0</strong></div>
             <div class="record"><div class="muted tiny">PENDING DIRECTOR REVIEW</div><strong id="ltxPendingCount">0</strong></div>
+          </div>
+          <div class="grid-2">
+            <div class="record"><div class="muted tiny">INSTALLED CAPABILITIES</div><strong id="ltxInstalledCount">0</strong></div>
             <div class="record"><div class="muted tiny">VERIFIED CAPABILITIES</div><strong id="ltxVerifiedCount">0</strong></div>
           </div>
           <div class="grid-3">
@@ -193,7 +202,11 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
           <div class="form-actions"><span id="ltxInstallPolicy" class="pill warn">INSTALLATION LOCKED — MANUAL APPROVAL REQUIRED</span><span id="ltxManagerFreshness" class="muted small">Persistent state will appear after the first scheduled run.</span></div>
           <div class="form-actions"><a id="ltxScheduledCheckNow" class="pill ok" href="https://github.com/kingdomchroniclesstudio-ai/kingdom-chronicles-platform/actions/workflows/ltx-update-scheduler.yml" target="_blank" rel="noopener noreferrer">OPEN MANUAL SCHEDULED CHECK</a><span class="muted small">Use Run workflow in GitHub Actions to force a check and persist its activity.</span></div>
           <h3>Pending updates</h3><div id="ltxManagerCandidates" class="stack"><div class="empty">No scheduled update candidates have been recorded.</div></div>
-          <h3 style="margin-top:14px">Detected capability watchlist</h3><div id="ltxManagerCapabilities" class="stack"><div class="empty">Newly documented features will be catalogued here as detected — not assumed installed or verified.</div></div>
+          <div class="grid-2" style="margin-top:14px">
+            <div><h3>Detected capabilities</h3><div id="ltxManagerCapabilities" class="stack"><div class="empty">Newly documented features are catalogued as detected, not installed.</div></div></div>
+            <div><h3>Installed capabilities</h3><div id="ltxManagerInstalledCapabilities" class="stack"><div class="empty">No installed capability inventory has been registered.</div></div></div>
+          </div>
+          <h3 style="margin-top:14px">Verified capabilities</h3><div id="ltxManagerVerifiedCapabilities" class="stack"><div class="empty">A capability appears here only after its relevant workflow test passes.</div></div>
           <h3 style="margin-top:14px">Notification centre</h3><div id="ltxManagerNotifications" class="stack"><div class="empty">Notifications will remain available here after each scheduled run.</div></div>
           <h3 style="margin-top:14px">Integration activity</h3><div id="ltxManagerActivity" class="stack"><div class="empty">No manager activity recorded yet.</div></div>
           <p class="muted small">The scheduled worker observes official metadata only. It does not download model weights, alter ComfyUI, activate workflows or start GPU jobs. Downloaded files will not count as installed or verified.</p>
@@ -502,9 +515,14 @@ function renderLtxManager(data){
  $("ltxPrimaryModel").textContent=data.primary_model||"LTX-2.5";
  const env=data.environment||{};
  $("ltxComfyState").textContent=env.status||"NOT CONNECTED";
+ $("ltxComfyVersion").textContent=env.comfyui_version||"Not registered";
+ $("ltxInstalledRevision").textContent=env.installed_ltx_revision||"Not registered";
+ $("ltxGpuState").textContent=env.gpu_model?(env.gpu_model+" · "+(env.gpu_vram_gib||"?")+" GiB"):"Not reported";
+ $("ltxStorageState").textContent=env.storage_available_bytes?Math.round(env.storage_available_bytes/1073741824)+" GiB available · "+(env.storage_mount_label||"persistent mount"):"Not configured";
  $("ltxCheckInterval").textContent="Every "+((data.schedule||{}).interval_hours||6)+" hours";
  $("ltxDetectedCount").textContent=summary.detected||0;
  $("ltxPendingCount").textContent=summary.pending_approval||0;
+ $("ltxInstalledCount").textContent=summary.installed||0;
  $("ltxVerifiedCount").textContent=summary.verified||0;
  $("ltxLastCheck").textContent=formatLtxDate(data.last_successful_check_at);
  $("ltxNextCheck").textContent=formatLtxDate(data.next_check_due_at);
@@ -520,6 +538,18 @@ function renderLtxManager(data){
   const scope=item.scope==="HOSTED_API_ONLY"?"HOSTED API ONLY":"LOCAL OPEN-WEIGHT / COMFYUI";
   return '<div class="record"><div class="record-top"><strong>'+esc(String(item.name||"Capability").replaceAll("_"," ").toUpperCase())+'</strong><span class="pill warn">'+esc(item.status||"DETECTED")+'</span></div><div class="record-meta">'+esc(scope)+' · installation '+esc(item.installation_status||"UNKNOWN")+' · verification '+esc(item.verification_status||"NOT_TESTED")+'</div><div class="record-meta">Source: '+esc(item.source||"LTX ecosystem")+'</div></div>';
  }).join(""):'<div class="empty">No capability notes have been detected yet.</div>';
+ function capabilityRows(items,emptyText){
+  if(!items||!items.length)return '<div class="empty">'+esc(emptyText)+'</div>';
+  return items.slice().reverse().slice(0,10).map(function(item){
+   const name=typeof item==="string"?item:(item.name||item.id||"Capability");
+   const status=typeof item==="string"?"RECORDED":(item.status||"RECORDED");
+   const details=typeof item==="string"?"":(item.source||item.workflow_id||"");
+   return '<div class="record"><div class="record-top"><strong>'+esc(String(name).replaceAll("_"," ").toUpperCase())+'</strong><span class="pill ok">'+esc(status)+'</span></div><div class="record-meta">'+esc(details)+'</div></div>';
+  }).join("");
+ }
+ const capabilityData=data.capabilities||{};
+ $("ltxManagerInstalledCapabilities").innerHTML=capabilityRows(capabilityData.installed,"No installed capability inventory has been registered.");
+ $("ltxManagerVerifiedCapabilities").innerHTML=capabilityRows(capabilityData.verified,"No capability has passed a relevant workflow test yet.");
  const notifications=(data.notifications||[]).slice().reverse().slice(0,8);
  $("ltxManagerNotifications").innerHTML=notifications.length?notifications.map(function(item){
   return '<div class="record"><div class="record-top"><strong>'+esc(item.type||"UPDATE NOTICE")+'</strong><span class="muted tiny">'+esc(formatLtxDate(item.timestamp))+'</span></div><div class="small">'+esc(item.message||"Manager event")+'</div></div>';
