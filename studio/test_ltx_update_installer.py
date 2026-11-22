@@ -50,6 +50,8 @@ class LTXIntegrationPlannerTests(unittest.TestCase):
         self.assertIn("no audited production ComfyUI/GPU adapter is configured", plan["automatic_install_blockers"])
     def test_model_asset_downloads_never_enter_low_risk_auto_path(self):
         item = candidate(); item["source"] = "hf_ltx25_comfyui_stack"; item["risk_class"] = "MODEL_ASSET_AND_LICENSE_REVIEW"
+        item["compatibility"]["evidence"]["source"] = item["source"]
+        item["compatibility"]["evidence"]["version"] = item["version"]
         item["installation_requirements"] = {"estimated_download_bytes": 15_000_000_000, "license": "ltx-license", "license_review": "DIRECTOR_REVIEW_REQUIRED", "storage_preflight": "SUFFICIENT_FOR_DOWNLOAD_ONLY"}
         plan = build_integration_plan(item, environment(), {**DEFAULT_POLICY, "automatic_install": True, "production_adapter_configured": True})
         self.assertEqual(plan["operation"], "DOWNLOAD_AND_INSTALL_ASSETS")
