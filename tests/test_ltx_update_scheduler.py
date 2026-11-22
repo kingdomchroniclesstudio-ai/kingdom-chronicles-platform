@@ -148,6 +148,19 @@ class ScheduledMonitorTests(unittest.TestCase):
         self.assertEqual(result["status"], "INCOMPATIBLE")
         self.assertIn("LTXVTemporalUpscale", result["reason"])
 
+    def test_missing_official_workflow_node_class_is_incompatible(self):
+        inventory = manager.validate_environment_inventory(connected_inventory())
+        observed = manager.observe("comfyui_ltx25_workflows", manager.SOURCES["comfyui_ltx25_workflows"], 1)
+        candidate = {
+            "source": "comfyui_ltxvideo_release",
+            "version": "v1.1.2",
+            "required_node_classes": observed["required_node_classes"],
+        }
+        result = manager.classify_compatibility(candidate, inventory)
+        self.assertEqual(result["status"], "INCOMPATIBLE")
+        self.assertIn("LTXVTemporalUpscale", result["reason"])
+        self.assertIn("LTXVTemporalUpscale", observed["required_node_classes"])
+
     def test_interval_skips_runs_until_due(self):
         initial = manager.initial_state(6)
         initial["last_successful_check_at"] = manager.stamp(self.now)
