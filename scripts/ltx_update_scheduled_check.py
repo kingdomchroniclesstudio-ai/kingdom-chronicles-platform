@@ -263,7 +263,7 @@ def observe(source_id: str, cfg: dict[str, str], timeout: float) -> dict[str, An
 INVENTORY_TOP_LEVEL = {
     "schema_version", "status", "observed_at", "environment_fingerprint",
     "comfyui", "runtime", "gpu", "storage", "ltx", "custom_nodes",
-    "installed_sources", "installed_assets", "compatibility_results",
+    "installed_sources", "installed_node_classes", "installed_assets", "compatibility_results",
 }
 INVENTORY_NESTED_KEYS = {
     "comfyui": {"version", "commit"},
@@ -294,6 +294,7 @@ def environment_fingerprint(inventory: dict[str, Any]) -> str:
         "ltx": inventory.get("ltx"),
         "custom_nodes": sorted(inventory.get("custom_nodes", []), key=lambda row: (row.get("repository", ""), row.get("name", ""))),
         "installed_sources": inventory.get("installed_sources", {}),
+        "installed_node_classes": sorted(set(inventory.get("installed_node_classes", []))),
         "installed_assets": sorted(inventory.get("installed_assets", []), key=lambda row: (row.get("repo_id", ""), row.get("filename", ""))),
     }
     return digest(core)
@@ -383,6 +384,14 @@ def validate_environment_inventory(value: dict[str, Any] | None) -> dict[str, An
             "node_classes": sorted({name.strip() for name in node_classes}),
         })
     normalized["custom_nodes"] = normalized_nodes
+
+    installed_node_classes = value.get("installed_node_classes")
+    if not isinstance(installed_node_classes, list) or any(not isinstance(name, str) or not name.strip() for name in installed_node_classes):
+        raise ValueError("connected inventory requires an explicit installed_node_classes array")
+    normalized["installed_node_classes"] = sorted({name.strip() for name in installed_node_classes})
+    custom_node_classes = {name for row in normalized_nodes for name in row["node_classes"]}
+    if not custom_node_classes.issubset(set(normalized["installed_node_classes"])):
+        raise ValueError("installed_node_classes must include every class listed by each installed custom node repository")
 
     installed_sources = value.get("installed_sources")
     if not isinstance(installed_sources, dict):
@@ -507,6 +516,14 @@ def classify_compatibility(candidate: dict[str, Any], inventory: dict[str, Any] 
             "reason": "No verified production ComfyUI endpoint, installed-node inventory, model-file hashes, GPU/VRAM report or staging backup is registered. Upstream metadata alone cannot prove local compatibility.",
         }
 
+    required_node_classes = candidate.get("required_node_classes", [])
+    installed_node_classes = set(inventory.get("installed_node_classes", []))
+    missing_node_classes = sorted(set(required_node_classes) - installed_node_classes)
+    if missing_node_classes:
+        return {
+            "status": "INCOMPATIBLE",
+            "reason": "The workflow references node classes missing from the registered ComfyUI environment: " + ", ".join(missing_node_classes[:30]),
+        }
     source = candidate.get("source")
     version = candidate.get("version")
     installed = inventory.get("installed_sources", {})
@@ -663,8 +680,12 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
             "id": candidate_id, "source": source_id, "name": cfg["label"], "version": seen.get("version"),
             "release_date": seen.get("published_at"), "source_url": seen.get("canonical_url") or seen["url"],
             "summary": seen.get("summary", "Upstream metadata changed."), "affected_components": cfg["components"],
-            "feature_tags": feature_tags, "change_fingerprint": seen["fingerprint"], "status": candidate_status,
+            "feature_tags": feature_tags,
+            "required_node_classes": seen.get("required_node_classes", []),
+            "referenced_model_assets": seen.get("referenced_model_assets", []),
+            "change_fingerprint": seen["fingerprint"], "status": candidate_status,
             "compatibility": compatibility,
+            "missing_dependencies": compatibility.get("reason", "") if compatibility.get("status") == "INCOMPATIBLE" and "missing from the registered ComfyUI environment" in compatibility.get("reason", "") else None,
             "installation_requirements": build_installation_requirements(seen, inventory),
             "installation_status": "INSTALLED" if compatibility["status"] == "ALREADY_INSTALLED" else "NOT_INSTALLED",
             "verification_status": "COMPATIBILITY_TEST_PASSED" if compatibility["status"] == "COMPATIBLE" else "NOT_TESTED",
