@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import io
 import sys
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -251,6 +253,29 @@ class ScheduledMonitorTests(unittest.TestCase):
             self.assertEqual(saved["successful_source_count"], 0)
             self.assertEqual(saved["failed_source_count"], len(manager.SOURCES))
             self.assertTrue(any(row["type"] == "SOURCE_CHECK_FAILED" for row in saved["notifications"]))
+
+    def test_invalid_inventory_print_command_reports_invalid_instead_of_not_connected(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "inventory.json"
+            path.write_text("{bad", encoding="utf-8")
+            output = io.StringIO()
+            with redirect_stdout(output):
+                code = manager.main(["--inventory-file", str(path), "--print-inventory-fingerprint"])
+        self.assertEqual(code, 2)
+        self.assertTrue(output.getvalue().startswith("INVALID:"))
+
+    def test_invalid_inventory_does_not_stop_metadata_discovery_and_is_notified(self):
+        with tempfile.TemporaryDirectory() as temp:
+            state_path = Path(temp) / "state" / "manager.json"
+            inventory_path = Path(temp) / "inventory.json"
+            inventory_path.write_text("{bad", encoding="utf-8")
+            with patch.object(manager.urllib.request, "urlopen", side_effect=fake_upstream()):
+                code = manager.main(["--state-file", str(state_path), "--inventory-file", str(inventory_path), "--force"])
+            saved = json.loads(state_path.read_text(encoding="utf-8"))
+        self.assertEqual(code, 0)
+        self.assertEqual(saved["environment"]["status"], "INVALID_INVENTORY")
+        self.assertTrue(any(row["type"] == "MANUAL_ACTION_REQUIRED" for row in saved["notifications"]))
+        self.assertEqual(saved["successful_source_count"], len(manager.SOURCES))
 
     def test_json_state_round_trip(self):
         with tempfile.TemporaryDirectory() as temp:
