@@ -80,6 +80,8 @@ class LTXUpdateManager:
             "verified": len(state.get("capabilities", {}).get("verified", [])),
             "unread_notifications": sum(1 for item in notifications if not item.get("read", False)),
         }
+        capabilities = state.get("capabilities", {}) if isinstance(state.get("capabilities"), dict) else {}
+        detected_capabilities = capabilities.get("detected", []) if isinstance(capabilities.get("detected"), list) else []
         return {
             "ok": bool(state), "state_source": source, "stale": stale, "read_error": error,
             "manager": state.get("manager", "HIS RISEN LTX Update and Integration Manager"),
@@ -93,6 +95,12 @@ class LTXUpdateManager:
             "source_total_count": state.get("source_total_count", 15),
             "environment": state.get("environment", {"status": "NOT_CONNECTED", "comfyui_version": None, "installed_ltx_version": None}),
             "summary": summary, "candidates": candidates[-50:],
+            "capabilities": {
+                "detected": detected_capabilities[-100:],
+                "registered": capabilities.get("registered", []),
+                "installed": capabilities.get("installed", []),
+                "verified": capabilities.get("verified", []),
+            },
             "notifications": notifications[-50:], "activity": activity[-50:],
             "safety": state.get("safety", {"automatic_install": False, "downloads_enabled": False, "gpu_jobs_enabled": False, "director_approval_required": True}),
         }
