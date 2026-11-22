@@ -105,6 +105,17 @@ class ScheduledMonitorTests(unittest.TestCase):
         self.assertTrue(skipped["skipped"])
         self.assertEqual(skipped["next_check_due_at"], manager.stamp(self.now + timedelta(hours=6)))
 
+    def test_partial_scan_retry_timestamp_overrides_full_interval_gate(self):
+        retry_state = manager.initial_state(6)
+        retry_state["last_successful_check_at"] = manager.stamp(self.now - timedelta(hours=3))
+        retry_state["next_check_due_at"] = manager.stamp(self.now - timedelta(minutes=1))
+        retry_state["schedule"]["interval_hours"] = 6
+        with patch.object(manager.urllib.request, "urlopen", side_effect=TimeoutError("simulated source outage")):
+            updated = manager.monitor_once(retry_state, interval_hours=6, timeout=1, force=False, now=self.now)
+        self.assertFalse(updated.get("skipped", False))
+        self.assertEqual(updated["failed_source_count"], len(manager.SOURCES))
+        self.assertEqual(updated["next_check_due_at"], manager.stamp(self.now + timedelta(hours=1)))
+
     def test_inventory_only_marks_exact_revision_already_installed(self):
         candidate = {"source": "ltx_core_release", "version": "v1.6.2"}
         self.assertEqual(manager.classify_compatibility(candidate, None)["status"], "REQUIRES_MANUAL_APPROVAL")
