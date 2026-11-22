@@ -55,7 +55,7 @@ def connected_inventory(installed_sources=None, compatibility_results=None):
         "gpu": {"model": "NVIDIA RTX 5090", "vram_total_gib": 32},
         "storage": {"persistent_mount_configured": True, "available_bytes": 100_000_000_000, "mount_label": "GPU_DATA"},
         "ltx": {"primary_model": "LTX-2.5", "model_revision": "ltx25-abc"},
-        "custom_nodes": [{"name": "ComfyUI-LTXVideo", "repository": "https://github.com/Lightricks/ComfyUI-LTXVideo", "version": "v1.1.1", "commit": "nodes-abc", "license": "Other"}],
+        "custom_nodes": [{"name": "ComfyUI-LTXVideo", "repository": "https://github.com/Lightricks/ComfyUI-LTXVideo", "version": "v1.1.1", "commit": "nodes-abc", "license": "Other", "node_classes": ["LTXVBaseSampler", "LTXVImgToVideo"]}],
         "installed_sources": installed_sources or {},
         "installed_assets": [{"repo_id": "Lightricks/LTX-2.5", "revision": "ltx25-abc", "filename": "transformer.safetensors", "size_bytes": 1000, "sha256_or_lfs_oid": "asset-hash", "license": "ltx-2.x-community-license-agreement", "gated": False}],
         "compatibility_results": compatibility_results or [],
@@ -173,6 +173,19 @@ class ScheduledMonitorTests(unittest.TestCase):
         invalid["api_key"] = "should-never-be-accepted"
         with self.assertRaises(ValueError):
             manager.validate_environment_inventory(invalid)
+
+    def test_environment_fingerprint_ignores_free_space_but_tracks_node_and_gpu_versions(self):
+        raw = connected_inventory()
+        baseline = manager.environment_fingerprint(manager.validate_environment_inventory(raw))
+        changed_space = connected_inventory()
+        changed_space["storage"]["available_bytes"] = 50_000_000_000
+        self.assertEqual(baseline, manager.environment_fingerprint(manager.validate_environment_inventory(changed_space)))
+        changed_nodes = connected_inventory()
+        changed_nodes["custom_nodes"][0]["node_classes"].append("LTXVTemporalUpscale")
+        self.assertNotEqual(baseline, manager.environment_fingerprint(manager.validate_environment_inventory(changed_nodes)))
+        changed_gpu = connected_inventory()
+        changed_gpu["gpu"]["driver_version"] = "new-driver"
+        self.assertNotEqual(baseline, manager.environment_fingerprint(manager.validate_environment_inventory(changed_gpu)))
 
     def test_inventory_reader_accepts_not_connected_state_and_rejects_invalid_json(self):
         with tempfile.TemporaryDirectory() as temp:
