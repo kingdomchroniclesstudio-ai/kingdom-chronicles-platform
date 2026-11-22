@@ -672,12 +672,24 @@ def write_state(path: Path, state: dict[str, Any]) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state-file", type=Path, default=Path("state/ltx_update_manager.json"))
+    parser.add_argument("--inventory-file", type=Path, default=Path("state/ltx_environment_inventory.json"))
     parser.add_argument("--interval-hours", type=int, default=int(os.environ.get("LTX_UPDATE_INTERVAL_HOURS", "6")))
     parser.add_argument("--timeout", type=float, default=15.0)
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--print-inventory-fingerprint", action="store_true", help="validate a connected inventory and print the environment fingerprint without running a metadata scan")
     args = parser.parse_args(argv)
+    try:
+        inventory = read_inventory(args.inventory_file)
+    except ValueError as exc:
+        inventory = {"schema_version": 0, "status": "INVALID", "note": str(exc)}
+    if args.print_inventory_fingerprint:
+        if isinstance(inventory, dict) and inventory.get("status") == "CONNECTED":
+            print(inventory["environment_fingerprint"])
+        else:
+            print("NOT_CONNECTED")
+        return 0
     state = read_state(args.state_file)
-    updated = monitor_once(state, interval_hours=args.interval_hours, timeout=args.timeout, force=args.force)
+    updated = monitor_once(state, interval_hours=args.interval_hours, timeout=args.timeout, force=args.force, inventory=inventory)
     if updated.get("skipped"):
         print(f"Skipped until {updated.get('next_check_due_at')}")
         return 0
