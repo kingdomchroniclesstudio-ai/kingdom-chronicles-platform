@@ -127,6 +127,8 @@ class ScheduledMonitorTests(unittest.TestCase):
         self.assertEqual(state["successful_source_count"], len(manager.SOURCES) - 1)
         self.assertIn("ltx_core_release", state["source_errors"])
         self.assertTrue(any(row["type"] == "SOURCE_CHECK_FAILED" for row in state["notifications"]))
+        self.assertIsNone(state.get("last_successful_check_at"))
+        self.assertEqual(state["next_check_due_at"], manager.stamp(self.now + timedelta(hours=1)))
 
     def test_cli_persists_outage_notifications_without_failing_the_workflow(self):
         with tempfile.TemporaryDirectory() as temp:
