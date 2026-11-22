@@ -275,6 +275,15 @@
           }
         }
       }
+    },
+    "installed_node_classes": {
+      "type": "array",
+      "description": "Complete node-class list exposed by the running ComfyUI registry, including core and all custom-node classes.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
     }
   },
   "allOf": [
@@ -300,7 +309,8 @@
           "custom_nodes",
           "installed_sources",
           "installed_assets",
-          "compatibility_results"
+          "compatibility_results",
+          "installed_node_classes"
         ]
       }
     },
