@@ -31,12 +31,12 @@ Each candidate records its upstream source, source URL, version/revision where a
 
 The state branch also contains `state/ltx_environment_inventory.json`, initially marked `NOT_CONNECTED`. It is deliberately separate from the update history. Once the GPU/ComfyUI environment is funded and configured, a trusted inventory exporter may populate it with:
 
-- ComfyUI version and commit, Python/PyTorch/CUDA versions, and installed custom-node repository versions/commits.
+- ComfyUI version and commit, Python/PyTorch/CUDA versions, and installed custom-node repository versions/commits and the complete registered node-class list.
 - The fixed LTX-2.5 model revision and installed model/adapter file names, sizes and cryptographic/LFS hashes.
 - GPU model and total VRAM, plus confirmation of an attached persistent storage mount and available bytes.
 - Explicit, version-pinned workflow compatibility test results.
 
-The inventory schema is `config/ltx_environment_inventory.schema.json`. It rejects unknown fields and has no place for endpoints, access tokens, passwords or API keys. The connected status is accepted only when ComfyUI/runtime/GPU/storage/LTX-2.5 details and explicit node-class/model arrays are present. Run `python scripts/ltx_update_scheduled_check.py --inventory-file state/ltx_environment_inventory.json --print-inventory-fingerprint` to validate it and obtain the current environment fingerprint.
+The inventory schema is `config/ltx_environment_inventory.schema.json`. It rejects unknown fields and has no place for endpoints, access tokens, passwords or API keys. The connected status is accepted only when ComfyUI/runtime/GPU/storage/LTX-2.5 details and explicit full node-class/model arrays are present. Official LTX-2.5 workflow JSON graphs are parsed for referenced node classes and model asset names. Run `python scripts/ltx_update_scheduled_check.py --inventory-file state/ltx_environment_inventory.json --print-inventory-fingerprint` to validate it and obtain the current environment fingerprint.
 
 A compatibility result is used only when its source/version and environment fingerprint exactly match the current inventory and a workflow test has completed. The fingerprint includes the ComfyUI commit, Python/PyTorch/CUDA versions, GPU model/VRAM/driver, installed custom-node versions and node classes, LTX revision and installed asset hashes, plus persistent mount identity. It intentionally excludes the changing free-space counter and observation timestamp. Changing the installed runtime, nodes, model files or GPU invalidates old test evidence; refreshing available storage does not. This is a metadata gate, not a claim that a production installation has been tested.
 
