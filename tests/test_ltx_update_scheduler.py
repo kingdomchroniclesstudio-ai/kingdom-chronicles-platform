@@ -133,6 +133,8 @@ class ScheduledMonitorTests(unittest.TestCase):
         self.assertIn("LTXVImgToVideo", observed["required_node_classes"])
         self.assertIn("LTXVTemporalUpscale", observed["required_node_classes"])
         self.assertIn("ltx-2.5-video.safetensors", observed["referenced_model_assets"])
+        self.assertTrue(observed["version"])
+        self.assertTrue(observed["version"].startswith(observed["fingerprint"][:16]))
         self.assertIn("ltx-2.5-distilled.safetensors", observed["referenced_model_assets"])
         graph_entry = observed["metadata"][0]
         self.assertIn("node_classes", graph_entry)
