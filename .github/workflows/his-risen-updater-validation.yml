@@ -22,6 +22,12 @@ on:
 permissions:
   contents: write
 
+# The validation workflow rebuilds and commits the same package/checksum files.
+# Serialize runs per ref to avoid concurrent non-fast-forward ZIP commits.
+concurrency:
+  group: hrf-controller-validation-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   validate-controller-package:
     runs-on: ubuntu-latest
