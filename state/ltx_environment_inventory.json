@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "status": "NOT_CONNECTED",
+  "observed_at": null,
+  "note": "No production ComfyUI/GPU environment is registered yet. Populate this file only after the Director has configured ComfyUI, installed LTX-2.5 assets, inventoried custom nodes, attached persistent storage and recorded actual hardware/runtime versions. Never put endpoints, tokens, passwords or API keys in this file."
+}
