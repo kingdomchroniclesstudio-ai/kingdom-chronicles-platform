@@ -703,7 +703,7 @@ def monitor_once(state: dict[str, Any] | None = None, *, interval_hours: int = 6
             "referenced_model_assets": seen.get("referenced_model_assets", []),
             "change_fingerprint": seen["fingerprint"], "status": candidate_status,
             "compatibility": compatibility,
-            "missing_dependencies": compatibility.get("reason", "") if compatibility.get("status") == "INCOMPATIBLE" and "missing from the registered ComfyUI environment" in compatibility.get("reason", "") else None,
+            "missing_dependencies": compatibility.get("reason", "") if compatibility.get("status") == "INCOMPATIBLE" else None,
             "installation_requirements": build_installation_requirements(seen, inventory),
             "installation_status": "INSTALLED" if compatibility["status"] == "ALREADY_INSTALLED" else "NOT_INSTALLED",
             "verification_status": "COMPATIBILITY_TEST_PASSED" if compatibility["status"] == "COMPATIBLE" else "NOT_TESTED",
