@@ -209,6 +209,194 @@ def observe(source_id: str, cfg: dict[str, str], timeout: float) -> dict[str, An
         return {"source": source_id, "label": cfg["label"], "kind": cfg["kind"], "url": url, "components": cfg["components"], "status": "SOURCE_ERROR", "error": f"{type(exc).__name__}: {str(exc)[:400]}"}
 
 
+INVENTORY_TOP_LEVEL = {
+    "schema_version", "status", "observed_at", "comfyui", "runtime", "gpu",
+    "storage", "ltx", "custom_nodes", "installed_sources", "installed_assets",
+    "compatibility_results", "note",
+}
+INVENTORY_NESTED_KEYS = {
+    "comfyui": {"version", "commit"},
+    "runtime": {"python_version", "pytorch_version", "cuda_version"},
+    "gpu": {"model", "vram_total_gib"},
+    "storage": {"persistent_mount_configured", "available_bytes", "mount_label"},
+    "ltx": {"primary_model", "model_revision"},
+}
+
+
+def _require_text(value: Any, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"inventory field '{field}' must be a non-empty string")
+    return value.strip()
+
+
+def environment_fingerprint(inventory: dict[str, Any]) -> str:
+    """Stable fingerprint of installed production components, hardware and storage."""
+    core = {
+        "schema_version": inventory.get("schema_version"),
+        "comfyui": inventory.get("comfyui"),
+        "runtime": inventory.get("runtime"),
+        "gpu": inventory.get("gpu"),
+        "storage": inventory.get("storage"),
+        "ltx": inventory.get("ltx"),
+        "custom_nodes": sorted(inventory.get("custom_nodes", []), key=lambda row: (row.get("repository", ""), row.get("name", ""))),
+        "installed_sources": inventory.get("installed_sources", {}),
+        "installed_assets": sorted(inventory.get("installed_assets", []), key=lambda row: (row.get("repo_id", ""), row.get("filename", ""))),
+    }
+    return digest(core)
+
+
+def validate_environment_inventory(value: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Accept only a complete, secret-free inventory for the fixed LTX-2.5 stack."""
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError("environment inventory must be a JSON object")
+    extra = set(value) - INVENTORY_TOP_LEVEL
+    if extra:
+        raise ValueError(f"environment inventory contains unsupported fields: {', '.join(sorted(extra))}")
+    if value.get("schema_version") != 1:
+        raise ValueError("environment inventory schema_version must be 1")
+
+    status = value.get("status")
+    if status == "NOT_CONNECTED":
+        return {
+            "schema_version": 1, "status": "NOT_CONNECTED",
+            "observed_at": value.get("observed_at"),
+            "note": str(value.get("note") or "No production ComfyUI/GPU inventory has been registered."),
+        }
+    if status != "CONNECTED":
+        raise ValueError("environment inventory status must be NOT_CONNECTED or CONNECTED")
+
+    normalized: dict[str, Any] = {"schema_version": 1, "status": "CONNECTED"}
+    for section, allowed in INVENTORY_NESTED_KEYS.items():
+        raw = value.get(section)
+        if not isinstance(raw, dict):
+            raise ValueError(f"connected inventory requires object '{section}'")
+        extra_keys = set(raw) - allowed
+        if extra_keys:
+            raise ValueError(f"inventory section '{section}' contains unsupported fields: {', '.join(sorted(extra_keys))}")
+        normalized[section] = dict(raw)
+
+    for key in ("version", "commit"):
+        normalized["comfyui"][key] = _require_text(normalized["comfyui"].get(key), f"comfyui.{key}")
+    for key in ("python_version", "pytorch_version", "cuda_version"):
+        normalized["runtime"][key] = _require_text(normalized["runtime"].get(key), f"runtime.{key}")
+    normalized["gpu"]["model"] = _require_text(normalized["gpu"].get("model"), "gpu.model")
+    try:
+        vram = float(normalized["gpu"].get("vram_total_gib"))
+    except (TypeError, ValueError):
+        raise ValueError("inventory field 'gpu.vram_total_gib' must be a positive number")
+    if not (vram > 0):
+        raise ValueError("inventory field 'gpu.vram_total_gib' must be a positive number")
+    normalized["gpu"]["vram_total_gib"] = vram
+
+    if normalized["storage"].get("persistent_mount_configured") is not True:
+        raise ValueError("connected inventory requires persistent storage to be configured")
+    try:
+        available = int(normalized["storage"].get("available_bytes"))
+    except (TypeError, ValueError):
+        raise ValueError("inventory field 'storage.available_bytes' must be a positive integer")
+    if available <= 0:
+        raise ValueError("inventory field 'storage.available_bytes' must be a positive integer")
+    normalized["storage"]["available_bytes"] = available
+    normalized["storage"]["mount_label"] = _require_text(normalized["storage"].get("mount_label"), "storage.mount_label")
+
+    normalized["ltx"]["primary_model"] = _require_text(normalized["ltx"].get("primary_model"), "ltx.primary_model")
+    if normalized["ltx"]["primary_model"] != "LTX-2.5":
+        raise ValueError("environment inventory must preserve LTX-2.5 as the primary model")
+    normalized["ltx"]["model_revision"] = _require_text(normalized["ltx"].get("model_revision"), "ltx.model_revision")
+
+    custom_nodes = value.get("custom_nodes")
+    if not isinstance(custom_nodes, list):
+        raise ValueError("connected inventory requires an explicit custom_nodes array")
+    normalized_nodes = []
+    for index, row in enumerate(custom_nodes):
+        if not isinstance(row, dict) or set(row) - {"name", "repository", "version", "commit", "license"}:
+            raise ValueError(f"custom_nodes[{index}] has an invalid shape")
+        normalized_nodes.append({
+            "name": _require_text(row.get("name"), f"custom_nodes[{index}].name"),
+            "repository": _require_text(row.get("repository"), f"custom_nodes[{index}].repository"),
+            "version": _require_text(row.get("version"), f"custom_nodes[{index}].version"),
+            "commit": _require_text(row.get("commit"), f"custom_nodes[{index}].commit"),
+            "license": str(row.get("license") or "NOT_RECORDED"),
+        })
+    normalized["custom_nodes"] = normalized_nodes
+
+    installed_sources = value.get("installed_sources")
+    if not isinstance(installed_sources, dict):
+        raise ValueError("connected inventory requires an installed_sources object")
+    if set(installed_sources) - set(SOURCES):
+        raise ValueError("installed_sources contains a source ID not present in the approved monitor")
+    normalized["installed_sources"] = {
+        str(key): _require_text(version, f"installed_sources.{key}")
+        for key, version in installed_sources.items()
+    }
+
+    installed_assets = value.get("installed_assets")
+    if not isinstance(installed_assets, list):
+        raise ValueError("connected inventory requires an explicit installed_assets array")
+    normalized_assets = []
+    for index, row in enumerate(installed_assets):
+        allowed = {"repo_id", "revision", "filename", "size_bytes", "sha256_or_lfs_oid", "license", "gated"}
+        if not isinstance(row, dict) or set(row) - allowed:
+            raise ValueError(f"installed_assets[{index}] has an invalid shape")
+        try:
+            size = int(row.get("size_bytes"))
+        except (TypeError, ValueError):
+            raise ValueError(f"installed_assets[{index}].size_bytes must be a positive integer")
+        if size <= 0:
+            raise ValueError(f"installed_assets[{index}].size_bytes must be a positive integer")
+        normalized_assets.append({
+            "repo_id": _require_text(row.get("repo_id"), f"installed_assets[{index}].repo_id"),
+            "revision": _require_text(row.get("revision"), f"installed_assets[{index}].revision"),
+            "filename": _require_text(row.get("filename"), f"installed_assets[{index}].filename"),
+            "size_bytes": size,
+            "sha256_or_lfs_oid": _require_text(row.get("sha256_or_lfs_oid"), f"installed_assets[{index}].sha256_or_lfs_oid"),
+            "license": str(row.get("license") or "NOT_RECORDED"),
+            "gated": bool(row.get("gated", False)),
+        })
+    normalized["installed_assets"] = normalized_assets
+
+    result_rows = value.get("compatibility_results", [])
+    if not isinstance(result_rows, list):
+        raise ValueError("compatibility_results must be an array")
+    normalized_results = []
+    for index, row in enumerate(result_rows):
+        allowed = {"source", "version", "result", "workflow_test_passed", "reason", "workflow_id", "tested_at", "environment_fingerprint"}
+        if not isinstance(row, dict) or set(row) - allowed:
+            raise ValueError(f"compatibility_results[{index}] has an invalid shape")
+        source = _require_text(row.get("source"), f"compatibility_results[{index}].source")
+        if source not in SOURCES:
+            raise ValueError(f"compatibility_results[{index}].source is not an approved source ID")
+        result = row.get("result")
+        if result not in {"COMPATIBLE", "INCOMPATIBLE"} or row.get("workflow_test_passed") is not True:
+            raise ValueError(f"compatibility_results[{index}] requires a completed workflow test result")
+        normalized_results.append({
+            "source": source,
+            "version": _require_text(row.get("version"), f"compatibility_results[{index}].version"),
+            "result": result,
+            "workflow_test_passed": True,
+            "reason": _require_text(row.get("reason"), f"compatibility_results[{index}].reason"),
+            "workflow_id": _require_text(row.get("workflow_id"), f"compatibility_results[{index}].workflow_id"),
+            "tested_at": _require_text(row.get("tested_at"), f"compatibility_results[{index}].tested_at"),
+            "environment_fingerprint": _require_text(row.get("environment_fingerprint"), f"compatibility_results[{index}].environment_fingerprint"),
+        })
+    normalized["compatibility_results"] = normalized_results
+    normalized["observed_at"] = str(value.get("observed_at") or "")
+    normalized["environment_fingerprint"] = environment_fingerprint(normalized)
+    return normalized
+
+
+def read_inventory(path: Path) -> dict[str, Any] | None:
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return None
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"environment inventory is invalid JSON: {exc}") from exc
+    return validate_environment_inventory(raw)
+
+
 def classify_compatibility(candidate: dict[str, Any], inventory: dict[str, Any] | None) -> dict[str, Any]:
     """Classify only from explicit, version-matched local inventory/test evidence."""
     if not isinstance(inventory, dict) or inventory.get("status") != "CONNECTED":
