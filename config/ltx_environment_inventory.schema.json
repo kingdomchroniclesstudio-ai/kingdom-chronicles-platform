@@ -20,17 +20,16 @@
       ]
     },
     "observed_at": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "format": "date-time"
     },
     "environment_fingerprint": {
       "type": "string",
       "minLength": 1,
       "description": "Computed by the manager from the installed ComfyUI/LTX/GPU/storage inventory. Obtain the current value with --print-inventory-fingerprint after validating the inventory."
-    },
-    "note": {
-      "type": "string",
-      "maxLength": 500
     },
     "comfyui": {
       "type": "object",
@@ -306,16 +305,57 @@
       },
       "then": {
         "not": {
-          "required": [
-            "comfyui",
-            "runtime",
-            "gpu",
-            "storage",
-            "ltx",
-            "custom_nodes",
-            "installed_sources",
-            "installed_assets",
-            "compatibility_results"
+          "anyOf": [
+            {
+              "required": [
+                "environment_fingerprint"
+              ]
+            },
+            {
+              "required": [
+                "comfyui"
+              ]
+            },
+            {
+              "required": [
+                "runtime"
+              ]
+            },
+            {
+              "required": [
+                "gpu"
+              ]
+            },
+            {
+              "required": [
+                "storage"
+              ]
+            },
+            {
+              "required": [
+                "ltx"
+              ]
+            },
+            {
+              "required": [
+                "custom_nodes"
+              ]
+            },
+            {
+              "required": [
+                "installed_sources"
+              ]
+            },
+            {
+              "required": [
+                "installed_assets"
+              ]
+            },
+            {
+              "required": [
+                "compatibility_results"
+              ]
+            }
           ]
         }
       }
