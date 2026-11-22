@@ -176,13 +176,29 @@ def observe(source_id: str, cfg: dict[str, str], timeout: float) -> dict[str, An
 
                     def inspect_graph(value: Any) -> None:
                         if isinstance(value, dict):
-                            for key, child in value.items():
-                                if key in {"type", "class_type"} and isinstance(child, str):
-                                    classes.add(child)
-                                if isinstance(child, str) and re.search(r"\.(safetensors|ckpt|pt|pth|gguf|model)$", child, re.IGNORECASE):
-                                    assets.add(child)
-                                else:
-                                    inspect_graph(child)
+                            # ComfyUI editor-export format: only the "type" field
+                            # of an entry in the top-level/nested "nodes" array is
+                            # an actual node class; other "type" fields are socket
+                            # types, UI widget schemas, group metadata, etc.
+                            node_rows = value.get("nodes")
+                            if isinstance(node_rows, list):
+                                for node_row in node_rows:
+                                    if not isinstance(node_row, dict):
+                                        continue
+                                    node_type = node_row.get("type")
+                                    if isinstance(node_type, str) and node_type.strip():
+                                        classes.add(node_type.strip())
+                                    api_type = node_row.get("class_type")
+                                    if isinstance(api_type, str) and api_type.strip():
+                                        classes.add(api_type.strip())
+                            # ComfyUI API prompt-export format: class_type belongs
+                            # to each prompt node object. Never infer from generic
+                            # "type" or "name" fields elsewhere in the JSON.
+                            api_type = value.get("class_type")
+                            if isinstance(api_type, str) and api_type.strip():
+                                classes.add(api_type.strip())
+                            for child in value.values():
+                                inspect_graph(child)
                         elif isinstance(value, list):
                             for child in value:
                                 inspect_graph(child)
