@@ -37,7 +37,7 @@
     "timezone": "UTC"
   },
   "schema_version": 1,
-  "source_total_count": 13,
+  "source_total_count": 14,
   "source_errors": {},
   "source_observations": {
     "comfyui_ltxvideo_release": {
