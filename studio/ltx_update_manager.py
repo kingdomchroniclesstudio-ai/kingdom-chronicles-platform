@@ -74,7 +74,8 @@ class LTXUpdateManager:
         activity = state.get("activity", []) if isinstance(state.get("activity"), list) else []
         summary = {
             "detected": sum(1 for item in candidates if item.get("status") == "DETECTED"),
-            "pending_approval": sum(1 for item in candidates if item.get("compatibility", {}).get("status") == "REQUIRES_MANUAL_APPROVAL"),
+            "pending_approval": sum(1 for item in candidates if item.get("compatibility", {}).get("status") in {"REQUIRES_MANUAL_APPROVAL", "COMPATIBLE"}),
+            "already_installed": sum(1 for item in candidates if item.get("compatibility", {}).get("status") == "ALREADY_INSTALLED"),
             "incompatible": sum(1 for item in candidates if item.get("compatibility", {}).get("status") == "INCOMPATIBLE"),
             "verified": len(state.get("capabilities", {}).get("verified", [])),
             "unread_notifications": sum(1 for item in notifications if not item.get("read", False)),
