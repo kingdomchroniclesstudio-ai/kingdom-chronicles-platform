@@ -189,10 +189,15 @@ a{color:var(--cyan)}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(24px,4vw,36px)
             <div class="record"><div class="muted tiny">PERSISTENT STORAGE</div><strong id="ltxStorageState">Not configured</strong></div>
             <div class="record"><div class="muted tiny">DETECTED CHANGES</div><strong id="ltxDetectedCount">0</strong></div>
             <div class="record"><div class="muted tiny">PENDING DIRECTOR REVIEW</div><strong id="ltxPendingCount">0</strong></div>
+            <div class="record"><div class="muted tiny">INCOMPATIBLE UPDATES</div><strong id="ltxIncompatibleCount">0</strong></div>
           </div>
           <div class="grid-2">
+            <div class="record"><div class="muted tiny">ALREADY INSTALLED UPDATES</div><strong id="ltxAlreadyInstalledCount">0</strong></div>
             <div class="record"><div class="muted tiny">INSTALLED CAPABILITIES</div><strong id="ltxInstalledCount">0</strong></div>
+          </div>
+          <div class="grid-2">
             <div class="record"><div class="muted tiny">VERIFIED CAPABILITIES</div><strong id="ltxVerifiedCount">0</strong></div>
+            <div class="record"><div class="muted tiny">UNREAD NOTIFICATIONS</div><strong id="ltxUnreadCount">0</strong></div>
           </div>
           <div class="grid-3">
             <div class="record"><div class="muted tiny">LAST SUCCESSFUL CHECK</div><div id="ltxLastCheck" class="small">Not checked yet</div></div>
@@ -522,8 +527,11 @@ function renderLtxManager(data){
  $("ltxCheckInterval").textContent="Every "+((data.schedule||{}).interval_hours||6)+" hours";
  $("ltxDetectedCount").textContent=summary.detected||0;
  $("ltxPendingCount").textContent=summary.pending_approval||0;
+ $("ltxIncompatibleCount").textContent=summary.incompatible||0;
+ $("ltxAlreadyInstalledCount").textContent=summary.already_installed||0;
  $("ltxInstalledCount").textContent=summary.installed||0;
  $("ltxVerifiedCount").textContent=summary.verified||0;
+ $("ltxUnreadCount").textContent=summary.unread_notifications||0;
  $("ltxLastCheck").textContent=formatLtxDate(data.last_successful_check_at);
  $("ltxNextCheck").textContent=formatLtxDate(data.next_check_due_at);
  $("ltxSourceHealth").textContent=(data.successful_source_count||0)+" / "+(data.source_total_count||15)+" healthy · "+(data.failed_source_count||0)+" failed";
@@ -535,7 +543,7 @@ function renderLtxManager(data){
   const statusClass=status==="INCOMPATIBLE"?"bad":(status==="COMPATIBLE"?"ok":"warn");
   const requirements=item.installation_requirements||{};
   const sizeText=requirements.estimated_download_gib===null||requirements.estimated_download_gib===undefined?"size unknown":requirements.estimated_download_gib+" GiB listed files";
-  return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(item.name||item.source||"Upstream change")+'</div><div class="record-meta">'+esc(item.version||"Revision/content change")+' · '+esc(item.release_date||item.detected_at||"date unavailable")+'</div></div><span class="pill '+statusClass+'">'+esc(status)+'</span></div><p class="small">'+esc(item.summary||"Metadata changed.")+'</p><div class="record-meta">Risk: '+esc(item.risk_class||"REVIEW_REQUIRED")+' · Affects: '+esc(item.affected_components||"LTX ecosystem")+'</div><div class="record-meta">'+esc(sizeText)+' · storage: '+esc(requirements.storage_preflight||"UNKNOWN")+' · license: '+esc(requirements.license_review||"REVIEW REQUIRED")+'</div><div class="record-meta">Installation: '+esc(item.installation_status||"NOT INSTALLED")+' · verification: '+esc(item.verification_status||"NOT TESTED")+'</div><a href="'+esc(item.source_url||"#")+'" target="_blank" rel="noopener">Open official source</a></div>';
+  return '<div class="record"><div class="record-top"><div><div class="record-title">'+esc(item.name||item.source||"Upstream change")+'</div><div class="record-meta">'+esc(item.version||"Revision/content change")+' · '+esc(item.release_date||item.detected_at||"date unavailable")+'</div></div><span class="pill '+statusClass+'">'+esc(status)+'</span></div><p class="small">'+esc(item.summary||"Metadata changed.")+'</p><div class="record-meta">Risk: '+esc(item.risk_class||"REVIEW_REQUIRED")+' · Affects: '+esc(item.affected_components||"LTX ecosystem")+'</div><div class="record-meta">'+esc(sizeText)+' · storage: '+esc(requirements.storage_preflight||"UNKNOWN")+' · license: '+esc(requirements.license_review||"REVIEW REQUIRED")+'</div><div class="record-meta">Missing dependencies: '+esc(item.missing_dependencies||"none recorded")+'</div><div class="record-meta">Required nodes: '+esc((item.required_node_classes||[]).join(", ")||"not specified")+'</div><div class="record-meta">Referenced assets: '+esc((item.referenced_model_assets||[]).join(", ")||"not specified")+'</div><div class="record-meta">Installation: '+esc(item.installation_status||"NOT INSTALLED")+' · verification: '+esc(item.verification_status||"NOT TESTED")+'</div><a href="'+esc(item.source_url||"#")+'" target="_blank" rel="noopener">Open official source</a></div>';
  }).join(""):'<div class="empty">No new upstream changes have been recorded after the stored baseline.</div>';
  const capabilities=((data.capabilities||{}).detected||[]).slice().reverse().slice(0,12);
  $("ltxManagerCapabilities").innerHTML=capabilities.length?capabilities.map(function(item){
