@@ -87,6 +87,16 @@ class ScheduledMonitorTests(unittest.TestCase):
         self.assertIn("gemma4_text_encoder", observed["feature_tags"])
         self.assertNotIn("model.safetensors", [item["name"] for item in files])
 
+    def test_feature_scanner_reads_full_document_beyond_the_dashboard_excerpt(self):
+        body = ("introductory documentation " * 30) + " Native 4K 8K Tiled Fusion HDR character consistency."
+        with patch.object(manager.urllib.request, "urlopen", return_value=FakeResponse(body.encode(), "text/html")):
+            observed = manager.observe("ltx_open_source_comfyui_docs", manager.SOURCES["ltx_open_source_comfyui_docs"], 1)
+        self.assertEqual(len(observed["summary"]), 480)
+        self.assertIn("native_resolution", observed["feature_tags"])
+        self.assertIn("tiled_fusion", observed["feature_tags"])
+        self.assertIn("hdr", observed["feature_tags"])
+        self.assertIn("consistency", observed["feature_tags"])
+
     def test_interval_skips_runs_until_due(self):
         initial = manager.initial_state(6)
         initial["last_successful_check_at"] = manager.stamp(self.now)
