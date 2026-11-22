@@ -145,9 +145,12 @@ def observe(source_id: str, cfg: dict[str, str], timeout: float) -> dict[str, An
 
         if cfg["kind"] == "release":
             data = json.loads(body.decode("utf-8"))
-            metadata = {"tag_name": data.get("tag_name"), "published_at": data.get("published_at"), "html_url": data.get("html_url"), "notes_sha256": digest(data.get("body") or "")}
-            summary = re.sub(r"\s+", " ", data.get("body") or "").strip()[:1200] or "Release published; no notes supplied."
-            return {"source": source_id, "label": cfg["label"], "kind": cfg["kind"], "url": url, "canonical_url": data.get("html_url") or url, "metadata": metadata, "fingerprint": digest(metadata), "version": data.get("tag_name"), "published_at": data.get("published_at"), "summary": summary, "components": cfg["components"], "status": "OBSERVED"}
+            release_notes = re.sub(r"\s+", " ", data.get("body") or "").strip()
+            metadata = {"tag_name": data.get("tag_name"), "published_at": data.get("published_at"), "html_url": data.get("html_url"), "notes_sha256": digest(release_notes)}
+            summary = release_notes[:1200] or "Release published; no notes supplied."
+            notes_lower = release_notes.lower()
+            feature_tags = [name for name, phrases in FEATURES.items() if any(phrase in notes_lower for phrase in phrases)]
+            return {"source": source_id, "label": cfg["label"], "kind": cfg["kind"], "url": url, "canonical_url": data.get("html_url") or url, "metadata": metadata, "fingerprint": digest(metadata), "version": data.get("tag_name"), "published_at": data.get("published_at"), "summary": summary, "feature_tags": feature_tags, "components": cfg["components"], "status": "OBSERVED"}
         if cfg["kind"] == "contents":
             data = json.loads(body.decode("utf-8"))
             if not isinstance(data, list):
@@ -198,8 +201,10 @@ def observe(source_id: str, cfg: dict[str, str], timeout: float) -> dict[str, An
             decoded = " ".join(parser.parts)
         else:
             decoded = " ".join(decoded.split())
+        content_lower = decoded.lower()
         metadata = {"text_sha256": digest(decoded), "characters": len(decoded)}
-        return {"source": source_id, "label": cfg["label"], "kind": cfg["kind"], "url": url, "canonical_url": url, "metadata": metadata, "fingerprint": digest(metadata), "summary": decoded[:480], "components": cfg["components"], "status": "OBSERVED"}
+        feature_tags = [name for name, phrases in FEATURES.items() if any(phrase in content_lower for phrase in phrases)]
+        return {"source": source_id, "label": cfg["label"], "kind": cfg["kind"], "url": url, "canonical_url": url, "metadata": metadata, "fingerprint": digest(metadata), "summary": decoded[:480], "feature_tags": feature_tags, "components": cfg["components"], "status": "OBSERVED"}
     except Exception as exc:
         return {"source": source_id, "label": cfg["label"], "kind": cfg["kind"], "url": url, "components": cfg["components"], "status": "SOURCE_ERROR", "error": f"{type(exc).__name__}: {str(exc)[:400]}"}
 
