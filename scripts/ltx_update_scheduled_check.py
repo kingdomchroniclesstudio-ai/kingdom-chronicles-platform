@@ -217,7 +217,7 @@ INVENTORY_TOP_LEVEL = {
 INVENTORY_NESTED_KEYS = {
     "comfyui": {"version", "commit"},
     "runtime": {"python_version", "pytorch_version", "cuda_version"},
-    "gpu": {"model", "vram_total_gib"},
+    "gpu": {"model", "vram_total_gib", "driver_version"},
     "storage": {"persistent_mount_configured", "available_bytes", "mount_label"},
     "ltx": {"primary_model", "model_revision"},
 }
@@ -236,7 +236,10 @@ def environment_fingerprint(inventory: dict[str, Any]) -> str:
         "comfyui": inventory.get("comfyui"),
         "runtime": inventory.get("runtime"),
         "gpu": inventory.get("gpu"),
-        "storage": inventory.get("storage"),
+        "storage": {
+            "persistent_mount_configured": inventory.get("storage", {}).get("persistent_mount_configured"),
+            "mount_label": inventory.get("storage", {}).get("mount_label"),
+        },
         "ltx": inventory.get("ltx"),
         "custom_nodes": sorted(inventory.get("custom_nodes", []), key=lambda row: (row.get("repository", ""), row.get("name", ""))),
         "installed_sources": inventory.get("installed_sources", {}),
@@ -285,6 +288,7 @@ def validate_environment_inventory(value: dict[str, Any] | None) -> dict[str, An
     for key in ("python_version", "pytorch_version", "cuda_version"):
         normalized["runtime"][key] = _require_text(normalized["runtime"].get(key), f"runtime.{key}")
     normalized["gpu"]["model"] = _require_text(normalized["gpu"].get("model"), "gpu.model")
+    normalized["gpu"]["driver_version"] = str(normalized["gpu"].get("driver_version") or "NOT_RECORDED")
     try:
         vram = float(normalized["gpu"].get("vram_total_gib"))
     except (TypeError, ValueError):
@@ -314,14 +318,18 @@ def validate_environment_inventory(value: dict[str, Any] | None) -> dict[str, An
         raise ValueError("connected inventory requires an explicit custom_nodes array")
     normalized_nodes = []
     for index, row in enumerate(custom_nodes):
-        if not isinstance(row, dict) or set(row) - {"name", "repository", "version", "commit", "license"}:
+        if not isinstance(row, dict) or set(row) - {"name", "repository", "version", "commit", "license", "node_classes"}:
             raise ValueError(f"custom_nodes[{index}] has an invalid shape")
+        node_classes = row.get("node_classes")
+        if not isinstance(node_classes, list) or any(not isinstance(name, str) or not name.strip() for name in node_classes):
+            raise ValueError(f"custom_nodes[{index}].node_classes must be an explicit array of node class names")
         normalized_nodes.append({
             "name": _require_text(row.get("name"), f"custom_nodes[{index}].name"),
             "repository": _require_text(row.get("repository"), f"custom_nodes[{index}].repository"),
             "version": _require_text(row.get("version"), f"custom_nodes[{index}].version"),
             "commit": _require_text(row.get("commit"), f"custom_nodes[{index}].commit"),
             "license": str(row.get("license") or "NOT_RECORDED"),
+            "node_classes": sorted({name.strip() for name in node_classes}),
         })
     normalized["custom_nodes"] = normalized_nodes
 
